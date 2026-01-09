@@ -51,36 +51,37 @@ export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
     }
 
     const cfg = await getSourcesConfig(c.env);
-    const resolved: ResolvedSourcesConfigV1 = await resolveForBuild(c.env, cfg);
+    const resolved = await resolveForBuild(c.env, cfg);
     const source = resolved.sources.find((s) => s.id === body.sourceId);
     if (!source) {
       return c.text("Source not found", 404);
     }
 
+    const resolvedSource = source as ResolvedSourcesConfigV1["sources"][number];
     let url: string;
     let init: RequestInit = { headers: {} };
 
     const headers = new Headers();
 
-    if (source.type === "github") {
-      url = `https://api.github.com/repos/${source.repo}/zipball/${source.branch}`;
+    if (resolvedSource.type === "github") {
+      url = `https://api.github.com/repos/${resolvedSource.repo}/zipball/${resolvedSource.branch}`;
       init.method = "HEAD";
-      if (source.resolvedAuth) {
-        headers.set("Authorization", source.resolvedAuth.authorizationBearer);
+      if (resolvedSource.resolvedAuth) {
+        headers.set("Authorization", resolvedSource.resolvedAuth.authorizationBearer);
       }
       headers.set("Accept", "application/vnd.github+json");
       headers.set("User-Agent", "quiz-worker");
-    } else if (source.type === "gdrive") {
+    } else if (resolvedSource.type === "gdrive") {
       const u = new URL("https://www.googleapis.com/drive/v3/files");
-      u.searchParams.set("q", `'${(source as any).folderId}' in parents and trashed=false`);
+      u.searchParams.set("q", `'${(resolvedSource as any).folderId}' in parents and trashed=false`);
       u.searchParams.set("fields", "files(id)");
       u.searchParams.set("pageSize", "1");
       u.searchParams.set("supportsAllDrives", "true");
       u.searchParams.set("includeItemsFromAllDrives", "true");
       url = u.toString();
       init.method = "GET";
-      if (source.resolvedAuth) {
-        const parts = source.resolvedAuth.headerLine.split(":");
+      if (resolvedSource.resolvedAuth) {
+        const parts = resolvedSource.resolvedAuth.headerLine.split(":");
         const name = parts.shift()?.trim();
         const value = parts.join(":").trim();
         if (!name || !value) {
@@ -88,12 +89,12 @@ export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
         }
         headers.set(name, value);
       }
-    } else if (source.type === "zip" || source.type === "canvas") {
-      url = source.url;
+    } else if (resolvedSource.type === "zip" || resolvedSource.type === "canvas") {
+      url = resolvedSource.url;
       init.method = "GET";
       headers.set("Range", "bytes=0-0");
-      if (source.resolvedAuth) {
-        const parts = source.resolvedAuth.headerLine.split(":");
+      if (resolvedSource.resolvedAuth) {
+        const parts = resolvedSource.resolvedAuth.headerLine.split(":");
         const name = parts.shift()?.trim();
         const value = parts.join(":").trim();
         if (!name || !value) {
