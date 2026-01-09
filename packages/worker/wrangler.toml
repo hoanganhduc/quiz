@@ -13,7 +13,7 @@ binding = "UPLOADS_BUCKET"
 bucket_name = "quiz-uploads"
 
 [vars]
-UI_ORIGIN = "http://localhost:5173"
-R2_PUBLIC_URL = "http://localhost:8787/files"
+UI_ORIGIN = "https://hoanganhduc.github.io/quiz"
+R2_PUBLIC_URL = "https://quiz-worker.hoanganhduc.workers.dev/files"
 UPLOAD_TTL_HOURS = "72"
 UPLOAD_MAX_BYTES = "104857600"

@@ -12,7 +12,7 @@
 
 ## 2) How to start an exam
 
-1) Open your exam link: `/#/exam/<examId>`.
+1) Open your exam link: `/#/exam/<subject>/<examId>`.
 2) The **Sticky Header** shows the exam ID and subject and includes a progress/status area.
 3) Questions appear as **Question Cards**.
 4) The right-side **Summary Card** shows answered/remaining counts and a **Progress Bar**.

@@ -24,27 +24,39 @@ function Home() {
   const [examId, setExamId] = useState("");
   const navigate = useNavigate();
 
-  const parseExamId = (raw: string) => {
+  const parseExamLink = (raw: string): { subject: string; examId: string } | null => {
     const trimmed = raw.trim();
-    if (!trimmed) return "";
+    if (!trimmed) return null;
 
     try {
       const u = new URL(trimmed);
-      const m = (u.hash ?? "").match(/#\/exam\/([^/?]+)/);
-      if (m) return decodeURIComponent(m[1]);
+      const m = (u.hash ?? "").match(/#\/exam\/([^/?]+)\/([^/?]+)/);
+      if (m) {
+        return { subject: decodeURIComponent(m[1]), examId: decodeURIComponent(m[2]) };
+      }
+      const legacy = (u.hash ?? "").match(/#\/exam\/([^/?]+)/);
+      if (legacy) {
+        return { subject: "discrete-math", examId: decodeURIComponent(legacy[1]) };
+      }
     } catch {
       // not a full URL
     }
 
-    const m = trimmed.match(/#\/exam\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)/);
-    if (m) return decodeURIComponent(m[1]);
-    return trimmed;
+    const m = trimmed.match(/#\/exam\/([^/?]+)\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)\/([^/?]+)/);
+    if (m) {
+      return { subject: decodeURIComponent(m[1]), examId: decodeURIComponent(m[2]) };
+    }
+    const legacy = trimmed.match(/#\/exam\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)/);
+    if (legacy) {
+      return { subject: "discrete-math", examId: decodeURIComponent(legacy[1]) };
+    }
+    return { subject: "discrete-math", examId: trimmed };
   };
 
   const go = () => {
-    const id = parseExamId(examId);
-    if (!id) return;
-    navigate(`/exam/${encodeURIComponent(id)}`);
+    const parsed = parseExamLink(examId);
+    if (!parsed) return;
+    navigate(`/exam/${encodeURIComponent(parsed.subject)}/${encodeURIComponent(parsed.examId)}`);
   };
 
   return (
@@ -68,12 +80,12 @@ function Home() {
               id="exam-id"
               value={examId}
               onChange={(e) => setExamId(e.target.value)}
-              placeholder="Paste link (/#/exam/abc123) or enter ID (abc123)"
+              placeholder="Paste link (/#/exam/discrete-math/abc123) or enter ID (abc123)"
               onKeyDown={(e) => (e.key === "Enter" ? go() : null)}
             />
             <div className="text-xs text-textMuted">We’ll extract the exam ID automatically if you paste a full link.</div>
           </div>
-          <Button type="button" onClick={go} disabled={!parseExamId(examId)}>
+          <Button type="button" onClick={go} disabled={!parseExamLink(examId)}>
             Open exam
           </Button>
         </div>
@@ -136,6 +148,7 @@ export function AppRouter({ session, setSession }: Props) {
         <TopBar session={session} />
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/exam/:subject/:examId" element={<ExamPage session={session} setSession={setSession} />} />
           <Route path="/exam/:examId" element={<ExamPage session={session} setSession={setSession} />} />
           <Route path="/history" element={<HistoryPage session={session} setSession={setSession} />} />
           <Route path="/account" element={<AccountPage />} />

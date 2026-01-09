@@ -152,7 +152,7 @@ curl -X POST http://localhost:8787/admin/exams \
         "policy":{"authMode":"none","requireViewCode":false,"requireSubmitCode":false,"solutionsMode":"after_submit"}
       }'
 ```
-The exam creation response includes `examId`. Open the UI at `http://localhost:5173/#/exam/<examId>`.
+The exam creation response includes `examId`. Open the UI at `http://localhost:5173/#/exam/<subject>/<examId>`.
 
 ## 5) Production deploy instructions (high level)
 - CI (GitHub Actions) will: install, test, generate banks, build, deploy worker, upload banks to KV, and deploy UI to GitHub Pages via Actions.

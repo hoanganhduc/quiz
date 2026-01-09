@@ -285,7 +285,7 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
       const status = stored.status as 400 | 404 | 500;
       return c.text(stored.error, status);
     }
-    const examUrl = `${c.env.UI_ORIGIN}/exam/${newExamId}`;
+    const examUrl = `${c.env.UI_ORIGIN}/exam/${cloned.subject}/${newExamId}`;
     return c.json({ examId: newExamId, examUrl, seed: cloned.seed });
   });
 

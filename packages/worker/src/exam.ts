@@ -235,7 +235,7 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       return c.text(stored.error, status);
     }
 
-    const examUrl = `${c.env.UI_ORIGIN}/exam/${examId}`;
+    const examUrl = `${c.env.UI_ORIGIN}/exam/${body.subject}/${examId}`;
     return c.json({ examId, examUrl, seed });
   });
 
