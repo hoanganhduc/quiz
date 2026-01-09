@@ -41,8 +41,9 @@ jobs:
           WORKER_URL: ${{ secrets.WORKER_URL }}
           ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
         run: |
-          set -e
-          curl -sS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
+          node -e "JSON.parse(require('fs').readFileSync('sources.runtime.json','utf8'))"
 
       - name: Generate banks (from sources.runtime.json)
         run: npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json

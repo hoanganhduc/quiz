@@ -57,7 +57,12 @@ export function buildZipHeaders(resolvedAuth?: ResolvedZipAuth): Headers {
 
 export async function loadSourcesConfigFile(filePath: string): Promise<ResolvedSourcesConfigV1> {
   const raw = await readFile(filePath, "utf8");
-  const json = JSON.parse(raw) as any;
+  let json: any;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    throw new Error(`Invalid JSON in sources config file: ${filePath}`);
+  }
 
   // Support export format: { config, generatedAt }
   if (json && typeof json === "object" && json.config && typeof json.generatedAt === "string") {

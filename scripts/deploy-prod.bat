@@ -38,6 +38,7 @@ call npm test || exit /b 1
 echo Fetching runtime sources config...
 powershell -NoProfile -Command ^
   "$headers = @{ Authorization = 'Bearer %ADMIN_TOKEN%' }; Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri '%WORKER_URL_STRIPPED%/admin/sources/export' -OutFile sources.runtime.json" || exit /b 1
+node -e "JSON.parse(require('fs').readFileSync('sources.runtime.json','utf8'))" || exit /b 1
 
 echo Generating banks...
 call npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json || exit /b 1
