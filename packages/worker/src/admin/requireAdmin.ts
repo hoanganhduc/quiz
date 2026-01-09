@@ -5,7 +5,14 @@ import { getUser } from "../users/store";
 
 export const requireAdmin: MiddlewareHandler<{ Bindings: Env }> = async (c, next) => {
   const origin = c.req.header("Origin");
-  if (origin && origin !== c.env.UI_ORIGIN) {
+  let allowedOrigin = c.env.UI_ORIGIN;
+  try {
+    allowedOrigin = new URL(c.env.UI_ORIGIN).origin;
+  } catch {
+    // keep UI_ORIGIN as-is
+  }
+
+  if (origin && origin !== c.env.UI_ORIGIN && origin !== allowedOrigin) {
     return c.text("Forbidden", 403);
   }
 
