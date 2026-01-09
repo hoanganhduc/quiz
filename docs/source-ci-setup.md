@@ -41,7 +41,7 @@ Auth/Origin notes:
 - CI requests typically do not send an `Origin` header.
 - Admin access is via the bearer token.
 
-**Current code status:** the Worker does **not** implement `/admin/sources/export` yet, so this step will fail until the endpoint exists.
+`/admin/sources/export` returns `{ generatedAt, config }` with resolved auth for CI use.
 
 3) **Generate banks**
 

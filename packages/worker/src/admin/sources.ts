@@ -28,6 +28,16 @@ export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
     }
   });
 
+  app.get("/admin/sources/export", requireAdmin, async (c) => {
+    try {
+      const cfg = await getSourcesConfig(c.env);
+      const resolved = await resolveForBuild(c.env, cfg);
+      return c.json({ generatedAt: new Date().toISOString(), config: resolved });
+    } catch (err: any) {
+      return c.text(err?.message ?? "Failed to export sources", 400);
+    }
+  });
+
   app.post("/admin/sources/test", requireAdmin, async (c) => {
     let body: { sourceId?: string };
     try {

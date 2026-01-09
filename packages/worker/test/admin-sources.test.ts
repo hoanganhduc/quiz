@@ -99,6 +99,48 @@ describe("admin sources endpoints", () => {
     expect(res.status).toBe(200);
   });
 
+  it("exports resolved sources config", async () => {
+    await putSecret(env, "gh-token", "TOKEN123");
+    await putSecret(env, "gd-auth", "Authorization: Bearer <TOKEN>");
+
+    const cfg: SourcesConfigV1 = {
+      version: "v1",
+      courseCode: "c1",
+      subject: "math",
+      uidNamespace: "ns",
+      sources: [
+        {
+          id: "gh1",
+          type: "github",
+          repo: "owner/repo",
+          branch: "main",
+          dir: "questions",
+          auth: { kind: "githubToken", secretRef: "gh-token" }
+        },
+        {
+          id: "gd1",
+          type: "gdrive",
+          folderId: "folder_12345",
+          auth: { kind: "httpHeader", secretRef: "gd-auth" }
+        }
+      ]
+    };
+    await putSourcesConfig(env, cfg);
+
+    const res = await app.fetch(
+      new Request("http://worker/admin/sources/export", {
+        headers: { Authorization: `Bearer ${env.ADMIN_TOKEN}` }
+      }),
+      env
+    );
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(typeof body.generatedAt).toBe("string");
+    expect(body.config.sources[0].resolvedAuth.authorizationBearer).toBe("Bearer TOKEN123");
+    expect(body.config.sources[1].resolvedAuth.headerLine).toBe("Authorization: Bearer <TOKEN>");
+  });
+
   it("tests github source connectivity with resolved auth", async () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);

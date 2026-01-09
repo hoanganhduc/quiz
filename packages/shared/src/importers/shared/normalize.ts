@@ -1,5 +1,5 @@
 import * as cheerio from "cheerio";
-import { decode } from "he";
+import he from "he";
 import { ImportedAsset, ensureAssetFromZip, mapFilebaseSrcToZipPath } from "./assets.js";
 
 export function slugify(value: string): string {
@@ -34,7 +34,7 @@ export function normalizeCanvasHtml(
     warnings: string[];
   }
 ): string {
-  const decoded = decode(html ?? "", { isAttributeValue: false });
+  const decoded = he.decode(html ?? "", { isAttributeValue: false });
   const $ = cheerio.load(decoded, { decodeEntities: false });
 
   $("img.equation_image").each((_, el) => {
