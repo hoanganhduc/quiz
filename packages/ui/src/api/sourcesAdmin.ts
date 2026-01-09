@@ -66,6 +66,23 @@ export type R2UsageResponse = {
 };
 
 export type CiTriggerResponse = { ok: true; ref: string };
+export type CiStatusResponse =
+  | {
+      ok: true;
+      run: null;
+    }
+  | {
+      ok: true;
+      run: {
+        id: number;
+        html_url: string;
+        status: string;
+        conclusion: string | null;
+        created_at: string;
+        updated_at: string;
+        head_branch: string;
+      };
+    };
 
 export async function getSources(): Promise<SourcesConfigV1> {
   return request<SourcesConfigV1>("/admin/sources");
@@ -124,4 +141,9 @@ export async function triggerCiBuild(ref?: string): Promise<CiTriggerResponse> {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(ref ? { ref } : {})
   });
+}
+
+export async function getCiStatus(ref?: string): Promise<CiStatusResponse> {
+  const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+  return request<CiStatusResponse>(`/admin/ci/status${qs}`);
 }

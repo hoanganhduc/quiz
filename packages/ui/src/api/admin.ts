@@ -1,4 +1,5 @@
 import type { ExamCompositionItemV1, ExamPolicyV1, ExamV1 } from "@app/shared";
+import type { BankPublicV1 } from "@app/shared";
 
 export type AdminExamRequest = {
   subject: "discrete-math";
@@ -292,4 +293,24 @@ export async function importTemplates(params: {
     throw await parseError(res);
   }
   return (await res.json()) as ImportTemplatesResponse;
+}
+
+export type BanksListResponse = { subjects: string[] };
+
+export async function listAvailableBanks(apiBase: string): Promise<BanksListResponse> {
+  const base = normalizeBase(apiBase);
+  const res = await fetch(`${base}/admin/banks`, { credentials: "include" });
+  if (!res.ok) {
+    throw await parseError(res);
+  }
+  return (await res.json()) as BanksListResponse;
+}
+
+export async function getLatestPublicBank(apiBase: string, subject: string): Promise<BankPublicV1> {
+  const base = normalizeBase(apiBase);
+  const res = await fetch(`${base}/admin/banks/${encodeURIComponent(subject)}/public`, { credentials: "include" });
+  if (!res.ok) {
+    throw await parseError(res);
+  }
+  return (await res.json()) as BankPublicV1;
 }

@@ -7,7 +7,7 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Alert } from "../ui/Alert";
 
-type BankStats = {
+export type BankStats = {
   topics: string[];
   counts: Record<string, { basic: number; advanced: number }>;
   total: number;
@@ -18,12 +18,16 @@ type Props = {
   composition: ExamCompositionItemV1[];
   onChange: (next: ExamCompositionItemV1[]) => void;
   errors?: Record<string, string>;
+  bankStats?: BankStats | null;
+  onBankStatsChange?: (stats: BankStats | null) => void;
 };
 
 const defaultPresetTopics = ["logic", "sets", "graphs"];
 
-export function CompositionBuilder({ composition, onChange, errors = {} }: Props) {
-  const [bankStats, setBankStats] = useState<BankStats | null>(null);
+export function CompositionBuilder({ composition, onChange, errors = {}, bankStats: externalBankStats, onBankStatsChange }: Props) {
+  const [localBankStats, setLocalBankStats] = useState<BankStats | null>(null);
+  const bankStats = externalBankStats ?? localBankStats;
+  const setBankStats = onBankStatsChange ?? setLocalBankStats;
   const [bankError, setBankError] = useState<string | null>(null);
 
   const totals = useMemo(() => {

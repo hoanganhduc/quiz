@@ -6,6 +6,8 @@ import {
   getAdminExam,
   getExamTemplate,
   healthCheck,
+  getLatestPublicBank,
+  listAvailableBanks,
   listTemplates,
   updateExam,
   type ApiError,
@@ -26,12 +28,12 @@ import { PageShell } from "../../components/layout/PageShell";
 import { StepIndicator, type Step } from "../../components/ui/StepIndicator";
 import { ConnectionCard, type ConnectionStatus } from "../../components/admin/ConnectionCard";
 import { PolicyCard } from "../../components/admin/PolicyCard";
-import { CompositionBuilder } from "../../components/admin/CompositionBuilder";
+import { CompositionBuilder, type BankStats } from "../../components/admin/CompositionBuilder";
 import { CodesEditor } from "../../components/admin/CodesEditor";
 import { SeedCard } from "../../components/admin/SeedCard";
 import { RequestPreview } from "../../components/admin/RequestPreview";
 import { ResultCard, type ExamResult } from "../../components/admin/ResultCard";
-import type { ExamPolicyV1 } from "@app/shared";
+import type { BankPublicV1, ExamPolicyV1 } from "@app/shared";
 import { useSearchParams } from "react-router-dom";
 
 function VersionsCard({
@@ -195,6 +197,56 @@ export function CreateExamPage() {
   const [templateName, setTemplateName] = useState("");
   const [savedTemplates, setSavedTemplates] = useState<SavedTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(false);
+  const [bankSubjects, setBankSubjects] = useState<string[]>([]);
+  const [bankSubject, setBankSubject] = useState("discrete-math");
+  const [bankStats, setBankStats] = useState<BankStats | null>(null);
+  const [bankLoading, setBankLoading] = useState(false);
+  const [bankLoadError, setBankLoadError] = useState<string | null>(null);
+
+  const computeBankStats = (data: BankPublicV1): BankStats => {
+    const counts: BankStats["counts"] = {};
+    for (const q of data.questions) {
+      if (!counts[q.topic]) {
+        counts[q.topic] = { basic: 0, advanced: 0 };
+      }
+      counts[q.topic][q.level] += 1;
+    }
+    const topics = Object.keys(counts).sort();
+    return { topics, counts, total: data.questions.length, subject: data.subject };
+  };
+
+  const loadBankSubjects = async (base: string) => {
+    if (!base) return;
+    try {
+      const res = await listAvailableBanks(base);
+      setBankSubjects(res.subjects ?? []);
+      setBankLoadError(null);
+      if (!res.subjects?.length) {
+        setBankSubject("");
+        setBankStats(null);
+      } else if (!res.subjects.includes(bankSubject)) {
+        setBankSubject(res.subjects[0]);
+        setBankStats(null);
+      }
+    } catch (err: any) {
+      setBankLoadError(err?.message ?? "Failed to load bank list");
+    }
+  };
+
+  const loadSelectedBank = async () => {
+    if (!apiBase || !bankSubject) return;
+    setBankLoading(true);
+    try {
+      const data = await getLatestPublicBank(apiBase, bankSubject);
+      setBankStats(computeBankStats(data));
+      setBankLoadError(null);
+    } catch (err: any) {
+      setBankStats(null);
+      setBankLoadError(err?.message ?? "Failed to load bank");
+    } finally {
+      setBankLoading(false);
+    }
+  };
 
   const expiresIso = useMemo(() => {
     if (!draft.expiresEnabled || !draft.expiresAtLocal) return "";
@@ -338,6 +390,10 @@ export function CreateExamPage() {
       cancelled = true;
       window.clearTimeout(timer);
     };
+  }, [apiBase]);
+
+  useEffect(() => {
+    void loadBankSubjects(apiBase);
   }, [apiBase]);
 
   const handleUpdate = async () => {
@@ -794,10 +850,54 @@ export function CreateExamPage() {
               </div>
 
               <div id="composition-section">
+                <Card className="space-y-4">
+                  <div>
+                    <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Question bank</h2>
+                    <p className="text-sm text-neutral-600 dark:text-neutral-300">Load the latest bank to populate topics and counts.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="bank-subject">
+                        Available bank subjects
+                      </label>
+                      <Select
+                        id="bank-subject"
+                        value={bankSubject}
+                        onChange={(e) => {
+                          setBankSubject(e.target.value);
+                          setBankStats(null);
+                        }}
+                        disabled={bankSubjects.length === 0}
+                      >
+                        {bankSubjects.length === 0 ? (
+                          <option value="">No banks found</option>
+                        ) : null}
+                        {bankSubjects.length > 0
+                          ? bankSubjects.map((subject) => (
+                              <option key={subject} value={subject}>
+                                {subject}
+                              </option>
+                            ))
+                          : null}
+                      </Select>
+                    </div>
+                    <Button type="button" variant="secondary" onClick={loadSelectedBank} disabled={bankLoading || !bankSubject}>
+                      {bankLoading ? "Loading…" : "Load bank"}
+                    </Button>
+                  </div>
+                  {bankLoadError ? <Alert tone="error">{bankLoadError}</Alert> : null}
+                  {bankStats ? (
+                    <Alert tone="info">
+                      Loaded {bankStats.subject} bank with {bankStats.total} questions across {bankStats.topics.length} topics.
+                    </Alert>
+                  ) : null}
+                </Card>
                 <CompositionBuilder
                   composition={draft.composition}
                   onChange={(next) => setDraft({ ...draft, composition: next })}
                   errors={errors}
+                  bankStats={bankStats}
+                  onBankStatsChange={setBankStats}
                 />
               </div>
 

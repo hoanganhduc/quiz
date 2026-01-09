@@ -7,8 +7,10 @@ import { Button } from "../ui/Button";
 import { Badge } from "../ui/Badge";
 import { Alert } from "../ui/Alert";
 const defaultPresetTopics = ["logic", "sets", "graphs"];
-export function CompositionBuilder({ composition, onChange, errors = {} }) {
-    const [bankStats, setBankStats] = useState(null);
+export function CompositionBuilder({ composition, onChange, errors = {}, bankStats: externalBankStats, onBankStatsChange }) {
+    const [localBankStats, setLocalBankStats] = useState(null);
+    const bankStats = externalBankStats ?? localBankStats;
+    const setBankStats = onBankStatsChange ?? setLocalBankStats;
     const [bankError, setBankError] = useState(null);
     const totals = useMemo(() => {
         const total = composition.reduce((sum, row) => sum + (Number.isInteger(row.n) ? row.n : 0), 0);

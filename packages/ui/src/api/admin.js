@@ -35,3 +35,20 @@ export async function healthCheck(apiBase) {
     }
     return { ok: true };
 }
+
+export async function listAvailableBanks(apiBase) {
+    const base = normalizeBase(apiBase);
+    const res = await fetch(`${base}/admin/banks`, { credentials: "include" });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function getLatestPublicBank(apiBase, subject) {
+    const base = normalizeBase(apiBase);
+    const res = await fetch(`${base}/admin/banks/${encodeURIComponent(subject)}/public`, { credentials: "include" });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}

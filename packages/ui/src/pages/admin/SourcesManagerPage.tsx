@@ -15,6 +15,7 @@ import {
   putSecret,
   putSources,
   testSource,
+  getCiStatus,
   triggerCiBuild,
   uploadSourceZip,
   type SecretSummary,
@@ -186,6 +187,8 @@ export function SourcesManagerPage() {
   const [configSaving, setConfigSaving] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
   const [ciTriggering, setCiTriggering] = useState(false);
+  const [ciStatus, setCiStatus] = useState<null | { status: string; conclusion: string | null; url: string; updatedAt: string }>(null);
+  const [ciStatusError, setCiStatusError] = useState<string | null>(null);
 
   // Secret modal state
   const [secretModalOpen, setSecretModalOpen] = useState(false);
@@ -237,10 +240,30 @@ export function SourcesManagerPage() {
     try {
       const res = await triggerCiBuild();
       setNotice({ tone: "success", text: `CI triggered for ref: ${res.ref}` });
+      await refreshCiStatus();
     } catch (err: any) {
       setNotice({ tone: "error", text: err?.message ?? "Failed to trigger CI" });
     } finally {
       setCiTriggering(false);
+    }
+  };
+
+  const refreshCiStatus = async () => {
+    try {
+      const res = await getCiStatus();
+      setCiStatusError(null);
+      if (!res.run) {
+        setCiStatus(null);
+        return;
+      }
+      setCiStatus({
+        status: res.run.status,
+        conclusion: res.run.conclusion,
+        url: res.run.html_url,
+        updatedAt: res.run.updated_at
+      });
+    } catch (err: any) {
+      setCiStatusError(err?.message ?? "Failed to fetch CI status");
     }
   };
 
@@ -379,6 +402,19 @@ export function SourcesManagerPage() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    void refreshCiStatus();
+  }, []);
+
+  useEffect(() => {
+    if (!ciStatus) return;
+    if (ciStatus.status !== "queued" && ciStatus.status !== "in_progress") return;
+    const id = window.setInterval(() => {
+      void refreshCiStatus();
+    }, 10000);
+    return () => window.clearInterval(id);
+  }, [ciStatus]);
 
   const saveSecret = async () => {
     const name = secretName.trim();
@@ -633,6 +669,29 @@ export function SourcesManagerPage() {
                 </Button>
                 <p className="text-xs text-textMuted">Runs the GitHub Actions workflow_dispatch to regenerate banks.</p>
               </div>
+              {ciStatusError ? (
+                <Alert tone="error">{ciStatusError}</Alert>
+              ) : ciStatus ? (
+                <div className="text-xs text-textMuted">
+                  <div>
+                    Status: <span className="font-semibold text-text">{ciStatus.status}</span>
+                    {ciStatus.conclusion ? (
+                      <>
+                        {" "}
+                        · Conclusion: <span className="font-semibold text-text">{ciStatus.conclusion}</span>
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="mt-1">
+                    <a className="text-info hover:underline" href={ciStatus.url} target="_blank" rel="noreferrer">
+                      View workflow run
+                    </a>{" "}
+                    · Updated {new Date(ciStatus.updatedAt).toLocaleString()}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-xs text-textMuted">No recent workflow run found.</div>
+              )}
             </Card>
 
             <Card className="space-y-4">
