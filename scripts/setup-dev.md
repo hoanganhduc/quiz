@@ -56,6 +56,7 @@ npx wrangler secret put GITHUB_CLIENT_SECRET
 npx wrangler secret put GOOGLE_CLIENT_ID
 npx wrangler secret put GOOGLE_CLIENT_SECRET
 npx wrangler secret put CONFIG_ENC_KEY_B64
+npx wrangler secret put GITHUB_CI_TOKEN   # optional: trigger CI from admin UI
 ```
 
 How to generate secret values:
@@ -115,6 +116,10 @@ bucket_name = "quiz-uploads"
 R2_PUBLIC_URL = "https://<your-worker>.workers.dev/files"
 UPLOAD_TTL_HOURS = "72"
 UPLOAD_MAX_BYTES = "104857600"
+GITHUB_CI_OWNER = "<owner>"              # optional: trigger CI from admin UI
+GITHUB_CI_REPO = "<repo>"                # optional: trigger CI from admin UI
+GITHUB_CI_WORKFLOW = "deploy.yml"        # optional
+GITHUB_CI_REF = "main"                   # optional
 ```
 
 Example: if your Worker URL is `https://quiz-worker.example.workers.dev`, then:

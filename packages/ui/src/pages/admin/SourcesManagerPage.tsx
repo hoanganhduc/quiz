@@ -15,6 +15,7 @@ import {
   putSecret,
   putSources,
   testSource,
+  triggerCiBuild,
   uploadSourceZip,
   type SecretSummary,
   type SourceTestResponse
@@ -184,6 +185,7 @@ export function SourcesManagerPage() {
 
   const [configSaving, setConfigSaving] = useState(false);
   const [testResults, setTestResults] = useState<Record<string, TestResult>>({});
+  const [ciTriggering, setCiTriggering] = useState(false);
 
   // Secret modal state
   const [secretModalOpen, setSecretModalOpen] = useState(false);
@@ -228,6 +230,18 @@ export function SourcesManagerPage() {
   const refreshConfig = async () => {
     const cfg = await getSources();
     setConfig(cfg);
+  };
+
+  const triggerCi = async () => {
+    setCiTriggering(true);
+    try {
+      const res = await triggerCiBuild();
+      setNotice({ tone: "success", text: `CI triggered for ref: ${res.ref}` });
+    } catch (err: any) {
+      setNotice({ tone: "error", text: err?.message ?? "Failed to trigger CI" });
+    } finally {
+      setCiTriggering(false);
+    }
   };
 
   const closeSecretModal = () => {
@@ -611,6 +625,13 @@ export function SourcesManagerPage() {
                   {`curl -fsS \\\n  -H "Authorization: Bearer <ADMIN_TOKEN>" \\\n  "${import.meta.env.VITE_API_BASE ?? "<WORKER_BASE_URL>"}/admin/sources/export"`}
                 </pre>
                 <p className="text-xs text-textMuted">Token is a placeholder only — the UI never reads or stores admin tokens.</p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-3">
+                <Button type="button" variant="secondary" onClick={triggerCi} disabled={ciTriggering}>
+                  {ciTriggering ? "Triggering…" : "Trigger CI build"}
+                </Button>
+                <p className="text-xs text-textMuted">Runs the GitHub Actions workflow_dispatch to regenerate banks.</p>
               </div>
             </Card>
 

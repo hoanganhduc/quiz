@@ -20,6 +20,17 @@ The deploy workflow runs on:
 - manual `workflow_dispatch`
 - schedule: every 6 hours (`cron: "0 */6 * * *"`)
 
+## Trigger CI from the admin UI
+
+The Worker can trigger the GitHub Actions workflow via `POST /admin/ci/trigger` (admin-only).
+
+Worker configuration required:
+- `GITHUB_CI_OWNER` (repo owner)
+- `GITHUB_CI_REPO` (repo name)
+- `GITHUB_CI_WORKFLOW` (optional, default `deploy.yml`)
+- `GITHUB_CI_REF` (optional, default `main`)
+- Secret `GITHUB_CI_TOKEN` (PAT with workflow/Actions permissions)
+
 ## Workflow steps (high level)
 
 1) **Install + test**

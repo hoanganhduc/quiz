@@ -65,6 +65,8 @@ export type R2UsageResponse = {
   deleted: number;
 };
 
+export type CiTriggerResponse = { ok: true; ref: string };
+
 export async function getSources(): Promise<SourcesConfigV1> {
   return request<SourcesConfigV1>("/admin/sources");
 }
@@ -114,4 +116,12 @@ export async function uploadSourceZip(form: FormData): Promise<SourceUploadRespo
 
 export async function getR2Usage(): Promise<R2UsageResponse> {
   return request<R2UsageResponse>("/admin/r2/usage");
+}
+
+export async function triggerCiBuild(ref?: string): Promise<CiTriggerResponse> {
+  return request<CiTriggerResponse>("/admin/ci/trigger", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(ref ? { ref } : {})
+  });
 }

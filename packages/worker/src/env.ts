@@ -15,4 +15,9 @@ export type Env = {
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
   CONFIG_ENC_KEY_B64: string;
+  GITHUB_CI_TOKEN?: string;
+  GITHUB_CI_OWNER?: string;
+  GITHUB_CI_REPO?: string;
+  GITHUB_CI_WORKFLOW?: string;
+  GITHUB_CI_REF?: string;
 };
