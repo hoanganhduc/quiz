@@ -1,0 +1,16 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "dist/.tsbuildinfo",
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["src"],
+  "exclude": ["dist", "test"],
+  "references": [
+    { "path": "../shared" }
+  ]
+}

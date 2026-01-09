@@ -1,0 +1,31 @@
+@import "./tokens.css";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-bg text-text antialiased;
+  }
+}
+
+@layer components {
+  .prose-solution {
+    @apply rounded-lg border px-4 py-3;
+    @apply bg-card border-border text-text;
+    @apply dark:bg-muted dark:border-border;
+  }
+}
+
+@layer base {
+  mjx-container {
+    line-height: 1.6;
+  }
+  mjx-container[display="true"] {
+    margin: 0.5rem 0;
+  }
+}

@@ -1,0 +1,84 @@
+name: CI and Deploy
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Secret scan
+        run: npm run scan:secrets
+
+      - name: Test
+        run: npm test
+
+      - name: Fetch runtime sources config (CI only)
+        env:
+          WORKER_URL: ${{ secrets.WORKER_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          set -e
+          curl -sS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
+
+      - name: Generate banks (from sources.runtime.json)
+        run: npm run gen --workspace @app/bank-gen -- --sources-config sources.runtime.json
+
+      - name: Build (tsc)
+        run: npm run build
+
+      - name: Build UI
+        run: npm run build --workspace @app/ui
+
+      - name: Deploy worker
+        working-directory: packages/worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx wrangler deploy
+
+      - name: Upload banks to KV (prod)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          npx wrangler --config packages/worker/wrangler.toml kv:key put banks:discrete-math:latest:public --binding=QUIZ_KV --path packages/bank-gen/dist/bank.public.v1.json
+          npx wrangler --config packages/worker/wrangler.toml kv:key put banks:discrete-math:latest:answers --binding=QUIZ_KV --path packages/bank-gen/dist/bank.answers.v1.json
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: packages/ui/dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Cleanup runtime artifacts
+        if: always()
+        run: |
+          rm -f sources.runtime.json
+          find . -type d -name ".tmp" -prune -exec rm -rf {} +

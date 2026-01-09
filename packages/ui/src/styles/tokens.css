@@ -1,0 +1,41 @@
+:root {
+  color-scheme: light;
+
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --muted: #f1f5f9;
+
+  --text: #0f172a;
+  --text-muted: #475569;
+
+  --border: #e2e8f0;
+  --info: #2563eb;
+  --warn: #f59e0b;
+  --error: #ef4444;
+  --success: #16a34a;
+}
+
+html.dark {
+  color-scheme: dark;
+
+  /* GitHub-like dark palette */
+  --bg: #0d1117;
+  --card: #161b22;
+  --muted: #21262d;
+
+  /* Slightly higher contrast for readability */
+  --text: #e6edf3;
+  --text-muted: #b1bac4;
+
+  --border: #30363d;
+  --info: #58a6ff;
+  --warn: #d29922;
+  --error: #f85149;
+  --success: #3fb950;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+}

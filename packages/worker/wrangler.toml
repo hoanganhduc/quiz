@@ -1,0 +1,19 @@
+name = "quiz-worker"
+main = "src/index.ts"
+compatibility_date = "2024-12-05"
+compatibility_flags = ["nodejs_compat"]
+
+[[kv_namespaces]]
+binding = "QUIZ_KV"
+id = "bef62b09dcd643b79fd49af7b4c9a3c5"
+preview_id = "bca842efb04e4f5785733de4bbd77f89"
+
+[[r2_buckets]]
+binding = "UPLOADS_BUCKET"
+bucket_name = "quiz-uploads"
+
+[vars]
+UI_ORIGIN = "http://localhost:5173"
+R2_PUBLIC_URL = "http://localhost:8787/files"
+UPLOAD_TTL_HOURS = "72"
+UPLOAD_MAX_BYTES = "104857600"

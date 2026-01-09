@@ -1,0 +1,23 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+const hmrHost = process.env.HMR_CLIENT_HOST || "localhost";
+const hmrPort = Number(process.env.HMR_CLIENT_PORT) || 5173;
+const hmrProtocol = process.env.HMR_CLIENT_PROTOCOL === "wss" ? "wss" : "ws";
+
+export default defineConfig({
+  plugins: [react()],
+  // Prefer TypeScript sources when both .ts/.tsx and emitted .js exist side-by-side.
+  resolve: {
+    extensions: [".tsx", ".ts", ".jsx", ".js"]
+  },
+  server: {
+    port: 5173,
+    host: "0.0.0.0",
+    hmr: {
+      host: hmrHost,
+      port: hmrPort,
+      protocol: hmrProtocol
+    }
+  }
+});

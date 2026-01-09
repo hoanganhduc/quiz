@@ -1,0 +1,38 @@
+{
+  "name": "@app/shared",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./importers": {
+      "types": "./dist/importers/index.d.ts",
+      "default": "./dist/importers/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run",
+    "cli": "tsx src/cli.ts"
+  },
+  "bin": {
+    "quiz-import": "dist/cli.js"
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.12",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^12.1.0",
+    "fast-xml-parser": "^4.5.0",
+    "he": "^1.2.0",
+    "yauzl": "^2.10.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.4"
+  }
+}

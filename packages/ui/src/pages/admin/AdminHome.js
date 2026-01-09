@@ -1,0 +1,11 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useNavigate } from "react-router-dom";
+import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
+import { IconPlus, IconShield, IconUser } from "../../components/ui/Icons";
+import { PageShell } from "../../components/layout/PageShell";
+import { AdminAuthGate } from "../../components/admin/AdminAuthGate";
+export function AdminHome() {
+    const navigate = useNavigate();
+    return (_jsx(AdminAuthGate, { children: _jsxs(PageShell, { maxWidth: "4xl", className: "space-y-6", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-2xl font-semibold text-text", children: "Admin" }), _jsx("p", { className: "text-sm text-textMuted", children: "Create and manage exams end-to-end." })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Admin tools" }), _jsx("p", { className: "text-sm text-textMuted", children: "Jump to the tool you need." })] }), _jsxs("div", { className: "flex flex-wrap gap-2", children: [_jsx(Button, { type: "button", icon: _jsx(IconPlus, { className: "h-4 w-4" }), onClick: () => navigate("/admin/exams/new"), children: "Create exam" }), _jsx(Button, { type: "button", icon: _jsx(IconShield, { className: "h-4 w-4" }), variant: "secondary", onClick: () => navigate("/admin/sources"), children: "Sources & Secrets" }), _jsx(Button, { type: "button", icon: _jsx(IconUser, { className: "h-4 w-4" }), variant: "secondary", onClick: () => navigate("/admin/users"), children: "Admin users" })] })] }), _jsxs(Card, { className: "space-y-2", children: [_jsx("h3", { className: "text-base font-semibold text-text", children: "Security note" }), _jsx("p", { className: "text-sm text-textMuted", children: "Admin tokens grant full exam creation access. Avoid storing them on shared machines." })] })] }) }));
+}

@@ -1,0 +1,52 @@
+const API_BASE = import.meta.env.VITE_API_BASE;
+async function request(path, init) {
+    const res = await fetch(`${API_BASE}${path}`, {
+        credentials: "include",
+        ...init
+    });
+    if (!res.ok) {
+        const body = await res.text();
+        const err = new Error(body || `Request failed: ${res.status}`);
+        err.status = res.status;
+        err.body = body;
+        throw err;
+    }
+    if (init?.parseJson === false) {
+        return undefined;
+    }
+    return (await res.json());
+}
+export async function getSources() {
+    return request("/admin/sources");
+}
+export async function putSources(config) {
+    return request("/admin/sources", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(config)
+    });
+}
+export async function listSecrets() {
+    return request("/admin/secrets");
+}
+export async function putSecret(name, value) {
+    await request(`/admin/secrets/${encodeURIComponent(name)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ value }),
+        parseJson: false
+    });
+}
+export async function deleteSecret(name) {
+    await request(`/admin/secrets/${encodeURIComponent(name)}`, {
+        method: "DELETE",
+        parseJson: false
+    });
+}
+export async function testSource(sourceId) {
+    return request("/admin/sources/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceId })
+    });
+}

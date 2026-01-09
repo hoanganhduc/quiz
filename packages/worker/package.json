@@ -1,0 +1,27 @@
+{
+  "name": "@app/worker",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "dev": "npx wrangler dev --port 8787",
+    "deploy": "npx wrangler deploy",
+    "kv:seed": "npx tsx scripts/kv-seed.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@app/shared": "0.1.0",
+    "hono": "^4.6.5",
+    "jose": "^5.9.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20241205.0",
+    "vitest": "^2.1.4",
+    "wrangler": "^4.57.0"
+  }
+}
