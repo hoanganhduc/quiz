@@ -45,7 +45,7 @@ Auth/Origin notes:
 
 3) **Generate banks**
 
-- `npm run gen --workspace @app/bank-gen -- --sources-config sources.runtime.json`
+- `npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json`
 
 `bank-gen` behavior (important):
 - Accepts either a raw sources config or an exported wrapper `{ generatedAt, config }`.

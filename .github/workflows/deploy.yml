@@ -45,7 +45,7 @@ jobs:
           curl -sS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
 
       - name: Generate banks (from sources.runtime.json)
-        run: npm run gen --workspace @app/bank-gen -- --sources-config sources.runtime.json
+        run: npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json
 
       - name: Build (tsc)
         run: npm run build

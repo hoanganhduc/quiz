@@ -40,7 +40,7 @@ powershell -NoProfile -Command ^
   "$headers = @{ Authorization = 'Bearer %ADMIN_TOKEN%' }; Invoke-WebRequest -UseBasicParsing -Headers $headers -Uri '%WORKER_URL_STRIPPED%/admin/sources/export' -OutFile sources.runtime.json" || exit /b 1
 
 echo Generating banks...
-call npm run gen --workspace @app/bank-gen -- --sources-config sources.runtime.json || exit /b 1
+call npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json || exit /b 1
 
 echo Building packages...
 call npm run build || exit /b 1
