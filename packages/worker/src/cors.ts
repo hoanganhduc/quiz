@@ -11,7 +11,14 @@ export function corsForRequest(request: Request, allowedOrigin: string): CorsRes
     return { allowed: true, headers };
   }
 
-  if (origin !== allowedOrigin) {
+  let allowedBase = allowedOrigin;
+  try {
+    allowedBase = new URL(allowedOrigin).origin;
+  } catch {
+    // keep allowedOrigin as-is
+  }
+
+  if (origin !== allowedOrigin && origin !== allowedBase) {
     return { allowed: false, headers };
   }
 
