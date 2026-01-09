@@ -53,8 +53,8 @@ call npx wrangler deploy || exit /b 1
 popd
 
 echo Uploading banks to KV...
-call npx wrangler --config packages\worker\wrangler.toml kv:key put banks:discrete-math:latest:public --binding QUIZ_KV --path packages\bank-gen\dist\bank.public.v1.json || exit /b 1
-call npx wrangler --config packages\worker\wrangler.toml kv:key put banks:discrete-math:latest:answers --binding QUIZ_KV --path packages\bank-gen\dist\bank.answers.v1.json || exit /b 1
+call npx wrangler --config packages\worker\wrangler.toml kv key put "banks:discrete-math:latest:public" --binding QUIZ_KV --path packages\bank-gen\dist\bank.public.v1.json --preview false || exit /b 1
+call npx wrangler --config packages\worker\wrangler.toml kv key put "banks:discrete-math:latest:answers" --binding QUIZ_KV --path packages\bank-gen\dist\bank.answers.v1.json --preview false || exit /b 1
 
 echo Cleaning up runtime artifacts...
 del /f /q sources.runtime.json >nul 2>&1
