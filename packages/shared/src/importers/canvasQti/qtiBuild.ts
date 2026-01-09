@@ -96,15 +96,17 @@ export function buildQtiXml(
     const promptHtml = promptToHtml(q.prompt ?? "", assets, warnings);
 
     if (q.type === "mcq-single") {
-      const key = answerKey[q.uid]?.type === "mcq-single" ? answerKey[q.uid].correctKey : undefined;
+      const answer = answerKey[q.uid];
+      const key = answer?.type === "mcq-single" ? answer.correctKey : undefined;
       const responseIdent = "response1";
-      const choicesRaw = q.choices ?? [];
-      const choices = choicesRaw.map((choice: any, cIndex: number) => ({
+      type ChoiceInput = { key?: string; text?: string };
+      const choicesRaw: ChoiceInput[] = Array.isArray(q.choices) ? q.choices : [];
+      const choices = choicesRaw.map((choice: ChoiceInput, cIndex: number) => ({
         "@_ident": choiceLabelIdent(index, cIndex),
         material: buildMattext(promptToHtml(String(choice.text ?? ""), [], warnings))
       }));
       const correctIdent = key
-        ? choices.find((_, cIndex) => choicesRaw[cIndex]?.key === key)?.["@_ident"]
+        ? choices.find((_: unknown, cIndex: number) => choicesRaw[cIndex]?.key === key)?.["@_ident"]
         : undefined;
       if (!correctIdent) {
         warnings.push(`Missing correct choice for ${q.uid}`);

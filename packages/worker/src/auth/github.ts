@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import type { AppUser, SessionV2 } from "@app/shared";
+import type { Env } from "../env";
 import { issueSessionCookie, readSession } from "../session";
 import {
   ConflictError,
@@ -19,8 +20,6 @@ type GithubMode = "login" | "link";
 function isAllowedRedirect(redirect: string, uiOrigin: string): boolean {
   return redirect.startsWith(uiOrigin) || redirect.startsWith("http://localhost:5173");
 }
-
- 
 
 async function fetchGithubToken(env: Env, code: string, state: string): Promise<string | null> {
   const resp = await fetch("https://github.com/login/oauth/access_token", {

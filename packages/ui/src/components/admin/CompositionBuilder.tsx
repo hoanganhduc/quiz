@@ -41,7 +41,7 @@ export function CompositionBuilder({ composition, onChange, errors = {} }: Props
 
   const topics = bankStats?.topics.length ? bankStats.topics : defaultPresetTopics;
 
-  const presets = [
+  const presets: { label: string; rows: ExamCompositionItemV1[] }[] = [
     {
       label: "Balanced 30",
       rows: [

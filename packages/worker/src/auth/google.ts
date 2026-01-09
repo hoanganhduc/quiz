@@ -225,7 +225,8 @@ export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
       ({ user, displayName } = await upsertGoogleUser(c.env, payload, mode, appUserId));
     } catch (err) {
       if (err instanceof GoogleAuthError) {
-        return c.text(err.message, err.status);
+      const status = err.status as 400 | 401 | 404 | 409 | 500;
+      return c.text(err.message, status);
       }
       throw err;
     }
@@ -290,7 +291,8 @@ export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
       ({ user, displayName } = await upsertGoogleUser(c.env, payload, mode, linkAppUserId));
     } catch (err) {
       if (err instanceof GoogleAuthError) {
-        return c.text(err.message, err.status);
+        const status = err.status as 400 | 401 | 404 | 409 | 500;
+        return c.text(err.message, status);
       }
       throw err;
     }

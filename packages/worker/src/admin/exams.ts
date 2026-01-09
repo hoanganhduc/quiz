@@ -3,7 +3,13 @@ import type { Env } from "../env";
 import { requireAdmin } from "./requireAdmin";
 import { getExam, getLatestBanks, putExam } from "../kv";
 import { createRng, hashAccessCode, shuffle } from "../utils";
-import { ExamV1Schema, normalizeExamPolicyDefaults, type ExamPolicyV1, type ExamV1 } from "@app/shared";
+import {
+  ExamV1Schema,
+  normalizeExamPolicyDefaults,
+  type BankPublicV1,
+  type ExamPolicyV1,
+  type ExamV1
+} from "@app/shared";
 
 type AdminExamBody = {
   subject: "discrete-math";
@@ -28,7 +34,7 @@ type ExamTemplateBody = {
 const EXAM_PREFIX = "exam:";
 const TEMPLATE_PREFIX = "examTemplate:";
 
-function parseLimit(value: string | null, fallback = 50) {
+function parseLimit(value: string | null | undefined, fallback = 50) {
   const n = value ? Number(value) : NaN;
   if (!Number.isFinite(n)) return fallback;
   return Math.max(1, Math.min(100, Math.floor(n)));
@@ -39,7 +45,7 @@ async function hasSubmissions(env: Env, examId: string): Promise<boolean> {
   return list.keys.length > 0;
 }
 
-function selectQuestions(composition: AdminExamBody["composition"], bank: any, seed: string): string[] {
+function selectQuestions(composition: AdminExamBody["composition"], bank: BankPublicV1, seed: string): string[] {
   const rng = createRng(seed);
   const chosen = new Set<string>();
   const results: string[] = [];
@@ -78,7 +84,7 @@ function parseTemplateBody(body: any): ExamTemplateBody {
   if (template.codes !== undefined && !Array.isArray(template.codes)) {
     throw new Error("codes must be an array");
   }
-  if (Array.isArray(template.codes) && template.codes.some((code) => typeof code !== "string")) {
+    if (Array.isArray(template.codes) && template.codes.some((code: unknown) => typeof code !== "string")) {
     throw new Error("codes must be strings");
   }
   return { name, template };

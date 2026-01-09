@@ -131,7 +131,11 @@ function pickQuestions(
       const ans = mapAns.get(uid);
       if (!pub || !ans) return null;
       if (!includeSolutions) {
-        const { answerKey, solution, ...rest } = ans;
+        if (ans.type === "mcq-single") {
+          const { answerKey, solution, ...rest } = ans;
+          return rest;
+        }
+        const { answers, solution, ...rest } = ans;
         return rest;
       }
       return ans;

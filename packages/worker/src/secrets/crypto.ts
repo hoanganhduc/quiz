@@ -38,7 +38,7 @@ export async function importKeyFromB64(b64: string): Promise<CryptoKey> {
   if (raw.byteLength !== 32) {
     throw new Error("CONFIG_ENC_KEY_B64 must decode to 32 bytes");
   }
-  return subtle.importKey("raw", raw, "AES-GCM", false, ["encrypt", "decrypt"]);
+  return subtle.importKey("raw", raw as BufferSource, "AES-GCM", false, ["encrypt", "decrypt"]);
 }
 
 export async function encryptString(
@@ -47,13 +47,13 @@ export async function encryptString(
 ): Promise<{ ivB64: string; ctB64: string }> {
   const iv = cryptoObj.getRandomValues(new Uint8Array(12));
   const encoded = textEncoder.encode(plaintext);
-  const ct = await subtle.encrypt({ name: "AES-GCM", iv }, key, encoded);
+  const ct = await subtle.encrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, encoded as BufferSource);
   return { ivB64: encodeB64(iv), ctB64: encodeB64(ct) };
 }
 
 export async function decryptString(key: CryptoKey, ivB64: string, ctB64: string): Promise<string> {
   const iv = decodeB64(ivB64);
   const ct = decodeB64(ctB64);
-  const ptBuf = await subtle.decrypt({ name: "AES-GCM", iv }, key, ct);
+  const ptBuf = await subtle.decrypt({ name: "AES-GCM", iv: iv as BufferSource }, key, ct as BufferSource);
   return textDecoder.decode(ptBuf);
 }

@@ -88,6 +88,10 @@ export async function createUserWithProvider(
   }
 
   const now = new Date().toISOString();
+  const linked =
+    provider === "github"
+      ? { github: linkedData as AppUser["linked"]["github"] }
+      : { google: linkedData as AppUser["linked"]["google"] };
   const user: AppUser = {
     appUserId: crypto.randomUUID(),
     createdAt: now,
@@ -97,7 +101,7 @@ export async function createUserWithProvider(
       displayName: profilePartial.displayName,
       email: profilePartial.email
     },
-    linked: provider === "github" ? { github: linkedData } : { google: linkedData }
+    linked
   };
 
   await putUser(env, user);
@@ -116,7 +120,9 @@ export async function updateLinkedProvider(
     updatedAt: new Date().toISOString(),
     linked: {
       ...user.linked,
-      ...(provider === "github" ? { github: linkedData } : { google: linkedData })
+      ...(provider === "github"
+        ? { github: linkedData as AppUser["linked"]["github"] }
+        : { google: linkedData as AppUser["linked"]["google"] })
     }
   };
   await putUser(env, updated);

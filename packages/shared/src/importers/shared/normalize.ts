@@ -35,7 +35,7 @@ export function normalizeCanvasHtml(
   }
 ): string {
   const decoded = he.decode(html ?? "", { isAttributeValue: false });
-  const $ = cheerio.load(decoded, { decodeEntities: false });
+  const $ = cheerio.load(decoded, { decodeEntities: false } as any);
 
   $("img.equation_image").each((_, el) => {
     const latex = $(el).attr("data-equation-content") ?? "";

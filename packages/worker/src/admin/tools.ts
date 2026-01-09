@@ -132,7 +132,7 @@ export function registerAdminToolsRoutes(app: Hono<{ Bindings: Env }>) {
         : undefined;
 
     const { res, warnings: fetchWarnings } = await fetchToolResponse(c.env, body.source);
-    const bytes = new Uint8Array(await res.arrayBuffer());
+    const bytes = Buffer.from(await res.arrayBuffer());
     const result = await importCanvasZipBytes(bytes, {
       courseCode,
       subject,

@@ -18,6 +18,9 @@ type Props = {
 };
 
 export function McqQuestion({ index, question, answer, onChange, showSolution, submissionStatus }: Props) {
+  if (question.type !== "mcq-single") {
+    return null;
+  }
   const status: Status =
     submissionStatus === "correct"
       ? "correct"

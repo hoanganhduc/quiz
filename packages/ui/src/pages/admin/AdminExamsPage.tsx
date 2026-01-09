@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  deleteTemplate,
   deleteExam,
   getAdminExam,
   importExams,

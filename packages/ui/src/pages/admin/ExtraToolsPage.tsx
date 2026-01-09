@@ -302,7 +302,7 @@ export function ExtraToolsPage() {
 
   return (
     <AdminAuthGate>
-      <PageShell maxWidth="5xl" className="space-y-6">
+      <PageShell maxWidth="6xl" className="space-y-6">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold text-text">Extra Tools</h1>
           <p className="text-sm text-textMuted">Convert Canvas IMS-CC and LaTeX question banks without leaving the admin UI.</p>

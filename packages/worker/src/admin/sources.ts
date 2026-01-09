@@ -3,7 +3,7 @@ import type { Env } from "../env";
 import { requireAdmin } from "./requireAdmin";
 import { getSourcesConfig, putSourcesConfig } from "../sources/store";
 import type { SourcesConfigV1 } from "@app/shared";
-import { resolveForBuild } from "../sources/resolve";
+import { resolveForBuild, type ResolvedSourcesConfigV1 } from "../sources/resolve";
 import { buildR2PublicUrl, getMaxUploadBytes, getUploadTtlSeconds, recordR2Usage, recordUploadEvent } from "../r2/usage";
 
 export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
@@ -51,7 +51,7 @@ export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
     }
 
     const cfg = await getSourcesConfig(c.env);
-    const resolved = await resolveForBuild(c.env, cfg);
+    const resolved: ResolvedSourcesConfigV1 = await resolveForBuild(c.env, cfg);
     const source = resolved.sources.find((s) => s.id === body.sourceId);
     if (!source) {
       return c.text("Source not found", 404);
@@ -111,7 +111,7 @@ export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
       const res = await fetch(url, init);
       const payload = { ok: res.ok, status: res.status };
       if (!res.ok) {
-        return c.json({ ok: false, status: res.status, message: "Fetch failed" }, res.status);
+        return c.json({ ok: false, status: res.status, message: "Fetch failed" }, 502);
       }
       return c.json(payload);
     } catch {

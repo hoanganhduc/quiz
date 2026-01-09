@@ -17,24 +17,24 @@ function readZipEntries(zipPath: string): Promise<{ entries: string[]; buffers: 
   return new Promise((resolve, reject) => {
     const buffers = new Map<string, Buffer>();
     const entries: string[] = [];
-    yauzl.open(zipPath, { lazyEntries: true }, (err, zip) => {
+    yauzl.open(zipPath, { lazyEntries: true }, (err: Error | null, zip?: any) => {
       if (err || !zip) {
         reject(err ?? new Error("Failed to open zip"));
         return;
       }
       zip.readEntry();
-      zip.on("entry", (entry) => {
+      zip.on("entry", (entry: { fileName: string }) => {
         if (entry.fileName.endsWith("/")) {
           zip.readEntry();
           return;
         }
-        zip.openReadStream(entry, (streamErr, stream) => {
+        zip.openReadStream(entry, (streamErr: Error | null, stream?: NodeJS.ReadableStream) => {
           if (streamErr || !stream) {
             reject(streamErr ?? new Error("Failed to read zip entry"));
             return;
           }
           const chunks: Buffer[] = [];
-          stream.on("data", (chunk) => chunks.push(chunk));
+          stream.on("data", (chunk: Buffer) => chunks.push(chunk));
           stream.on("end", () => {
             const buffer = Buffer.concat(chunks);
             buffers.set(entry.fileName, buffer);
@@ -54,24 +54,24 @@ function readZipEntriesFromBuffer(zipBytes: Buffer): Promise<{ entries: string[]
   return new Promise((resolve, reject) => {
     const buffers = new Map<string, Buffer>();
     const entries: string[] = [];
-    yauzl.fromBuffer(zipBytes, { lazyEntries: true }, (err, zip) => {
+    yauzl.fromBuffer(zipBytes, { lazyEntries: true }, (err: Error | null, zip?: any) => {
       if (err || !zip) {
         reject(err ?? new Error("Failed to open zip buffer"));
         return;
       }
       zip.readEntry();
-      zip.on("entry", (entry) => {
+      zip.on("entry", (entry: { fileName: string }) => {
         if (entry.fileName.endsWith("/")) {
           zip.readEntry();
           return;
         }
-        zip.openReadStream(entry, (streamErr, stream) => {
+        zip.openReadStream(entry, (streamErr: Error | null, stream?: NodeJS.ReadableStream) => {
           if (streamErr || !stream) {
             reject(streamErr ?? new Error("Failed to read zip entry"));
             return;
           }
           const chunks: Buffer[] = [];
-          stream.on("data", (chunk) => chunks.push(chunk));
+          stream.on("data", (chunk: Buffer) => chunks.push(chunk));
           stream.on("end", () => {
             const buffer = Buffer.concat(chunks);
             buffers.set(entry.fileName, buffer);
