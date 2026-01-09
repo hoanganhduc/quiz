@@ -36,18 +36,6 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Fetch runtime sources config (CI only)
-        env:
-          WORKER_URL: ${{ secrets.WORKER_URL }}
-          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
-        run: |
-          set -euo pipefail
-          curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
-          node -e "JSON.parse(require('fs').readFileSync('sources.runtime.json','utf8'))"
-
-      - name: Generate banks (from sources.runtime.json)
-        run: npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json
-
       - name: Build (tsc)
         run: npm run build
 
@@ -60,6 +48,18 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: npx wrangler deploy
+
+      - name: Fetch runtime sources config (CI only)
+        env:
+          WORKER_URL: ${{ secrets.WORKER_URL }}
+          ADMIN_TOKEN: ${{ secrets.ADMIN_TOKEN }}
+        run: |
+          set -euo pipefail
+          curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
+          node -e "JSON.parse(require('fs').readFileSync('sources.runtime.json','utf8'))"
+
+      - name: Generate banks (from sources.runtime.json)
+        run: npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json
 
       - name: Upload banks to KV (prod)
         env:
