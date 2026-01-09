@@ -430,7 +430,7 @@ export function ExtraToolsPage() {
               <p className="text-xs text-textMuted">
                 {canvasSourceType === "github"
                   ? "Use a secret containing a GitHub token."
-                  : "Use a secret containing a full HTTP header line, e.g. Authorization: Bearer TOKEN."}
+                  : "Use a secret containing a full HTTP header line, e.g. Authorization: Bearer <TOKEN>."}
               </p>
             </div>
             )}
@@ -649,7 +649,7 @@ export function ExtraToolsPage() {
               <p className="text-xs text-textMuted">
                 {latexSourceType === "github"
                   ? "Use a secret containing a GitHub token."
-                  : "Use a secret containing a full HTTP header line, e.g. Authorization: Bearer TOKEN."}
+                  : "Use a secret containing a full HTTP header line, e.g. Authorization: Bearer <TOKEN>."}
               </p>
             </div>
             )}

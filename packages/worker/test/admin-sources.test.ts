@@ -145,7 +145,7 @@ describe("admin sources endpoints", () => {
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ files: [] }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await putSecret(env, "gd-auth", "Authorization: Bearer TOKEN123");
+    await putSecret(env, "gd-auth", "Authorization: Bearer <TOKEN>");
 
     const cfg: SourcesConfigV1 = {
       version: "v1",
@@ -186,6 +186,6 @@ describe("admin sources endpoints", () => {
     expect(url).toBe(u.toString());
     expect((init as RequestInit).method).toBe("GET");
     const headers = (init as RequestInit).headers as Headers;
-    expect(headers.get("Authorization")).toBe("Bearer TOKEN123");
+    expect(headers.get("Authorization")).toBe("Bearer <TOKEN>");
   });
 });

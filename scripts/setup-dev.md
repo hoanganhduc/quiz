@@ -79,18 +79,16 @@ How to generate secret values:
 Keep these values stable in prod. Changing them can invalidate sessions or stored secrets.
 
 ### B) Worker local dev vars
-Create `packages/worker/.dev.vars` (not committed):
-```
-ADMIN_TOKEN=dev-admin
-JWT_SECRET=dev-jwt-secret
-CODE_PEPPER=dev-code-pepper
-UI_ORIGIN=http://localhost:5173
-GITHUB_CLIENT_ID=dev-github-client-id
-GITHUB_CLIENT_SECRET=dev-github-client-secret
-GOOGLE_CLIENT_ID=dev-google-client-id
-GOOGLE_CLIENT_SECRET=dev-google-client-secret
-CONFIG_ENC_KEY_B64=base64-32-byte-key
-```
+Create `packages/worker/.dev.vars` (not committed) with `KEY=VALUE` pairs for:
+- `ADMIN_TOKEN`
+- `JWT_SECRET`
+- `CODE_PEPPER`
+- `UI_ORIGIN`
+- `GITHUB_CLIENT_ID`
+- `GITHUB_CLIENT_SECRET`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `CONFIG_ENC_KEY_B64`
 Use your **DEV** GitHub OAuth keys here.
 
 ### C) UI local env
@@ -146,7 +144,7 @@ git config core.hooksPath .githooks
 curl http://localhost:8787/health
 curl -i http://localhost:8787/auth/me
 curl -X POST http://localhost:8787/admin/exams \
-  -H "Authorization: Bearer dev-admin" \
+  -H "Authorization: Bearer <ADMIN_TOKEN>" \
   -H "Content-Type: application/json" \
   -d '{
         "subject":"discrete-math",
