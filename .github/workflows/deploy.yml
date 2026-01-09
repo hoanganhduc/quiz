@@ -40,6 +40,8 @@ jobs:
         run: npm run build
 
       - name: Build UI
+        env:
+          VITE_BASE_URL: /${{ github.event.repository.name }}/
         run: npm run build --workspace @app/ui
 
       - name: Deploy worker
