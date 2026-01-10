@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/hoanganhduc/texlive:latest
+      options: --user root
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
