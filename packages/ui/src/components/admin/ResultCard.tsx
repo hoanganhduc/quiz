@@ -10,9 +10,11 @@ export type ExamResult = {
 type Props = {
   result: ExamResult;
   onCreateAnother: () => void;
+  onCopyShortLink?: () => void;
+  shortLinkLoading?: boolean;
 };
 
-export function ResultCard({ result, onCreateAnother }: Props) {
+export function ResultCard({ result, onCreateAnother, onCopyShortLink, shortLinkLoading }: Props) {
   return (
     <Card className="space-y-3">
       <div>
@@ -46,6 +48,11 @@ export function ResultCard({ result, onCreateAnother }: Props) {
         >
           Copy exam URL
         </Button>
+        {onCopyShortLink ? (
+          <Button type="button" variant="secondary" onClick={onCopyShortLink} disabled={shortLinkLoading}>
+            {shortLinkLoading ? "Copying..." : "Copy short link"}
+          </Button>
+        ) : null}
         <Button type="button" variant="ghost" onClick={() => navigator.clipboard.writeText(result.seed)}>
           Copy seed
         </Button>

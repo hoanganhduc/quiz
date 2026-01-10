@@ -46,6 +46,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const [restored, setRestored] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [clearAnswersOpen, setClearAnswersOpen] = useState(false);
   const [draftNotice, setDraftNotice] = useState<string | null>(null);
   const [hasDraft, setHasDraft] = useState(false);
   const [timeRemainingMs, setTimeRemainingMs] = useState<number | null>(null);
@@ -95,6 +96,13 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     void loadConfig();
   }, [examId, setSession]);
 
+  useEffect(() => {
+    const storedView = sessionStorage.getItem(`exam:viewCode:${examId}`);
+    const storedSubmit = sessionStorage.getItem(`exam:submitCode:${examId}`);
+    setViewCode(storedView ?? "");
+    setSubmitCode(storedSubmit ?? "");
+  }, [examId]);
+
   const requireViewCode = config?.policy.requireViewCode;
   const requireSubmitCode = config?.policy.requireSubmitCode;
 
@@ -104,6 +112,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const codesRequired = !!requireViewCode || !!requireSubmitCode;
   const codesEntered = (!requireViewCode || !!viewCode) && (!requireSubmitCode || !!submitCode);
   const canShare = config?.visibility === "public" && authMode === "none" && !codesRequired;
+  const examTitle = config?.title ? config.title : `Exam ${config?.examId ?? examId}`;
   const examLink = config
     ? (() => {
         const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
@@ -133,6 +142,26 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const completionPct = totalQuestions === 0 ? 0 : (answeredCount / totalQuestions) * 100;
   const timeLimitMinutes = config?.policy.timeLimitMinutes;
   const timeExpired = timeRemainingMs !== null && timeRemainingMs <= 0;
+
+  useEffect(() => {
+    if (!examId) return;
+    const key = `exam:viewCode:${examId}`;
+    if (viewCode) {
+      sessionStorage.setItem(key, viewCode);
+    } else {
+      sessionStorage.removeItem(key);
+    }
+  }, [examId, viewCode]);
+
+  useEffect(() => {
+    if (!examId) return;
+    const key = `exam:submitCode:${examId}`;
+    if (submitCode) {
+      sessionStorage.setItem(key, submitCode);
+    } else {
+      sessionStorage.removeItem(key);
+    }
+  }, [examId, submitCode]);
 
   const formatTimeRemaining = (ms: number) => {
     if (ms <= 0) return "Time expired";
@@ -207,16 +236,26 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   }, [answers, examId, versionId, bank]);
 
   useEffect(() => {
-    if (!confirmOpen && !clearConfirmOpen) return;
+    if (!confirmOpen && !clearConfirmOpen && !clearAnswersOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setConfirmOpen(false);
         setClearConfirmOpen(false);
+        setClearAnswersOpen(false);
       }
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [confirmOpen, clearConfirmOpen]);
+  }, [confirmOpen, clearConfirmOpen, clearAnswersOpen]);
+
+  useEffect(() => {
+    if (!config || bank) return;
+    const autoLoad = sessionStorage.getItem(`exam:autoLoad:${examId}`) === "1";
+    if (!autoLoad) return;
+    if (authMode === "required" && !signedIn) return;
+    if (requireViewCode && !viewCode) return;
+    void handleBank();
+  }, [authMode, bank, config, examId, requireViewCode, signedIn, viewCode]);
 
   const handleBank = async () => {
     if (!config) return;
@@ -231,6 +270,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
       setAnswers({});
       setVersionId(data.version?.versionId ?? "fixed");
       setBank(data);
+      sessionStorage.setItem(`exam:autoLoad:${examId}`, "1");
     } catch (err: any) {
       const msg = err?.message ?? "Failed to load questions";
       const tone: StatusTone = msg.includes("Unauthorized") ? "error" : msg.includes("Forbidden") ? "warn" : "error";
@@ -272,12 +312,6 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     window.location.href = googleLoginUrl(window.location.href);
   };
 
-  const handleAnonymous = async () => {
-    await loginAnonymous();
-    const sess = await getSession();
-    if (sess) setSession(sess);
-  };
-
   const handleClearDraft = () => {
     if (!versionId) return;
     clearDraft(examId, versionId);
@@ -285,6 +319,15 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     setRestored(false);
     setHasDraft(false);
     setDraftNotice("Draft cleared");
+  };
+
+  const handleClearAllAnswers = () => {
+    if (!bank || submission) return;
+    if (versionId) clearDraft(examId, versionId);
+    setAnswers({});
+    setRestored(false);
+    setHasDraft(false);
+    setDraftNotice("Answers cleared");
   };
 
   const handleSaveForLater = () => {
@@ -307,7 +350,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     try {
       if (navigator.share) {
         await navigator.share({
-          title: `Exam ${config?.examId ?? ""}`,
+          title: examTitle,
           url: examLink
         });
         return;
@@ -323,6 +366,11 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const openClearDraftConfirm = () => {
     if (!versionId || !hasDraft) return;
     setClearConfirmOpen(true);
+  };
+
+  const openClearAnswersConfirm = () => {
+    if (!bank || submission) return;
+    setClearAnswersOpen(true);
   };
 
   const reviewUnanswered = () => {
@@ -341,6 +389,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
 
   const submitDisabled = (totalQuestions > 0 ? answeredCount === 0 : false) || timeExpired;
   const showSolutions = submission ? true : false;
+  const loadDisabled = (authMode === "required" && !signedIn) || (requireViewCode && !viewCode);
 
   const openSubmitConfirm = () => {
     if (submitDisabled) {
@@ -395,7 +444,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     <PageShell className="py-0 pb-24 lg:pb-10">
       <Card className="mt-4 space-y-3">
         <div>
-          <h1 className="text-lg font-semibold text-text">Exam {config?.examId ?? examId}{config?.subject ? ` — ${config.subject}` : ""}</h1>
+          <h1 className="text-lg font-semibold text-text">{examTitle}{config?.subject ? ` — ${config.subject}` : ""}</h1>
           <p className="text-sm text-textMuted">Answer questions and submit when done.</p>
         </div>
         {timeLimitMinutes ? (
@@ -433,6 +482,30 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
 
       <div className="grid gap-4 lg:grid-cols-[2fr,1fr] mt-4">
         <div className="space-y-4">
+          <Card className="sticky top-24 z-10 space-y-3 bg-card/95 backdrop-blur">
+            <div className="flex flex-wrap items-center gap-2">
+              {!bank ? (
+                <Button variant="primary" size="sm" onClick={handleBank} disabled={loadDisabled}>
+                  Load questions
+                </Button>
+              ) : (
+                <Badge tone="info">Questions loaded</Badge>
+              )}
+              <Button variant="secondary" size="sm" onClick={handleSaveForLater} disabled={!bank || !versionId}>
+                Save answers
+              </Button>
+              <Button variant="ghost" size="sm" onClick={openClearAnswersConfirm} disabled={!bank || !!submission}>
+                Clear all answers
+              </Button>
+            </div>
+            {loadDisabled && !bank ? (
+              <div className="text-xs text-textMuted">
+                {authMode === "required" && !signedIn
+                  ? "Sign in to load questions."
+                  : "Enter the view code to load questions."}
+              </div>
+            ) : null}
+          </Card>
           {bank ? (
             bank.questions.map((q, idx) => {
               const pq = submission?.perQuestion?.find((p: any) => p.uid === q.uid);
@@ -467,11 +540,10 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
             <Card className="space-y-3">
               <div>
                 <p className="text-sm font-semibold text-text">Questions not loaded</p>
-                <p className="text-sm text-textMuted">Use the panels on the right to get started.</p>
+                <p className="text-sm text-textMuted">Use the controls at the top to get started.</p>
               </div>
               <ol className="text-sm text-textMuted list-decimal pl-5 space-y-1">
-                <li>If needed, open the <strong>Authentication</strong> Accordion and sign in.</li>
-                <li>If required, enter your <strong>View code</strong> in the <strong>Access codes</strong> Accordion.</li>
+                <li>If required, sign in and enter your access code.</li>
                 <li>Click <strong>Load questions</strong>.</li>
               </ol>
             </Card>
@@ -546,61 +618,53 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
             </div>
           </Card>
 
-          <Accordion title="Authentication" defaultOpen tone="muted">
-            <div className="flex gap-2 flex-wrap">
-              <Button variant="secondary" size="sm" onClick={handleGithub}>
-                GitHub Login
-              </Button>
-              <Button variant="secondary" size="sm" onClick={handleGoogle}>
-                Google Login
-              </Button>
-              {config?.policy.authMode === "optional" ? (
-                <Button variant="ghost" size="sm" onClick={handleAnonymous}>
-                  Continue anonymously
+          {authMode === "required" ? (
+            <Accordion title="Authentication" defaultOpen tone="muted">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="secondary" size="sm" onClick={handleGithub}>
+                  GitHub Login
                 </Button>
+                <Button variant="secondary" size="sm" onClick={handleGoogle}>
+                  Google Login
+                </Button>
+              </div>
+              <div className="text-xs text-textMuted">
+                Sign in to access this exam.
+              </div>
+              <div className="text-xs text-textMuted">Current session: {session ? session.provider : "none"}</div>
+            </Accordion>
+          ) : null}
+
+          {codesRequired ? (
+            <Accordion title="Access codes" defaultOpen tone="warn">
+              <div className="text-xs text-textMuted">
+                View code unlocks questions. Submit code is only required when you submit your final answers.
+              </div>
+              {requireViewCode ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">View code</label>
+                  <input
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+                    value={viewCode}
+                    onChange={(e) => setViewCode(e.target.value)}
+                    placeholder="Enter view code"
+                  />
+                </div>
               ) : null}
-            </div>
-            <div className="text-xs text-textMuted">
-              Signing in lets you view submission history and helps keep a consistent per-student version on repeat visits.
-            </div>
-            <div className="text-xs text-textMuted">Current session: {session ? session.provider : "none"}</div>
-          </Accordion>
 
-          <Accordion title="Access codes" defaultOpen tone={requireViewCode || requireSubmitCode ? "warn" : "muted"}>
-            <div className="text-xs text-textMuted">
-              View code unlocks questions. Submit code is only required when you submit your final answers.
-            </div>
-            {requireViewCode ? (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">View code</label>
-                <input
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-                  value={viewCode}
-                  onChange={(e) => setViewCode(e.target.value)}
-                  placeholder="Enter view code"
-                />
-              </div>
-            ) : (
-              <div className="text-sm text-textMuted">No view code required.</div>
-            )}
-            <Button variant="primary" size="sm" onClick={handleBank}>
-              Load questions
-            </Button>
-
-            {requireSubmitCode ? (
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Submit code</label>
-                <input
-                  className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-                  value={submitCode}
-                  onChange={(e) => setSubmitCode(e.target.value)}
-                  placeholder="Enter submit code"
-                />
-              </div>
-            ) : (
-              <div className="text-sm text-textMuted">No submit code required.</div>
-            )}
-          </Accordion>
+              {requireSubmitCode ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Submit code</label>
+                  <input
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+                    value={submitCode}
+                    onChange={(e) => setSubmitCode(e.target.value)}
+                    placeholder="Enter submit code"
+                  />
+                </div>
+              ) : null}
+            </Accordion>
+          ) : null}
 
           <Card className="space-y-3">
             <div className="flex justify-between items-center">
@@ -634,6 +698,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
       <StickyHeader
         examId={config.examId}
         subject={config.subject}
+        title={config.title ?? null}
         progressPct={completionPct}
         answered={answeredCount}
         total={totalQuestions || config.composition.reduce((acc, i) => acc + i.n, 0)}
@@ -686,6 +751,32 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
                 }}
               >
                 Clear draft
+              </Button>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {clearAnswersOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setClearAnswersOpen(false)} />
+          <Card className="relative w-full max-w-md space-y-3">
+            <div className="text-base font-semibold text-text">Clear all answers?</div>
+            <div className="text-sm text-textMuted">
+              This removes your current answers for this exam version.
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="secondary" onClick={() => setClearAnswersOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => {
+                  setClearAnswersOpen(false);
+                  handleClearAllAnswers();
+                }}
+              >
+                Clear answers
               </Button>
             </div>
           </Card>

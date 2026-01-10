@@ -76,6 +76,7 @@ export async function loginAnonymous(): Promise<void> {
 export type ExamConfigResponse = {
   examId: string;
   subject: string;
+  title?: string | null;
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
   expiresAt: string | null;

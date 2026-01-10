@@ -98,6 +98,7 @@ export type ExamV1 = {
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
+  title?: string;
   seed: string;
   composition: ExamCompositionItemV1[];
   questionUids: string[];
@@ -250,6 +251,7 @@ export const ExamV1Schema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime().optional(),
   deletedAt: z.string().datetime().optional(),
+  title: z.string().optional(),
   seed: z.string(),
   composition: z.array(ExamCompositionItemSchema),
   questionUids: z.array(z.string()),

@@ -34,6 +34,7 @@ import {
 type AdminExamBody = {
   subject: "discrete-math";
   composition: { topic: string; level: "basic" | "advanced"; n: number }[];
+  title?: string;
   seed?: string;
   policy: ExamPolicyV1;
   codes?: string[];
@@ -231,6 +232,7 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       examId,
       subject: body.subject,
       createdAt: new Date().toISOString(),
+      title: body.title?.trim() || undefined,
       seed,
       composition: body.composition,
       questionUids,
@@ -286,6 +288,7 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
     return c.json({
       examId: found.value.examId,
       subject: found.value.subject,
+      title: found.value.title ?? null,
       composition: found.value.composition,
       policy,
       expiresAt: found.value.expiresAt ?? null,

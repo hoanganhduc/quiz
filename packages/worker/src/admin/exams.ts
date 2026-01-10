@@ -16,6 +16,7 @@ import {
 type AdminExamBody = {
   subject: "discrete-math";
   composition: { topic: string; level: "basic" | "advanced"; n: number }[];
+  title?: string;
   seed?: string;
   policy: ExamPolicyV1;
   codes?: string[];
@@ -234,10 +235,12 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
       body.expiresAt === null ? undefined : body.expiresAt ?? existing.value.expiresAt;
     const nextVisibility =
       body.visibility !== undefined ? normalizeExamVisibility(body.visibility) : existing.value.visibility;
+    const nextTitle = body.title !== undefined ? body.title.trim() || undefined : existing.value.title;
     const updated: ExamV1 = {
       ...existing.value,
       subject: body.subject,
       seed,
+      title: nextTitle,
       composition: body.composition,
       questionUids,
       policy: normalizedPolicy,

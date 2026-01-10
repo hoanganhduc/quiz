@@ -4,6 +4,7 @@ import type { BankPublicV1 } from "@app/shared";
 export type AdminExamRequest = {
   subject: "discrete-math";
   composition: ExamCompositionItemV1[];
+  title?: string;
   seed?: string;
   policy: ExamPolicyV1;
   codes?: string[];

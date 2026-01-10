@@ -1,6 +1,6 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from "react";
-import { createExam, createTemplate, deleteTemplate, getAdminExam, getExamTemplate, healthCheck, getLatestPublicBank, listAvailableBanks, listTemplates, updateExam } from "../../api/admin";
+import { createExam, createExamShortLink, createTemplate, deleteTemplate, getAdminExam, getExamTemplate, healthCheck, getLatestPublicBank, listAvailableBanks, listTemplates, updateExam } from "../../api/admin";
 import { useExamDraft } from "../../hooks/useExamDraft";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -20,6 +20,8 @@ import { CodesEditor } from "../../components/admin/CodesEditor";
 import { SeedCard } from "../../components/admin/SeedCard";
 import { RequestPreview } from "../../components/admin/RequestPreview";
 import { ResultCard } from "../../components/admin/ResultCard";
+import { McqQuestion } from "../../components/McqQuestion";
+import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
 function VersionsCard({ policy, onChange, errors }) {
     return (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Versions" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Control per-student shuffling and version counts." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "versioning-mode", children: "Versioning mode" }), _jsxs(Select, { id: "versioning-mode", value: policy.versioningMode ?? "fixed", onChange: (e) => {
@@ -47,6 +49,74 @@ function toLocalDateTimeInput(value) {
 function formatUpdatedAt(value) {
     const d = new Date(value);
     return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+}
+function buildExamLink(subject, examId) {
+    const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
+    const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+    const base = trimmed === "/" ? "" : trimmed;
+    return `${window.location.origin}${base}/#/exam/${encodeURIComponent(subject)}/${encodeURIComponent(examId)}`;
+}
+function hashString(input) {
+    let hash = 2166136261;
+    for (let i = 0; i < input.length; i += 1) {
+        hash ^= input.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
+function mulberry32(seed) {
+    let state = seed >>> 0;
+    return () => {
+        state += 0x6d2b79f5;
+        let t = state;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+}
+function shuffleWithRng(items, rand) {
+    const copy = items.slice();
+    for (let i = copy.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(rand() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+function shuffleWithSeed(items, seed) {
+    return shuffleWithRng(items, mulberry32(hashString(seed)));
+}
+function buildPreviewQuestions(bank, composition, policy, seed) {
+    const selected = [];
+    const seen = new Set();
+    for (const row of composition) {
+        const pool = bank.questions.filter((q) => q.topic === row.topic && q.level === row.level && !seen.has(q.uid));
+        const ordered = policy.versioningMode === "per_student"
+            ? shuffleWithSeed(pool, `${seed}|pool:${row.topic}:${row.level}`)
+            : pool.slice().sort((a, b) => a.number - b.number);
+        if (ordered.length < row.n) {
+            throw new Error(`Bank has only ${ordered.length} questions for ${row.topic}/${row.level}`);
+        }
+        for (let i = 0; i < row.n; i += 1) {
+            const q = ordered[i];
+            seen.add(q.uid);
+            selected.push(q);
+        }
+    }
+    let ordered = selected;
+    if (policy.versioningMode === "per_student" && policy.shuffleQuestions) {
+        ordered = shuffleWithSeed(selected, `${seed}|order`);
+    }
+    if (policy.versioningMode === "per_student" && policy.shuffleChoices) {
+        ordered = ordered.map((q) => {
+            if (q.type !== "mcq-single")
+                return q;
+            return {
+                ...q,
+                choices: shuffleWithSeed(q.choices, `${seed}|choices:${q.uid}`)
+            };
+        });
+    }
+    return ordered;
 }
 function errorKeyToFieldId(key) {
     if (key.startsWith("composition.")) {
@@ -104,6 +174,13 @@ export function CreateExamPage() {
     const [bankStats, setBankStats] = useState(null);
     const [bankLoading, setBankLoading] = useState(false);
     const [bankLoadError, setBankLoadError] = useState(null);
+    const [bankPublic, setBankPublic] = useState(null);
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewError, setPreviewError] = useState(null);
+    const [previewQuestions, setPreviewQuestions] = useState([]);
+    const [previewAnswers, setPreviewAnswers] = useState({});
+    const [shortLinkLoading, setShortLinkLoading] = useState(false);
     const computeBankStats = (data) => {
         const counts = {};
         for (const q of data.questions) {
@@ -142,10 +219,12 @@ export function CreateExamPage() {
         try {
             const data = await getLatestPublicBank(apiBase, bankSubject);
             setBankStats(computeBankStats(data));
+            setBankPublic(data);
             setBankLoadError(null);
         }
         catch (err) {
             setBankStats(null);
+            setBankPublic(null);
             setBankLoadError(err?.message ?? "Failed to load bank");
         }
         finally {
@@ -161,6 +240,7 @@ export function CreateExamPage() {
         return date.toISOString();
     }, [draft.expiresEnabled, draft.expiresAtLocal]);
     const canCreate = !isSubmitting && Object.keys(errors).length === 0;
+    const activeExamId = editExamId ?? (result === null || result === void 0 ? void 0 : result.examId) ?? null;
     const studentSignIn = draft.policy.authMode === "required"
         ? "Sign-in required"
         : draft.policy.authMode === "optional"
@@ -227,6 +307,62 @@ export function CreateExamPage() {
             setToast({ message: "Copy failed. Check browser permissions.", tone: "error" });
         }
     };
+    const handleCopyExamLink = async (examId, subject) => {
+        const link = buildExamLink(subject, examId);
+        await handleCopy(link, "Exam link copied");
+    };
+    const handleCopyShortLink = async (examId) => {
+        if (!apiBase) {
+            setToast({ message: "API Base URL is required.", tone: "error" });
+            return;
+        }
+        setShortLinkLoading(true);
+        try {
+            const res = await createExamShortLink({ apiBase, examId });
+            await handleCopy(res.shortUrl, "Short link copied");
+        }
+        catch (err) {
+            setToast({ message: err?.message ?? "Short link failed", tone: "error" });
+        }
+        finally {
+            setShortLinkLoading(false);
+        }
+    };
+    const handleOpenPreview = async () => {
+        setPreviewError(null);
+        setPreviewOpen(true);
+        setPreviewAnswers({});
+        const composition = normalizedRequestBody.composition;
+        if (!composition.length) {
+            setPreviewQuestions([]);
+            setPreviewError("Add at least one composition row before previewing.");
+            return;
+        }
+        if (!apiBase) {
+            setPreviewQuestions([]);
+            setPreviewError("API Base URL is required.");
+            return;
+        }
+        setPreviewLoading(true);
+        try {
+            let bank = bankPublic;
+            if (!bank || bank.subject !== normalizedRequestBody.subject) {
+                bank = await getLatestPublicBank(apiBase, normalizedRequestBody.subject);
+                setBankPublic(bank);
+                setBankStats(computeBankStats(bank));
+            }
+            const previewSeed = normalizedRequestBody.seed ?? (draft.seed ? draft.seed.trim() : "") || `preview:${normalizedRequestBody.subject}:${JSON.stringify(composition)}`;
+            const questions = buildPreviewQuestions(bank, composition, normalizedRequestBody.policy, previewSeed);
+            setPreviewQuestions(questions);
+        }
+        catch (err) {
+            setPreviewQuestions([]);
+            setPreviewError(err?.message ?? "Failed to build preview");
+        }
+        finally {
+            setPreviewLoading(false);
+        }
+    };
     const handleCreate = async () => {
         setSubmitError(null);
         const ok = validate();
@@ -246,7 +382,8 @@ export function CreateExamPage() {
         setIsSubmitting(true);
         try {
             const response = await createExam({ apiBase, body: normalizedRequestBody });
-            setResult(response);
+            const examUrl = buildExamLink(normalizedRequestBody.subject, response.examId);
+            setResult({ ...response, examUrl });
             setToast({ message: "Exam created", tone: "success" });
             const template = {
                 subject: normalizedRequestBody.subject,
@@ -464,6 +601,7 @@ export function CreateExamPage() {
                 visibility: res.exam.visibility ?? "private"
             };
             applyTemplate(template);
+            setDraft((prev) => ({ ...prev, title: res.exam.title ?? "" }));
         })
             .catch((err) => {
             if (cancelled)
@@ -513,12 +651,16 @@ export function CreateExamPage() {
                                                     ? "success"
                                                     : connectionStatus === "error"
                                                         ? "error"
-                                                        : "muted", children: connectionStatus === "connected" ? "Connected" : "Not connected" }), _jsxs("span", { className: "text-xs", children: ["/", "/admin/exams"] })] })] }), _jsxs("div", { className: "flex flex-wrap gap-2", children: [_jsx(Button, { type: "button", variant: "ghost", onClick: () => validate(), disabled: isSubmitting, children: "Validate" }), _jsx(Button, { type: "button", variant: "secondary", onClick: handleReset, disabled: isSubmitting, children: "Reset" }), _jsx(Button, { type: "button", onClick: editExamId ? handleUpdate : handleCreate, disabled: !canCreate, children: isSubmitting ? (editExamId ? "Updating..." : "Creating...") : editExamId ? "Update Exam" : "Create Exam" })] })] }) }), _jsxs(PageShell, { maxWidth: "6xl", className: "py-6 space-y-6", children: [submitError ? _jsx(Alert, { tone: "error", children: submitError }) : null, editExamId ? (_jsx(Alert, { tone: editHasSubmissions ? "warn" : "info", children: editHasSubmissions
+                                                        : "muted", children: connectionStatus === "connected" ? "Connected" : "Not connected" }), _jsxs("span", { className: "text-xs", children: ["/", "/admin/exams"] })] })] }), _jsxs("div", { className: "flex flex-wrap gap-2", children: [_jsx(Button, { type: "button", variant: "ghost", onClick: () => validate(), disabled: isSubmitting, children: "Validate" }), _jsx(Button, { type: "button", variant: "secondary", onClick: handleOpenPreview, disabled: isSubmitting, children: "Preview exam" }), activeExamId ? (_jsx(Button, { type: "button", variant: "secondary", onClick: () => handleCopyExamLink(activeExamId, normalizedRequestBody.subject), disabled: isSubmitting, children: "Copy link" })) : null, activeExamId ? (_jsx(Button, { type: "button", variant: "secondary", onClick: () => handleCopyShortLink(activeExamId), disabled: isSubmitting || shortLinkLoading, children: shortLinkLoading ? "Copying..." : "Copy short link" })) : null, _jsx(Button, { type: "button", variant: "secondary", onClick: handleReset, disabled: isSubmitting, children: "Reset" }), _jsx(Button, { type: "button", onClick: editExamId ? handleUpdate : handleCreate, disabled: !canCreate, children: isSubmitting ? (editExamId ? "Updating..." : "Creating...") : editExamId ? "Update Exam" : "Create Exam" })] })] }) }), _jsxs(PageShell, { maxWidth: "6xl", className: "py-6 space-y-6", children: [submitError ? _jsx(Alert, { tone: "error", children: submitError }) : null, editExamId ? (_jsx(Alert, { tone: editHasSubmissions ? "warn" : "info", children: editHasSubmissions
                                 ? "This exam already has submissions. Updating will not change past submissions."
-                                : "Editing an existing exam. Changes apply immediately to future attempts." })) : null, _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-neutral-900 dark:text-neutral-100", children: "Steps" }), _jsx("div", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Fill out each section below. The preview updates live." })] }), _jsx(StepIndicator, { steps: stepIndicatorSteps })] }), _jsxs("div", { className: "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]", children: [_jsxs("div", { className: "space-y-6", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Template" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Reuse settings from a previous exam to avoid re-entering fields." })] }), templateError ? _jsx(Alert, { tone: "error", children: templateError }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-exam-id", children: "Load by exam ID" }), _jsx(Input, { id: "template-exam-id", value: templateExamId, onChange: (e) => setTemplateExamId(e.target.value), placeholder: "exam-uuid" })] }), _jsxs("div", { className: "flex items-end gap-2", children: [_jsx(Button, { type: "button", variant: "secondary", onClick: handleLoadTemplate, disabled: templateLoading, children: templateLoading ? "Loading..." : "Load template" }), lastTemplate ? (_jsx(Button, { type: "button", onClick: handleUseLastTemplate, children: "Use last template" })) : null] })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-name", children: "Template name" }), _jsx(Input, { id: "template-name", value: templateName, onChange: (e) => setTemplateName(e.target.value), placeholder: "Midterm template" })] }), _jsx("div", { className: "flex items-end", children: _jsx(Button, { type: "button", variant: "secondary", onClick: handleSaveTemplate, disabled: !templateName.trim(), children: "Save current as template" }) })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Saved templates" }), templatesLoading ? (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Loading templates..." })) : savedTemplates.length ? (_jsx("div", { className: "space-y-2 text-xs", children: savedTemplates.map((item) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsx("div", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: item.name }), _jsx("div", { className: "text-neutral-500 dark:text-neutral-400", children: formatUpdatedAt(item.updatedAt ?? item.createdAt) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleUseSavedTemplate(item), children: "Use" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteTemplate(item), children: "Delete" })] })] }, item.templateId))) })) : (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "No saved templates yet." }))] }), _jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Templates are stored on the server for admin access." })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Basics" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Choose the subject and (optionally) an expiry time." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "subject", children: "Subject" }), _jsx(Select, { id: "subject", value: draft.subject, onChange: (e) => setDraft({ ...draft, subject: e.target.value }), hasError: Boolean(errors["subject"]), "aria-describedby": errors["subject"] ? "subject-error" : undefined, children: _jsx("option", { value: "discrete-math", children: "Discrete Math" }) }), errors["subject"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "subject-error", children: errors["subject"] })) : null] }), _jsx("div", { className: "space-y-2", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Public listing" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Public exams appear on the homepage until they expire." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "visibility-toggle", checked: draft.visibility === "public", onChange: (value) => setDraft({ ...draft, visibility: value ? "public" : "private" }) }), _jsx("label", { htmlFor: "visibility-toggle", children: "Public" })] })] }) }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "exam-title", children: "Optional label/title" }), _jsx(Input, { id: "exam-title", value: draft.title, onChange: (e) => setDraft({ ...draft, title: e.target.value }), placeholder: "Midterm A (UI only)" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "UI-only, not sent to the backend." })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Expires at" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Optional expiry timestamp (UTC sent to backend)." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "expires-toggle", checked: draft.expiresEnabled, onChange: (value) => setDraft({ ...draft, expiresEnabled: value }) }), _jsx("label", { htmlFor: "expires-toggle", children: "Enable expiry" })] })] }), draft.expiresEnabled ? (_jsxs("div", { className: "space-y-2", children: [_jsx(Input, { id: "expires-at", type: "datetime-local", value: draft.expiresAtLocal, onChange: (e) => setDraft({ ...draft, expiresAtLocal: e.target.value }), hasError: Boolean(errors["expiresAt"]), "aria-describedby": errors["expiresAt"] ? "expires-error" : undefined }), errors["expiresAt"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "expires-error", children: errors["expiresAt"] })) : null, _jsxs("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: ["ISO preview: ", expiresIso || "—"] })] })) : null] })] }), _jsxs("div", { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Access Rules" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Configure sign-in, codes, and when solutions appear." })] }), _jsx(PolicyCard, { policy: draft.policy, onChange: (policy) => setDraft({ ...draft, policy }), errors: errors }), _jsx(CodesEditor, { codesEnabled: draft.codesEnabled, codes: draft.codes, policy: draft.policy, onCodesEnabledChange: (value) => setDraft({ ...draft, codesEnabled: value, codes: value ? draft.codes : [] }), onCodesChange: (codes) => setDraft({ ...draft, codes }) })] }), _jsxs("div", { id: "composition-section", className: "space-y-4", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Question bank" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Load the latest bank to populate topics and counts." })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[1fr_auto] items-end", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "bank-subject", children: "Available bank subjects" }), _jsxs(Select, { id: "bank-subject", value: bankSubject, onChange: (e) => {
+                                : "Editing an existing exam. Changes apply immediately to future attempts." })) : null, _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-neutral-900 dark:text-neutral-100", children: "Steps" }), _jsx("div", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Fill out each section below. The preview updates live." })] }), _jsx(StepIndicator, { steps: stepIndicatorSteps })] }), _jsxs("div", { className: "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]", children: [_jsxs("div", { className: "space-y-6", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Template" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Reuse settings from a previous exam to avoid re-entering fields." })] }), templateError ? _jsx(Alert, { tone: "error", children: templateError }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-exam-id", children: "Load by exam ID" }), _jsx(Input, { id: "template-exam-id", value: templateExamId, onChange: (e) => setTemplateExamId(e.target.value), placeholder: "exam-uuid" })] }), _jsxs("div", { className: "flex items-end gap-2", children: [_jsx(Button, { type: "button", variant: "secondary", onClick: handleLoadTemplate, disabled: templateLoading, children: templateLoading ? "Loading..." : "Load template" }), lastTemplate ? (_jsx(Button, { type: "button", onClick: handleUseLastTemplate, children: "Use last template" })) : null] })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-name", children: "Template name" }), _jsx(Input, { id: "template-name", value: templateName, onChange: (e) => setTemplateName(e.target.value), placeholder: "Midterm template" })] }), _jsx("div", { className: "flex items-end", children: _jsx(Button, { type: "button", variant: "secondary", onClick: handleSaveTemplate, disabled: !templateName.trim(), children: "Save current as template" }) })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Saved templates" }), templatesLoading ? (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Loading templates..." })) : savedTemplates.length ? (_jsx("div", { className: "space-y-2 text-xs", children: savedTemplates.map((item) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsx("div", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: item.name }), _jsx("div", { className: "text-neutral-500 dark:text-neutral-400", children: formatUpdatedAt(item.updatedAt ?? item.createdAt) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleUseSavedTemplate(item), children: "Use" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteTemplate(item), children: "Delete" })] })] }, item.templateId))) })) : (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "No saved templates yet." }))] }), _jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Templates are stored on the server for admin access." })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Basics" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Choose the subject and (optionally) an expiry time." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "subject", children: "Subject" }), _jsx(Select, { id: "subject", value: draft.subject, onChange: (e) => setDraft({ ...draft, subject: e.target.value }), hasError: Boolean(errors["subject"]), "aria-describedby": errors["subject"] ? "subject-error" : undefined, children: _jsx("option", { value: "discrete-math", children: "Discrete Math" }) }), errors["subject"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "subject-error", children: errors["subject"] })) : null] }), _jsx("div", { className: "space-y-2", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Public listing" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Public exams appear on the homepage until they expire." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "visibility-toggle", checked: draft.visibility === "public", onChange: (value) => setDraft({ ...draft, visibility: value ? "public" : "private" }) }), _jsx("label", { htmlFor: "visibility-toggle", children: "Public" })] })] }) }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "exam-title", children: "Optional label/title" }), _jsx(Input, { id: "exam-title", value: draft.title, onChange: (e) => setDraft({ ...draft, title: e.target.value }), placeholder: "Midterm A" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Displayed on the exam page and stored with the exam." })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Expires at" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Optional expiry timestamp (UTC sent to backend)." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "expires-toggle", checked: draft.expiresEnabled, onChange: (value) => setDraft({ ...draft, expiresEnabled: value }) }), _jsx("label", { htmlFor: "expires-toggle", children: "Enable expiry" })] })] }), draft.expiresEnabled ? (_jsxs("div", { className: "space-y-2", children: [_jsx(Input, { id: "expires-at", type: "datetime-local", value: draft.expiresAtLocal, onChange: (e) => setDraft({ ...draft, expiresAtLocal: e.target.value }), hasError: Boolean(errors["expiresAt"]), "aria-describedby": errors["expiresAt"] ? "expires-error" : undefined }), errors["expiresAt"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "expires-error", children: errors["expiresAt"] })) : null, _jsxs("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: ["ISO preview: ", expiresIso || "—"] })] })) : null] })] }), _jsxs("div", { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Access Rules" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Configure sign-in, codes, and when solutions appear." })] }), _jsx(PolicyCard, { policy: draft.policy, onChange: (policy) => setDraft({ ...draft, policy }), errors: errors }), _jsx(CodesEditor, { codesEnabled: draft.codesEnabled, codes: draft.codes, policy: draft.policy, onCodesEnabledChange: (value) => setDraft({ ...draft, codesEnabled: value, codes: value ? draft.codes : [] }), onCodesChange: (codes) => setDraft({ ...draft, codes }) })] }), _jsxs("div", { id: "composition-section", className: "space-y-4", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Question bank" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Load the latest bank to populate topics and counts." })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[1fr_auto] items-end", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "bank-subject", children: "Available bank subjects" }), _jsxs(Select, { id: "bank-subject", value: bankSubject, onChange: (e) => {
                                                                                 setBankSubject(e.target.value);
                                                                                 setBankStats(null);
                                                                             }, disabled: bankSubjects.length === 0, children: [bankSubjects.length === 0 ? (_jsx("option", { value: "", children: "No banks found" })) : null, bankSubjects.length > 0
                                                                                     ? bankSubjects.map((subject) => (_jsx("option", { value: subject, children: subject }, subject)))
-                                                                                    : null] })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: loadSelectedBank, disabled: bankLoading || !bankSubject, children: bankLoading ? "Loading…" : "Load bank" })] }), bankLoadError ? _jsx(Alert, { tone: "error", children: bankLoadError }) : null, bankStats ? (_jsxs(Alert, { tone: "info", children: ["Loaded ", bankStats.subject, " bank with ", bankStats.total, " questions across ", bankStats.topics.length, " topics."] })) : null] }), _jsx(CompositionBuilder, { composition: draft.composition, onChange: (next) => setDraft({ ...draft, composition: next }), errors: errors, bankStats: bankStats })] }), _jsx(VersionsCard, { policy: draft.policy, onChange: (policy) => setDraft({ ...draft, policy }), errors: errors }), _jsxs(Card, { className: "space-y-2", children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Review & Create" }), _jsxs("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: ["Review the request preview, then click ", _jsx("strong", { children: "Create Exam" }), " in the header."] }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "The backend request body is shown in the preview; UI-only fields like the title are not included." })] })] }), _jsxs("div", { className: "space-y-6", children: [_jsx(ConnectionCard, { apiBase: apiBase, onApiBaseChange: updateApiBase, hideAdminToken: true, hideTestButton: true, onTestConnection: handleTestConnection, status: connectionStatus, statusMessage: connectionMessage, lastError: connectionError }), _jsx(SeedCard, { autoSeed: draft.autoSeed, seed: draft.seed, onAutoSeedChange: (value) => setDraft({ ...draft, autoSeed: value }), onSeedChange: (value) => setDraft({ ...draft, seed: value }), error: errors["seed"] }), _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-neutral-900 dark:text-neutral-100", children: "Student will see" }), _jsx("div", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "A quick summary of the student experience." })] }), _jsxs("div", { className: "grid gap-2 text-sm", children: [_jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("span", { className: "text-neutral-600 dark:text-neutral-300", children: "Sign-in" }), _jsx("span", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: studentSignIn })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("span", { className: "text-neutral-600 dark:text-neutral-300", children: "Access codes" }), _jsx("span", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: studentCodes })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("span", { className: "text-neutral-600 dark:text-neutral-300", children: "Solutions" }), _jsx("span", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: studentSolutions })] })] })] }), _jsx("div", { className: "lg:hidden", children: _jsx(RequestPreview, { body: normalizedRequestBody, warnings: warnings, errors: errors, apiBase: apiBase, includeTokenInCurl: false, sessionAuth: true, onIncludeTokenInCurlChange: () => { }, onCopyJson: (text) => handleCopy(text, "JSON copied"), onCopyCurl: (text) => handleCopy(text, "curl copied"), collapsible: true, idPrefix: "request-preview-mobile" }) }), _jsx("div", { className: "hidden lg:block", children: _jsx(RequestPreview, { body: normalizedRequestBody, warnings: warnings, errors: errors, apiBase: apiBase, includeTokenInCurl: false, sessionAuth: true, onIncludeTokenInCurlChange: () => { }, onCopyJson: (text) => handleCopy(text, "JSON copied"), onCopyCurl: (text) => handleCopy(text, "curl copied"), idPrefix: "request-preview-desktop" }) }), result ? _jsx(ResultCard, { result: result, onCreateAnother: handleReset }) : null] })] }), toast ? (_jsx("div", { className: "fixed right-4 top-4 z-50 flex flex-col gap-2", children: _jsx(Toast, { message: toast.message, tone: toast.tone, onDismiss: () => setToast(null) }) })) : null] })] }) }));
+                                                                                    : null] })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: loadSelectedBank, disabled: bankLoading || !bankSubject, children: bankLoading ? "Loading…" : "Load bank" })] }), bankLoadError ? _jsx(Alert, { tone: "error", children: bankLoadError }) : null, bankStats ? (_jsxs(Alert, { tone: "info", children: ["Loaded ", bankStats.subject, " bank with ", bankStats.total, " questions across ", bankStats.topics.length, " topics."] })) : null] }), _jsx(CompositionBuilder, { composition: draft.composition, onChange: (next) => setDraft({ ...draft, composition: next }), errors: errors, bankStats: bankStats })] }), _jsx(VersionsCard, { policy: draft.policy, onChange: (policy) => setDraft({ ...draft, policy }), errors: errors }), _jsxs(Card, { className: "space-y-2", children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Review & Create" }), _jsxs("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: ["Review the request preview, then click ", _jsx("strong", { children: "Create Exam" }), " in the header."] }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "The backend request body is shown in the preview; the title is included when provided." })] })] }), _jsxs("div", { className: "space-y-6", children: [_jsx(ConnectionCard, { apiBase: apiBase, onApiBaseChange: updateApiBase, hideAdminToken: true, hideTestButton: true, onTestConnection: handleTestConnection, status: connectionStatus, statusMessage: connectionMessage, lastError: connectionError }), _jsx(SeedCard, { autoSeed: draft.autoSeed, seed: draft.seed, onAutoSeedChange: (value) => setDraft({ ...draft, autoSeed: value }), onSeedChange: (value) => setDraft({ ...draft, seed: value }), error: errors["seed"] }), _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-neutral-900 dark:text-neutral-100", children: "Student will see" }), _jsx("div", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "A quick summary of the student experience." })] }), _jsxs("div", { className: "grid gap-2 text-sm", children: [_jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("span", { className: "text-neutral-600 dark:text-neutral-300", children: "Sign-in" }), _jsx("span", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: studentSignIn })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("span", { className: "text-neutral-600 dark:text-neutral-300", children: "Access codes" }), _jsx("span", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: studentCodes })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsx("span", { className: "text-neutral-600 dark:text-neutral-300", children: "Solutions" }), _jsx("span", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: studentSolutions })] })] })] }), _jsx("div", { className: "lg:hidden", children: _jsx(RequestPreview, { body: normalizedRequestBody, warnings: warnings, errors: errors, apiBase: apiBase, includeTokenInCurl: false, sessionAuth: true, onIncludeTokenInCurlChange: () => { }, onCopyJson: (text) => handleCopy(text, "JSON copied"), onCopyCurl: (text) => handleCopy(text, "curl copied"), collapsible: true, idPrefix: "request-preview-mobile" }) }), _jsx("div", { className: "hidden lg:block", children: _jsx(RequestPreview, { body: normalizedRequestBody, warnings: warnings, errors: errors, apiBase: apiBase, includeTokenInCurl: false, sessionAuth: true, onIncludeTokenInCurlChange: () => { }, onCopyJson: (text) => handleCopy(text, "JSON copied"), onCopyCurl: (text) => handleCopy(text, "curl copied"), idPrefix: "request-preview-desktop" }) }), result ? (_jsx(ResultCard, { result: result, onCreateAnother: handleReset, onCopyShortLink: activeExamId ? () => handleCopyShortLink(activeExamId) : undefined, shortLinkLoading: shortLinkLoading })) : null] })] }), previewOpen ? (_jsxs("div", { className: "fixed inset-0 z-50 flex items-center justify-center p-4", children: [_jsx("div", { className: "absolute inset-0 bg-black/40", onClick: () => setPreviewOpen(false) }), _jsxs(Card, { className: "relative w-full max-w-5xl max-h-[90vh] overflow-auto space-y-4", padding: "md", children: [_jsxs("div", { className: "flex items-start justify-between gap-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-text", children: "Exam preview" }), _jsx("div", { className: "text-xs text-textMuted", children: "Built from the latest public bank; per-student shuffle follows the current policy and seed." })] }), _jsx(Button, { type: "button", variant: "ghost", onClick: () => setPreviewOpen(false), children: "Close" })] }), previewError ? _jsx(Alert, { tone: "error", children: previewError }) : null, previewLoading ? (_jsx("div", { className: "text-sm text-textMuted", children: "Loading preview..." })) : previewQuestions.length ? (_jsxs("div", { className: "space-y-4", children: [_jsxs("div", { className: "text-xs text-textMuted", children: ["Questions: ", previewQuestions.length] }), previewQuestions.map((q, idx) => (_jsx("div", { children: q.type === "mcq-single" ? (_jsx(McqQuestion, { index: idx, question: q, answer: typeof previewAnswers[q.uid] === "string" ? previewAnswers[q.uid] : "", onChange: (uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val })), showSolution: false })) : q.type === "fill-blank" ? (_jsx(FillBlankQuestion, { index: idx, question: q, answer: previewAnswers[q.uid], onChange: (uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val })), showSolution: false })) : null }, q.uid)))] })) : (_jsx("div", { className: "text-sm text-textMuted", children: "No preview questions yet." }))] })] })) : null, toast ? (_jsx("div", { className: "fixed right-4 top-4 z-50 flex flex-col gap-2", children: _jsx(Toast, { message: toast.message, tone: toast.tone, onDismiss: () => setToast(null) }) })) : null] })] }) }));
 }
+
+
+
+

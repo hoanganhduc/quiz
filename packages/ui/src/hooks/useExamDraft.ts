@@ -64,6 +64,9 @@ export function useExamDraft() {
       policy: draft.policy,
       visibility: draft.visibility
     };
+    if (draft.title.trim()) {
+      body.title = draft.title.trim();
+    }
 
     if (!draft.autoSeed && draft.seed.trim()) {
       body.seed = draft.seed.trim();

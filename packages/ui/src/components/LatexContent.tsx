@@ -133,6 +133,7 @@ function transformLatexText(input: string): string {
   text = applyWrappedCommand(text, "texttt", '<code class="latex-code">', "</code>");
   text = applyWrappedCommand(text, "textsuperscript", "<sup>", "</sup>");
   text = applyWrappedCommand(text, "textsubscript", "<sub>", "</sub>");
+  text = applyWrappedCommand(text, "dongkhung", '<span class="latex-box">', "</span>");
 
   text = text.replace(/\\par/g, "<br />");
   text = text.replace(/\\newline/g, "<br />");

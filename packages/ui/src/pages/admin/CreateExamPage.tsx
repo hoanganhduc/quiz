@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   createExam,
+  createExamShortLink,
   createTemplate,
   deleteTemplate,
   getAdminExam,
@@ -33,7 +34,9 @@ import { CodesEditor } from "../../components/admin/CodesEditor";
 import { SeedCard } from "../../components/admin/SeedCard";
 import { RequestPreview } from "../../components/admin/RequestPreview";
 import { ResultCard, type ExamResult } from "../../components/admin/ResultCard";
-import type { BankPublicV1, ExamPolicyV1 } from "@app/shared";
+import type { BankPublicV1, ExamCompositionItemV1, ExamPolicyV1 } from "@app/shared";
+import { McqQuestion } from "../../components/McqQuestion";
+import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
 
 function VersionsCard({
@@ -154,6 +157,87 @@ function formatUpdatedAt(value: string) {
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
 }
 
+function buildExamLink(subject: string, examId: string): string {
+  const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
+  const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+  const base = trimmed === "/" ? "" : trimmed;
+  return `${window.location.origin}${base}/#/exam/${encodeURIComponent(subject)}/${encodeURIComponent(examId)}`;
+}
+
+function hashString(input: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function mulberry32(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6d2b79f5;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function shuffleWithRng<T>(items: T[], rand: () => number): T[] {
+  const copy = items.slice();
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function shuffleWithSeed<T>(items: T[], seed: string): T[] {
+  return shuffleWithRng(items, mulberry32(hashString(seed)));
+}
+
+function buildPreviewQuestions(
+  bank: BankPublicV1,
+  composition: ExamCompositionItemV1[],
+  policy: ExamPolicyV1,
+  seed: string
+) {
+  const selected: BankPublicV1["questions"] = [];
+  const seen = new Set<string>();
+  for (const row of composition) {
+    const pool = bank.questions.filter(
+      (q) => q.topic === row.topic && q.level === row.level && !seen.has(q.uid)
+    );
+    const ordered =
+      policy.versioningMode === "per_student"
+        ? shuffleWithSeed(pool, `${seed}|pool:${row.topic}:${row.level}`)
+        : pool.slice().sort((a, b) => a.number - b.number);
+    if (ordered.length < row.n) {
+      throw new Error(`Bank has only ${ordered.length} questions for ${row.topic}/${row.level}`);
+    }
+    for (let i = 0; i < row.n; i += 1) {
+      const q = ordered[i];
+      seen.add(q.uid);
+      selected.push(q);
+    }
+  }
+  let ordered = selected;
+  if (policy.versioningMode === "per_student" && policy.shuffleQuestions) {
+    ordered = shuffleWithSeed(selected, `${seed}|order`);
+  }
+  if (policy.versioningMode === "per_student" && policy.shuffleChoices) {
+    ordered = ordered.map((q) => {
+      if (q.type !== "mcq-single") return q;
+      return {
+        ...q,
+        choices: shuffleWithSeed(q.choices, `${seed}|choices:${q.uid}`)
+      };
+    });
+  }
+  return ordered;
+}
+
 function errorKeyToFieldId(key: string): string | null {
   if (key.startsWith("composition.")) {
     const [, idx, field] = key.split(".");
@@ -203,6 +287,13 @@ export function CreateExamPage() {
   const [bankStats, setBankStats] = useState<BankStats | null>(null);
   const [bankLoading, setBankLoading] = useState(false);
   const [bankLoadError, setBankLoadError] = useState<string | null>(null);
+  const [bankPublic, setBankPublic] = useState<BankPublicV1 | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+  const [previewQuestions, setPreviewQuestions] = useState<BankPublicV1["questions"]>([]);
+  const [previewAnswers, setPreviewAnswers] = useState<Record<string, string | string[]>>({});
+  const [shortLinkLoading, setShortLinkLoading] = useState(false);
 
   const computeBankStats = (data: BankPublicV1): BankStats => {
     const counts: BankStats["counts"] = {};
@@ -240,9 +331,11 @@ export function CreateExamPage() {
     try {
       const data = await getLatestPublicBank(apiBase, bankSubject);
       setBankStats(computeBankStats(data));
+      setBankPublic(data);
       setBankLoadError(null);
     } catch (err: any) {
       setBankStats(null);
+      setBankPublic(null);
       setBankLoadError(err?.message ?? "Failed to load bank");
     } finally {
       setBankLoading(false);
@@ -257,6 +350,7 @@ export function CreateExamPage() {
   }, [draft.expiresEnabled, draft.expiresAtLocal]);
 
   const canCreate = !isSubmitting && Object.keys(errors).length === 0;
+  const activeExamId = editExamId ?? result?.examId ?? null;
 
   const studentSignIn =
     draft.policy.authMode === "required"
@@ -334,6 +428,64 @@ export function CreateExamPage() {
     }
   };
 
+  const handleCopyExamLink = async (examId: string, subject: string) => {
+    const link = buildExamLink(subject, examId);
+    await handleCopy(link, "Exam link copied");
+  };
+
+  const handleCopyShortLink = async (examId: string) => {
+    if (!apiBase) {
+      setToast({ message: "API Base URL is required.", tone: "error" });
+      return;
+    }
+    setShortLinkLoading(true);
+    try {
+      const res = await createExamShortLink({ apiBase, examId });
+      await handleCopy(res.shortUrl, "Short link copied");
+    } catch (err: any) {
+      setToast({ message: err?.message ?? "Short link failed", tone: "error" });
+    } finally {
+      setShortLinkLoading(false);
+    }
+  };
+
+  const handleOpenPreview = async () => {
+    setPreviewError(null);
+    setPreviewOpen(true);
+    setPreviewAnswers({});
+    const composition = normalizedRequestBody.composition;
+    if (!composition.length) {
+      setPreviewQuestions([]);
+      setPreviewError("Add at least one composition row before previewing.");
+      return;
+    }
+    if (!apiBase) {
+      setPreviewQuestions([]);
+      setPreviewError("API Base URL is required.");
+      return;
+    }
+    setPreviewLoading(true);
+    try {
+      let bank = bankPublic;
+      if (!bank || bank.subject !== normalizedRequestBody.subject) {
+        bank = await getLatestPublicBank(apiBase, normalizedRequestBody.subject);
+        setBankPublic(bank);
+        setBankStats(computeBankStats(bank));
+      }
+      const previewSeed =
+        normalizedRequestBody.seed ??
+        (draft.seed ? draft.seed.trim() : "") ||
+        `preview:${normalizedRequestBody.subject}:${JSON.stringify(composition)}`;
+      const questions = buildPreviewQuestions(bank, composition, normalizedRequestBody.policy, previewSeed);
+      setPreviewQuestions(questions);
+    } catch (err: any) {
+      setPreviewQuestions([]);
+      setPreviewError(err?.message ?? "Failed to build preview");
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
   const handleCreate = async () => {
     setSubmitError(null);
     const ok = validate();
@@ -354,7 +506,8 @@ export function CreateExamPage() {
     setIsSubmitting(true);
     try {
       const response = await createExam({ apiBase, body: normalizedRequestBody });
-      setResult(response);
+      const examUrl = buildExamLink(normalizedRequestBody.subject, response.examId);
+      setResult({ ...response, examUrl });
       setToast({ message: "Exam created", tone: "success" });
       const template: ExamTemplate = {
         subject: normalizedRequestBody.subject,
@@ -569,6 +722,7 @@ export function CreateExamPage() {
           visibility: res.exam.visibility ?? "private"
         };
         applyTemplate(template);
+        setDraft((prev) => ({ ...prev, title: res.exam.title ?? "" }));
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -641,6 +795,29 @@ export function CreateExamPage() {
               <Button type="button" variant="ghost" onClick={() => validate()} disabled={isSubmitting}>
                 Validate
               </Button>
+              <Button type="button" variant="secondary" onClick={handleOpenPreview} disabled={isSubmitting}>
+                Preview exam
+              </Button>
+              {activeExamId ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => handleCopyExamLink(activeExamId, normalizedRequestBody.subject)}
+                  disabled={isSubmitting}
+                >
+                  Copy link
+                </Button>
+              ) : null}
+              {activeExamId ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => handleCopyShortLink(activeExamId)}
+                  disabled={isSubmitting || shortLinkLoading}
+                >
+                  {shortLinkLoading ? "Copying..." : "Copy short link"}
+                </Button>
+              ) : null}
               <Button type="button" variant="secondary" onClick={handleReset} disabled={isSubmitting}>
                 Reset
               </Button>
@@ -812,9 +989,11 @@ export function CreateExamPage() {
                     id="exam-title"
                     value={draft.title}
                     onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-                    placeholder="Midterm A (UI only)"
+                    placeholder="Midterm A"
                   />
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">UI-only, not sent to the backend.</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Displayed on the exam page and stored with the exam.
+                  </p>
                 </div>
 
                 <div className="space-y-2">
@@ -937,7 +1116,7 @@ export function CreateExamPage() {
                   Review the request preview, then click <strong>Create Exam</strong> in the header.
                 </p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  The backend request body is shown in the preview; UI-only fields like the title are not included.
+                  The backend request body is shown in the preview; the title is included when provided.
                 </p>
               </Card>
             </div>
@@ -1013,10 +1192,66 @@ export function CreateExamPage() {
                 />
               </div>
 
-              {result ? <ResultCard result={result} onCreateAnother={handleReset} /> : null}
+              {result ? (
+                <ResultCard
+                  result={result}
+                  onCreateAnother={handleReset}
+                  onCopyShortLink={activeExamId ? () => handleCopyShortLink(activeExamId) : undefined}
+                  shortLinkLoading={shortLinkLoading}
+                />
+              ) : null}
             </div>
           </div>
 
+        {previewOpen ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/40" onClick={() => setPreviewOpen(false)} />
+            <Card className="relative w-full max-w-5xl max-h-[90vh] overflow-auto space-y-4" padding="md">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-text">Exam preview</div>
+                  <div className="text-xs text-textMuted">
+                    Built from the latest public bank; per-student shuffle follows the current policy and seed.
+                  </div>
+                </div>
+                <Button type="button" variant="ghost" onClick={() => setPreviewOpen(false)}>
+                  Close
+                </Button>
+              </div>
+              {previewError ? <Alert tone="error">{previewError}</Alert> : null}
+              {previewLoading ? (
+                <div className="text-sm text-textMuted">Loading preview...</div>
+              ) : previewQuestions.length ? (
+                <div className="space-y-4">
+                  <div className="text-xs text-textMuted">Questions: {previewQuestions.length}</div>
+                  {previewQuestions.map((q, idx) => (
+                    <div key={q.uid}>
+                      {q.type === "mcq-single" ? (
+                        <McqQuestion
+                          index={idx}
+                          question={q}
+                          answer={typeof previewAnswers[q.uid] === "string" ? (previewAnswers[q.uid] as string) : ""}
+                          onChange={(uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val }))}
+                          showSolution={false}
+                        />
+                      ) : q.type === "fill-blank" ? (
+                        <FillBlankQuestion
+                          index={idx}
+                          question={q}
+                          answer={previewAnswers[q.uid]}
+                          onChange={(uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val }))}
+                          showSolution={false}
+                        />
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-textMuted">No preview questions yet.</div>
+              )}
+            </Card>
+          </div>
+        ) : null}
 
         {toast ? (
           <div className="fixed right-4 top-4 z-50 flex flex-col gap-2">
