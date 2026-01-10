@@ -35,7 +35,157 @@ export async function healthCheck(apiBase) {
     }
     return { ok: true };
 }
-
+export async function getExamTemplate(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/template`, {
+        method: "GET",
+        credentials: "include"
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function listExams(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const url = new URL(`${apiBase}/admin/exams`);
+    if (params.includeDeleted)
+        url.searchParams.set("includeDeleted", "1");
+    const res = await fetch(url.toString(), { credentials: "include" });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function getAdminExam(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}`, {
+        method: "GET",
+        credentials: "include"
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function updateExam(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(params.body)
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function deleteExam(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ mode: params.mode })
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function importExams(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ items: params.items, mode: params.mode })
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function cloneExam(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/clone`, {
+        method: "POST",
+        credentials: "include"
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function createExamShortLink(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/shortlink`, {
+        method: "POST",
+        credentials: "include"
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function listTemplates(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/templates`, { credentials: "include" });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function createTemplate(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/templates`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: params.name, template: params.template })
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function updateTemplate(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/templates/${encodeURIComponent(params.templateId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name: params.name, template: params.template })
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
+export async function deleteTemplate(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/templates/${encodeURIComponent(params.templateId)}`, {
+        method: "DELETE",
+        credentials: "include"
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+}
+export async function importTemplates(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/templates/import`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ items: params.items })
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
 export async function listAvailableBanks(apiBase) {
     const base = normalizeBase(apiBase);
     const res = await fetch(`${base}/admin/banks`, { credentials: "include" });

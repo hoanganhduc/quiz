@@ -53,7 +53,7 @@ export function AdminAuthGate({ children }) {
     }
     const isAdmin = session.roles?.includes("admin");
     if (!isAdmin) {
-        return (_jsx("div", { className: "mx-auto max-w-3xl px-4 py-8 space-y-4", children: _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Not authorized" }), _jsx("p", { className: "text-sm text-textMuted", children: "Your account does not have admin access." })] }), _jsx(Badge, { tone: "warn", children: "No admin role" })] })] }) }));
+        return (_jsx("div", { className: "mx-auto max-w-3xl px-4 py-8 space-y-4", children: _jsx(Card, { className: "space-y-3", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Not authorized" }), _jsx("p", { className: "text-sm text-textMuted", children: "Your account does not have admin access." })] }), _jsx(Badge, { tone: "warn", children: "No admin role" })] }) }) }));
     }
     return _jsx("div", { className: "pt-3", children: children });
 }

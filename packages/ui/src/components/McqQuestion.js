@@ -5,6 +5,9 @@ import { Card } from "./ui/Card";
 import clsx from "clsx";
 import { MathJax } from "better-react-mathjax";
 export function McqQuestion({ index, question, answer, onChange, showSolution, submissionStatus }) {
+    if (question.type !== "mcq-single") {
+        return null;
+    }
     const status = submissionStatus === "correct"
         ? "correct"
         : submissionStatus === "incorrect"
@@ -17,7 +20,7 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
     const [focused, setFocused] = useState(null);
     const optionRefs = useRef({});
     useEffect(() => {
-        setFocused(answer ?? null);
+        setFocused(answer ? answer : null);
     }, [answer]);
     const onSelect = useCallback((key) => {
         onChange(question.uid, key);

@@ -50,3 +50,23 @@ export async function testSource(sourceId) {
         body: JSON.stringify({ sourceId })
     });
 }
+export async function uploadSourceZip(form) {
+    return request("/admin/sources/upload", {
+        method: "POST",
+        body: form
+    });
+}
+export async function getR2Usage() {
+    return request("/admin/r2/usage");
+}
+export async function triggerCiBuild(ref) {
+    return request("/admin/ci/trigger", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(ref ? { ref } : {})
+    });
+}
+export async function getCiStatus(ref) {
+    const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";
+    return request(`/admin/ci/status${qs}`);
+}

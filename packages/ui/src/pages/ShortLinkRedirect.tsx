@@ -31,7 +31,7 @@ export function ShortLinkRedirect() {
   }, [code, navigate]);
 
   return (
-    <PageShell maxWidth="md" className="py-8">
+    <PageShell maxWidth="3xl" className="py-8">
       <Card className="space-y-3">
         <div className="text-base font-semibold text-text">Opening exam…</div>
         <div className="text-sm text-textMuted">

@@ -30,5 +30,5 @@ export function ShortLinkRedirect() {
             cancelled = true;
         };
     }, [code, navigate]);
-    return (_jsx(PageShell, { maxWidth: "md", className: "py-8", children: _jsxs(Card, { className: "space-y-3", children: [_jsx("div", { className: "text-base font-semibold text-text", children: "Opening exam…" }), _jsx("div", { className: "text-sm text-textMuted", children: error ?? "If nothing happens, the short link may be invalid." }), error ? (_jsx(Button, { type: "button", variant: "secondary", onClick: () => navigate("/"), children: "Go home" })) : null] }) }));
+    return (_jsx(PageShell, { maxWidth: "3xl", className: "py-8", children: _jsxs(Card, { className: "space-y-3", children: [_jsx("div", { className: "text-base font-semibold text-text", children: "Opening exam\u2026" }), _jsx("div", { className: "text-sm text-textMuted", children: error ?? "If nothing happens, the short link may be invalid." }), error ? (_jsx(Button, { type: "button", variant: "secondary", onClick: () => navigate("/"), children: "Go home" })) : null] }) }));
 }

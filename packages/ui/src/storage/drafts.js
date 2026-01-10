@@ -29,7 +29,7 @@ export function saveDraft(examId, versionId, answers) {
             examId,
             versionId,
             savedAtISO: new Date().toISOString(),
-            answers: Object.fromEntries(Object.entries(answers).map(([k, v]) => [k, v]))
+            answers
         };
         localStorage.setItem(makeDraftKey(examId, versionId), JSON.stringify(payload));
     }
