@@ -97,7 +97,7 @@ jobs:
         if: steps.sources_compare.outputs.changed == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y texlive-luatex texlive-latex-base texlive-latex-extra texlive-pictures texlive-fonts-recommended texlive-latex-recommended texlive-plain-generic texlive-science poppler-utils
+          sudo apt-get install -y texlive-luatex texlive-latex-base texlive-latex-extra texlive-pictures texlive-lang-vietnamese poppler-utils
 
       - name: Generate banks (from sources.runtime.json)
         if: steps.sources_compare.outputs.changed == 'true'

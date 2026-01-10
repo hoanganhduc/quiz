@@ -26,9 +26,12 @@ function buildTexDocument(body: string): string {
   return [
     "\\documentclass[preview]{standalone}",
     "\\usepackage{amsmath,amssymb}",
-    "\\usepackage{array,booktabs}",
+    "\\usepackage{adjustbox}",
+    "\\usepackage{array,booktabs,longtable}",
     "\\usepackage{graphicx}",
     "\\usepackage{tikz}",
+    "\\usetikzlibrary{calc,intersections,arrows}",
+    "\\usepackage[utf8]{vietnam}",
     "\\pagestyle{empty}",
     "\\begin{document}",
     body,
