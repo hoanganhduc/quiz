@@ -2,7 +2,7 @@ import type { Hono } from "hono";
 import type { Env } from "../env";
 import { requireAdmin } from "./requireAdmin";
 
-type TriggerBody = { ref?: string };
+type TriggerBody = { ref?: string; forceRegen?: boolean };
 
 export function registerAdminCiRoutes(app: Hono<{ Bindings: Env }>) {
   app.get("/admin/ci/status", requireAdmin, async (c) => {
@@ -71,6 +71,7 @@ export function registerAdminCiRoutes(app: Hono<{ Bindings: Env }>) {
     const repo = c.env.GITHUB_CI_REPO;
     const workflow = c.env.GITHUB_CI_WORKFLOW ?? "deploy.yml";
     const ref = body.ref ?? c.env.GITHUB_CI_REF ?? "main";
+    const inputs = body.forceRegen ? { force_regen: "true" } : undefined;
 
     if (!token || !owner || !repo) {
       return c.text("Missing GitHub CI configuration", 400);
@@ -86,7 +87,7 @@ export function registerAdminCiRoutes(app: Hono<{ Bindings: Env }>) {
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ ref })
+      body: JSON.stringify(inputs ? { ref, inputs } : { ref })
     });
 
     if (!res.ok) {

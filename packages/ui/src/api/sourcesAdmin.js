@@ -59,11 +59,11 @@ export async function uploadSourceZip(form) {
 export async function getR2Usage() {
     return request("/admin/r2/usage");
 }
-export async function triggerCiBuild(ref) {
+export async function triggerCiBuild(opts) {
     return request("/admin/ci/trigger", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(ref ? { ref } : {})
+        body: JSON.stringify(opts && (opts.ref || opts.forceRegen) ? opts : {})
     });
 }
 export async function getCiStatus(ref) {

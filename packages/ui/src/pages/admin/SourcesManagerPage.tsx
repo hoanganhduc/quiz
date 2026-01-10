@@ -275,11 +275,14 @@ export function SourcesManagerPage() {
     setConfig(cfg);
   };
 
-  const triggerCi = async () => {
+  const triggerCi = async (forceRegen = false) => {
     setCiTriggering(true);
     try {
-      const res = await triggerCiBuild();
-      setNotice({ tone: "success", text: `CI triggered for ref: ${res.ref}` });
+      const res = await triggerCiBuild(forceRegen ? { forceRegen: true } : undefined);
+      setNotice({
+        tone: "success",
+        text: forceRegen ? `CI forced for ref: ${res.ref}` : `CI triggered for ref: ${res.ref}`
+      });
       await refreshCiStatus();
     } catch (err: any) {
       setNotice({ tone: "error", text: err?.message ?? "Failed to trigger CI" });
@@ -740,8 +743,11 @@ export function SourcesManagerPage() {
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                <Button type="button" variant="secondary" onClick={triggerCi} disabled={ciTriggering}>
+                <Button type="button" variant="secondary" onClick={() => triggerCi(false)} disabled={ciTriggering}>
                   {ciTriggering ? "Triggering…" : "Trigger CI build"}
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => triggerCi(true)} disabled={ciTriggering}>
+                  Force regenerate banks
                 </Button>
                 <p className="text-xs text-textMuted">Runs the GitHub Actions workflow_dispatch to regenerate banks.</p>
               </div>

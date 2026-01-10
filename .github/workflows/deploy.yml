@@ -6,6 +6,11 @@ on:
   schedule:
     - cron: "0 */6 * * *"
   workflow_dispatch:
+    inputs:
+      force_regen:
+        description: "Force regenerate question banks"
+        required: false
+        default: "false"
 
 jobs:
   build-deploy:
@@ -78,7 +83,10 @@ jobs:
           set -euo pipefail
           PREV=$(npx wrangler --config packages/worker/wrangler.toml kv key get "sources:last-built-hash" --binding QUIZ_KV --preview false --remote 2>/dev/null || true)
           PREV=$(printf "%s" "$PREV" | tr -d '\r\n')
-          if [ "$PREV" = "${{ steps.sources_hash.outputs.hash }}" ]; then
+          if [ "${{ github.event.inputs.force_regen }}" = "true" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Force regeneration requested."
+          elif [ "$PREV" = "${{ steps.sources_hash.outputs.hash }}" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Sources unchanged; skipping bank generation."
           else

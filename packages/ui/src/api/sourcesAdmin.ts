@@ -135,11 +135,11 @@ export async function getR2Usage(): Promise<R2UsageResponse> {
   return request<R2UsageResponse>("/admin/r2/usage");
 }
 
-export async function triggerCiBuild(ref?: string): Promise<CiTriggerResponse> {
+export async function triggerCiBuild(opts?: { ref?: string; forceRegen?: boolean }): Promise<CiTriggerResponse> {
   return request<CiTriggerResponse>("/admin/ci/trigger", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(ref ? { ref } : {})
+    body: JSON.stringify(opts && (opts.ref || opts.forceRegen) ? opts : {})
   });
 }
 
