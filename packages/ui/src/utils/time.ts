@@ -62,7 +62,7 @@ export function formatDateTime(value: string | number | Date): string {
     if (Number.isNaN(d.getTime()))
         return String(value);
     const tz = getCachedTimezone();
-    return d.toLocaleString(undefined, tz ? { timeZone: tz } : undefined);
+    return d.toLocaleString(undefined, tz ? { timeZone: tz, timeZoneName: "short" } : undefined);
 }
 export function onTimezoneChange(handler: () => void): () => void {
     if (typeof window === "undefined")

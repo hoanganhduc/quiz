@@ -41,11 +41,88 @@ function buildTexDocument(body: string): string {
   ].join("\n");
 }
 
+type RenderTool = {
+  name: string;
+  cmd: string;
+  args: (pdfPath: string, outputBase: string, outputPath: string, dpi: number) => string[];
+  output: (outputBase: string, outputPath: string) => string;
+};
+
+const RENDER_TOOLS: RenderTool[] = [
+  {
+    name: "pdftoppm",
+    cmd: "pdftoppm",
+    args: (pdfPath, outputBase, _outputPath, dpi) => ["-png", "-singlefile", "-r", String(dpi), pdfPath, outputBase],
+    output: (outputBase) => `${outputBase}.png`
+  },
+  {
+    name: "pdftocairo",
+    cmd: "pdftocairo",
+    args: (pdfPath, outputBase, _outputPath, dpi) => ["-png", "-singlefile", "-r", String(dpi), pdfPath, outputBase],
+    output: (outputBase) => `${outputBase}.png`
+  },
+  {
+    name: "magick",
+    cmd: "magick",
+    args: (pdfPath, _outputBase, outputPath, dpi) => ["-density", String(dpi), pdfPath, "-quality", "100", outputPath],
+    output: (_outputBase, outputPath) => outputPath
+  },
+  {
+    name: "convert",
+    cmd: "convert",
+    args: (pdfPath, _outputBase, outputPath, dpi) => ["-density", String(dpi), pdfPath, "-quality", "100", outputPath],
+    output: (_outputBase, outputPath) => outputPath
+  },
+  {
+    name: "gs",
+    cmd: "gs",
+    args: (pdfPath, _outputBase, outputPath, dpi) => [
+      "-dSAFER",
+      "-dBATCH",
+      "-dNOPAUSE",
+      `-r${dpi}`,
+      "-sDEVICE=pngalpha",
+      `-sOutputFile=${outputPath}`,
+      pdfPath
+    ],
+    output: (_outputBase, outputPath) => outputPath
+  },
+  {
+    name: "mutool",
+    cmd: "mutool",
+    args: (pdfPath, _outputBase, outputPath, dpi) => ["draw", "-r", String(dpi), "-o", outputPath, pdfPath],
+    output: (_outputBase, outputPath) => outputPath
+  }
+];
+
+function renderPdfToPng(pdfPath: string, outputPath: string, dpi: number, workDir: string): void {
+  const outputBase = join(workDir, "snippet");
+  const errors: string[] = [];
+
+  for (const tool of RENDER_TOOLS) {
+    const args = tool.args(pdfPath, outputBase, outputPath, dpi);
+    const res = spawnSync(tool.cmd, args, { encoding: "utf8" });
+    if (res.error && (res.error as any).code === "ENOENT") {
+      errors.push(`${tool.name}: not found`);
+      continue;
+    }
+    const expectedPath = tool.output(outputBase, outputPath);
+    if (res.status === 0 && existsSync(expectedPath)) {
+      mkdirSync(dirname(outputPath), { recursive: true });
+      copyFileSync(expectedPath, outputPath);
+      return;
+    }
+    const message = res.stderr || res.stdout || "unknown error";
+    errors.push(`${tool.name}: ${message.trim()}`);
+  }
+
+  throw new Error(`No PDF renderer available. Tried: ${errors.join(" | ")}`);
+}
+
 function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
   const texPath = join(workDir, "snippet.tex");
   const pdfPath = join(workDir, "snippet.pdf");
-  const pngBase = join(workDir, "snippet");
 
   try {
     writeFileSync(texPath, buildTexDocument(texBody), "utf8");
@@ -55,17 +132,7 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
     if (latex.status !== 0 || !existsSync(pdfPath)) {
       throw new Error(`lualatex failed: ${latex.stderr || latex.stdout}`);
     }
-    const ppm = spawnSync(
-      "pdftoppm",
-      ["-png", "-singlefile", "-r", String(dpi), pdfPath, pngBase],
-      { encoding: "utf8" }
-    );
-    const pngPath = `${pngBase}.png`;
-    if (ppm.status !== 0 || !existsSync(pngPath)) {
-      throw new Error(`pdftoppm failed: ${ppm.stderr || ppm.stdout}`);
-    }
-    mkdirSync(dirname(outputPath), { recursive: true });
-    copyFileSync(pngPath, outputPath);
+    renderPdfToPng(pdfPath, outputPath, dpi, workDir);
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }
