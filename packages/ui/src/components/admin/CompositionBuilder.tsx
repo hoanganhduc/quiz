@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import type { BankPublicV1, ExamCompositionItemV1 } from "@app/shared";
+import { useMemo } from "react";
+import type { ExamCompositionItemV1 } from "@app/shared";
 import { Card } from "../ui/Card";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
@@ -19,16 +19,11 @@ type Props = {
   onChange: (next: ExamCompositionItemV1[]) => void;
   errors?: Record<string, string>;
   bankStats?: BankStats | null;
-  onBankStatsChange?: (stats: BankStats | null) => void;
 };
 
 const defaultPresetTopics = ["logic", "sets", "graphs"];
 
-export function CompositionBuilder({ composition, onChange, errors = {}, bankStats: externalBankStats, onBankStatsChange }: Props) {
-  const [localBankStats, setLocalBankStats] = useState<BankStats | null>(null);
-  const bankStats = externalBankStats ?? localBankStats;
-  const setBankStats = onBankStatsChange ?? setLocalBankStats;
-  const [bankError, setBankError] = useState<string | null>(null);
+export function CompositionBuilder({ composition, onChange, errors = {}, bankStats }: Props) {
 
   const totals = useMemo(() => {
     const total = composition.reduce((sum, row) => sum + (Number.isInteger(row.n) ? row.n : 0), 0);
@@ -75,33 +70,6 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
 
   const addRow = () => {
     onChange([...composition, { topic: "", level: "basic", n: 1 }]);
-  };
-
-  const onFileChange = (file?: File | null) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const data = JSON.parse(reader.result as string) as BankPublicV1;
-        if (data.version !== "v1" || !Array.isArray(data.questions)) {
-          throw new Error("Not a bank.public.v1.json file.");
-        }
-        const counts: BankStats["counts"] = {};
-        for (const q of data.questions) {
-          if (!counts[q.topic]) {
-            counts[q.topic] = { basic: 0, advanced: 0 };
-          }
-          counts[q.topic][q.level] += 1;
-        }
-        const topics = Object.keys(counts).sort();
-        setBankStats({ topics, counts, total: data.questions.length, subject: data.subject });
-        setBankError(null);
-      } catch (err: any) {
-        setBankStats(null);
-        setBankError(err?.message ?? "Failed to parse bank file.");
-      }
-    };
-    reader.readAsText(file);
   };
 
   return (
@@ -223,30 +191,11 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
           </Button>
         ))}
       </div>
-
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-text" htmlFor="bank-import">
-          Import bank.public.v1.json (optional)
-        </label>
-        <Input
-          id="bank-import"
-          type="file"
-          accept=".json"
-          onChange={(e) => onFileChange(e.target.files?.[0])}
-        />
-        <p className="text-xs text-textMuted">File stays in your browser and is never uploaded.</p>
-        {bankError ? <Alert tone="error">{bankError}</Alert> : null}
-        {bankStats ? (
-          <Alert tone="info">
-            Loaded {bankStats.subject} bank with {bankStats.total} questions across {bankStats.topics.length} topics.
-          </Alert>
-        ) : null}
-        <datalist id="topic-suggestions">
-          {bankStats?.topics.map((topic) => (
-            <option key={topic} value={topic} />
-          ))}
-        </datalist>
-      </div>
+      <datalist id="topic-suggestions">
+        {bankStats?.topics.map((topic) => (
+          <option key={topic} value={topic} />
+        ))}
+      </datalist>
     </Card>
   );
 }

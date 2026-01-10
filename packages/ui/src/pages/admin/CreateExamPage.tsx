@@ -849,7 +849,7 @@ export function CreateExamPage() {
                 />
               </div>
 
-              <div id="composition-section">
+              <div id="composition-section" className="space-y-4">
                 <Card className="space-y-4">
                   <div>
                     <h2 className="text-base font-semibold text-neutral-900 dark:text-neutral-100">Question bank</h2>
@@ -897,7 +897,6 @@ export function CreateExamPage() {
                   onChange={(next) => setDraft({ ...draft, composition: next })}
                   errors={errors}
                   bankStats={bankStats}
-                  onBankStatsChange={setBankStats}
                 />
               </div>
 
