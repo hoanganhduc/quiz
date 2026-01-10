@@ -351,7 +351,7 @@ export function CreateExamPage() {
                 setBankPublic(bank);
                 setBankStats(computeBankStats(bank));
             }
-            const previewSeed = normalizedRequestBody.seed ?? (draft.seed ? draft.seed.trim() : "") || `preview:${normalizedRequestBody.subject}:${JSON.stringify(composition)}`;
+            const previewSeed = (normalizedRequestBody.seed ?? (draft.seed ? draft.seed.trim() : "")) || `preview:${normalizedRequestBody.subject}:${JSON.stringify(composition)}`;
             const questions = buildPreviewQuestions(bank, composition, normalizedRequestBody.policy, previewSeed);
             setPreviewQuestions(questions);
         }
