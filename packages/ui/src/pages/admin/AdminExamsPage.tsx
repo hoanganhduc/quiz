@@ -44,7 +44,10 @@ function formatDate(value: string | null | undefined) {
 }
 
 function buildExamLink(exam: AdminExamSummary): string {
-  return `${window.location.origin}/#/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`;
+  const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
+  const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+  const base = trimmed === "/" ? "" : trimmed;
+  return `${window.location.origin}${base}/#/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`;
 }
 
 export function AdminExamsPage() {

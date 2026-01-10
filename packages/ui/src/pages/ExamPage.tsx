@@ -105,7 +105,14 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const codesEntered = (!requireViewCode || !!viewCode) && (!requireSubmitCode || !!submitCode);
   const canShare = config?.visibility === "public" && authMode === "none" && !codesRequired;
   const examLink = config
-    ? `${window.location.origin}/#/exam/${encodeURIComponent(config.subject)}/${encodeURIComponent(config.examId)}`
+    ? (() => {
+        const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
+        const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+        const base = trimmed === "/" ? "" : trimmed;
+        return `${window.location.origin}${base}/#/exam/${encodeURIComponent(config.subject)}/${encodeURIComponent(
+          config.examId
+        )}`;
+      })()
     : "";
 
   const totalQuestions = bank?.questions.length ?? 0;

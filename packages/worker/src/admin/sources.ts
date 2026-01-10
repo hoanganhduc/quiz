@@ -6,6 +6,56 @@ import type { SourcesConfigV1 } from "@app/shared";
 import { resolveForBuild, type ResolvedSourcesConfigV1 } from "../sources/resolve";
 import { buildR2PublicUrl, getMaxUploadBytes, getUploadTtlSeconds, recordR2Usage, recordUploadEvent } from "../r2/usage";
 
+const SOURCES_HASH_KEY = "sources:config-hash";
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map((item) => stableStringify(item)).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const keys = Object.keys(record).sort();
+    const entries = keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`);
+    return `{${entries.join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function sha256Hex(text: string): Promise<string> {
+  const bytes = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function triggerCiIfConfigured(env: Env): Promise<void> {
+  const token = env.GITHUB_CI_TOKEN;
+  const owner = env.GITHUB_CI_OWNER;
+  const repo = env.GITHUB_CI_REPO;
+  const workflow = env.GITHUB_CI_WORKFLOW ?? "deploy.yml";
+  const ref = env.GITHUB_CI_REF ?? "main";
+  if (!token || !owner || !repo) return;
+
+  const url = `https://api.github.com/repos/${owner}/${repo}/actions/workflows/${workflow}/dispatches`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/vnd.github+json",
+      "User-Agent": "quiz-worker",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ ref })
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(text || res.statusText || "GitHub dispatch failed");
+  }
+}
+
 export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
   app.get("/admin/sources", requireAdmin, async (c) => {
     const cfg = await getSourcesConfig(c.env);
@@ -22,6 +72,16 @@ export function registerAdminSourcesRoutes(app: Hono<{ Bindings: Env }>) {
 
     try {
       const stored = await putSourcesConfig(c.env, body);
+      const nextHash = await sha256Hex(stableStringify(stored));
+      const prevHash = await c.env.QUIZ_KV.get(SOURCES_HASH_KEY);
+      await c.env.QUIZ_KV.put(SOURCES_HASH_KEY, nextHash);
+      if (prevHash !== nextHash) {
+        try {
+          await triggerCiIfConfigured(c.env);
+        } catch {
+          // best-effort CI trigger; config save still succeeds
+        }
+      }
       return c.json(stored);
     } catch (err: any) {
       return c.text(err?.message ?? "Invalid config", 400);

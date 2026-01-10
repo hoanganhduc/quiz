@@ -4,7 +4,7 @@ import type { ExamBankQuestion } from "../api";
 import { Badge } from "./ui/Badge";
 import { Card } from "./ui/Card";
 import clsx from "clsx";
-import { MathJax } from "better-react-mathjax";
+import { LatexContent } from "./LatexContent";
 
 type Status = "unanswered" | "answered" | "correct" | "incorrect";
 
@@ -90,7 +90,7 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
         <div className="space-y-1">
           <div className="text-xs text-slate-500">Question {index + 1}</div>
           <div className="font-semibold text-base leading-relaxed">
-            <MathJax dynamic>{question.prompt}</MathJax>
+            <LatexContent content={question.prompt} />
           </div>
         </div>
         <Badge tone={badgeTone}>{badgeLabel}</Badge>
@@ -112,13 +112,15 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
               onClick={() => onSelect(choice.key)}
               className={clsx(
                 "w-full text-left rounded-lg border px-3 py-3 flex gap-3 items-start focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2",
-                active ? "border-info bg-info/10" : "border-border hover:border-info/50",
+                active
+                  ? "border-info bg-info/10 dark:bg-info/20"
+                  : "border-border hover:border-info/50 dark:bg-slate-900/40",
                 "min-h-[44px]"
               )}
             >
               <span className="font-semibold text-sm w-6 text-center">{choice.key}.</span>
               <span className="text-sm leading-relaxed flex-1">
-                <MathJax inline dynamic>{choice.text}</MathJax>
+                <LatexContent inline content={choice.text} />
               </span>
             </button>
           );
@@ -136,7 +138,7 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
               </div>
               {question.solution ? (
                 <div className="mt-2 text-sm leading-relaxed">
-                  <MathJax dynamic>{question.solution}</MathJax>
+                  <LatexContent content={question.solution} />
                 </div>
               ) : null}
             </div>

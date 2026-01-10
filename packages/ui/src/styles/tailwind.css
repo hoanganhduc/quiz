@@ -19,6 +19,30 @@
     @apply bg-card border-border text-text;
     @apply dark:bg-muted dark:border-border;
   }
+  .latex-center {
+    text-align: center;
+  }
+  .latex-left {
+    text-align: left;
+  }
+  .latex-right {
+    text-align: right;
+  }
+  .latex-smallcaps {
+    font-variant: small-caps;
+    letter-spacing: 0.03em;
+  }
+  .latex-sans {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .latex-underline {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+  }
+  .latex-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.95em;
+  }
 }
 
 @layer base {

@@ -4,7 +4,7 @@ import type { ExamBankQuestion } from "../api";
 import { Badge } from "./ui/Badge";
 import { Card } from "./ui/Card";
 import clsx from "clsx";
-import { MathJax } from "better-react-mathjax";
+import { LatexContent } from "./LatexContent";
 
 type Status = "unanswered" | "answered" | "correct" | "incorrect";
 
@@ -71,7 +71,7 @@ export function FillBlankQuestion({
         <div className="space-y-1">
           <div className="text-xs text-slate-500">Question {index + 1}</div>
           <div className="font-semibold text-base leading-relaxed">
-            <MathJax dynamic>{question.prompt}</MathJax>
+            <LatexContent content={question.prompt} />
           </div>
         </div>
         <Badge tone={badgeTone}>{badgeLabel}</Badge>
@@ -105,7 +105,7 @@ export function FillBlankQuestion({
               </div>
               {"solution" in question && (question as any).solution ? (
                 <div className="mt-2 text-sm leading-relaxed">
-                  <MathJax dynamic>{(question as any).solution}</MathJax>
+                  <LatexContent content={(question as any).solution} />
                 </div>
               ) : null}
             </div>
