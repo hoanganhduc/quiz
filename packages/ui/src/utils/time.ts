@@ -1,6 +1,6 @@
 const TIMEZONE_STORAGE_KEY = "ui.defaultTimezone";
 const TIMEZONE_EVENT = "timezonechange";
-let cachedTimezone = null;
+let cachedTimezone: string | null = null;
 export function getCachedTimezone() {
     if (cachedTimezone)
         return cachedTimezone;
@@ -11,7 +11,7 @@ export function getCachedTimezone() {
     }
     return null;
 }
-export function setCachedTimezone(timezone) {
+export function setCachedTimezone(timezone: string | null): void {
     cachedTimezone = timezone && timezone.trim() ? timezone.trim() : null;
     if (cachedTimezone) {
         localStorage.setItem(TIMEZONE_STORAGE_KEY, cachedTimezone);
@@ -23,7 +23,7 @@ export function setCachedTimezone(timezone) {
         window.dispatchEvent(new CustomEvent(TIMEZONE_EVENT, { detail: cachedTimezone }));
     }
 }
-export async function initDefaultTimezone(fetcher) {
+export async function initDefaultTimezone(fetcher: () => Promise<string | null>): Promise<void> {
     try {
         const tz = await fetcher();
         if (tz)
@@ -33,37 +33,38 @@ export async function initDefaultTimezone(fetcher) {
         // best-effort only
     }
 }
-export function listTimezones() {
-    const supported = Intl.supportedValuesOf ? Intl.supportedValuesOf("timeZone") : null;
-    const fallback = [
-        "UTC",
-        "Etc/UTC",
-        "Asia/Ho_Chi_Minh",
-        "Asia/Bangkok",
-        "Asia/Tokyo",
-        "Asia/Seoul",
-        "Asia/Shanghai",
-        "Europe/London",
-        "Europe/Paris",
-        "America/New_York",
-        "America/Chicago",
-        "America/Denver",
-        "America/Los_Angeles"
-    ];
-    const tzs = Array.isArray(supported) && supported.length ? supported : fallback;
-    const unique = Array.from(new Set(tzs));
-    if (!unique.includes("UTC"))
-        unique.unshift("UTC");
-    return unique;
+export function listTimezones(): string[] {
+  const supportedValuesOf = (Intl as unknown as { supportedValuesOf?: (key: string) => string[] }).supportedValuesOf;
+  const supported = supportedValuesOf ? supportedValuesOf("timeZone") : null;
+  const fallback = [
+    "UTC",
+    "Etc/UTC",
+    "Asia/Ho_Chi_Minh",
+    "Asia/Bangkok",
+    "Asia/Tokyo",
+    "Asia/Seoul",
+    "Asia/Shanghai",
+    "Europe/London",
+    "Europe/Paris",
+    "America/New_York",
+    "America/Chicago",
+    "America/Denver",
+    "America/Los_Angeles"
+  ];
+  const tzs = Array.isArray(supported) && supported.length ? supported : fallback;
+  const merged = [...fallback, ...tzs];
+  const unique = Array.from(new Set(merged));
+  if (!unique.includes("UTC")) unique.unshift("UTC");
+  return unique;
 }
-export function formatDateTime(value) {
+export function formatDateTime(value: string | number | Date): string {
     const d = new Date(value);
     if (Number.isNaN(d.getTime()))
         return String(value);
     const tz = getCachedTimezone();
     return d.toLocaleString(undefined, tz ? { timeZone: tz } : undefined);
 }
-export function onTimezoneChange(handler) {
+export function onTimezoneChange(handler: () => void): () => void {
     if (typeof window === "undefined")
         return () => { };
     const listener = () => handler();
