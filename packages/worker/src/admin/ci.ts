@@ -27,6 +27,7 @@ export function registerAdminCiRoutes(app: Hono<{ Bindings: Env }>) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
+        "User-Agent": "quiz-worker",
         "X-GitHub-Api-Version": "2022-11-28"
       }
     });
@@ -81,6 +82,7 @@ export function registerAdminCiRoutes(app: Hono<{ Bindings: Env }>) {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
+        "User-Agent": "quiz-worker",
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json"
       },
