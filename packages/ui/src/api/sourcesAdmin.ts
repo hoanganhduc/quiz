@@ -147,3 +147,11 @@ export async function getCiStatus(ref?: string): Promise<CiStatusResponse> {
   const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";
   return request<CiStatusResponse>(`/admin/ci/status${qs}`);
 }
+
+export async function setDefaultTimezone(timezone: string): Promise<{ ok: true; timezone: string }> {
+  return request<{ ok: true; timezone: string }>("/admin/settings/timezone", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ timezone })
+  });
+}

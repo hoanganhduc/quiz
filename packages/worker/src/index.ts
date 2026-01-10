@@ -15,6 +15,8 @@ import { registerAdminR2Routes } from "./admin/r2";
 import { registerAdminExamRoutes } from "./admin/exams";
 import { registerAdminCiRoutes } from "./admin/ci";
 import { registerAdminBanksRoutes } from "./admin/banks";
+import { registerSettingsRoutes } from "./settings";
+import { registerAdminSettingsRoutes } from "./admin/settings";
 
 const app = new Hono<{ Bindings: Env }>();
 
@@ -55,6 +57,8 @@ registerAdminCiRoutes(app);
 registerAdminBanksRoutes(app);
 registerAdminR2Routes(app);
 registerFilesRoutes(app);
+registerSettingsRoutes(app);
+registerAdminSettingsRoutes(app);
 
 export default app;
 

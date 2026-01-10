@@ -1,7 +1,7 @@
 import { HashRouter, Route, Routes, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Session } from "./api";
-import { listPublicExams, type PublicExamSummary } from "./api";
+import { getDefaultTimezone, listPublicExams, type PublicExamSummary } from "./api";
 import { ExamPage } from "./pages/ExamPage";
 import { Card } from "./components/ui/Card";
 import { AdminHome } from "./pages/admin/AdminHome";
@@ -19,6 +19,7 @@ import { Input } from "./components/ui/Input";
 import { TopBar } from "./components/layout/TopBar";
 import { PageShell } from "./components/layout/PageShell";
 import { StepIndicator } from "./components/ui/StepIndicator";
+import { formatDateTime, initDefaultTimezone } from "./utils/time";
 
 const showAdminLink = new URLSearchParams(window.location.search).get("admin") === "1";
 
@@ -66,8 +67,7 @@ function Home() {
 
   const formatDate = (value: string | null) => {
     if (!value) return "—";
-    const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+    return formatDateTime(value);
   };
 
   useEffect(() => {
@@ -202,6 +202,10 @@ type Props = {
 };
 
 export function AppRouter({ session, setSession }: Props) {
+  useEffect(() => {
+    void initDefaultTimezone(getDefaultTimezone);
+  }, []);
+
   return (
     <HashRouter>
       <div className="min-h-screen bg-bg">

@@ -24,6 +24,7 @@ import { ResultCard } from "../../components/admin/ResultCard";
 import { McqQuestion } from "../../components/McqQuestion";
 import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
+import { formatDateTime } from "../../utils/time";
 function VersionsCard({ policy, onChange, errors }) {
     var _a, _b;
     return (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Versions" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Control per-student shuffling and version counts." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "versioning-mode", children: "Versioning mode" }), _jsxs(Select, { id: "versioning-mode", value: (_a = policy.versioningMode) !== null && _a !== void 0 ? _a : "fixed", onChange: (e) => {
@@ -51,7 +52,7 @@ function toLocalDateTimeInput(value) {
 }
 function formatUpdatedAt(value) {
     const d = new Date(value);
-    return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+    return Number.isNaN(d.getTime()) ? value : formatDateTime(d);
 }
 function buildExamLink(subject, examId) {
     var _a;

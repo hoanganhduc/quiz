@@ -24,6 +24,7 @@ import { Input } from "../../components/ui/Input";
 import { Textarea } from "../../components/ui/Textarea";
 import { Badge } from "../../components/ui/Badge";
 import { Select } from "../../components/ui/Select";
+import { formatDateTime } from "../../utils/time";
 
 type Notice = { tone: "success" | "error" | "warn" | "info"; text: string };
 
@@ -39,8 +40,7 @@ function downloadJson(filename: string, data: unknown) {
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+  return formatDateTime(value);
 }
 
 function buildExamLink(exam: AdminExamSummary): string {

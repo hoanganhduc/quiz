@@ -70,3 +70,10 @@ export async function getCiStatus(ref) {
     const qs = ref ? `?ref=${encodeURIComponent(ref)}` : "";
     return request(`/admin/ci/status${qs}`);
 }
+export async function setDefaultTimezone(timezone) {
+    return request("/admin/settings/timezone", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ timezone })
+    });
+}

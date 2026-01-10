@@ -193,3 +193,8 @@ export async function listPublicExams(): Promise<{ items: PublicExamSummary[] }>
 export async function resolveShortLink(code: string): Promise<{ examId: string; subject: string }> {
   return apiFetch(`/public/short/${encodeURIComponent(code)}`);
 }
+
+export async function getDefaultTimezone(): Promise<string | null> {
+  const res = await apiFetch<{ timezone?: string | null }>("/settings/timezone");
+  return res.timezone ?? null;
+}

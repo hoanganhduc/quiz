@@ -38,6 +38,7 @@ import type { BankPublicV1, ExamCompositionItemV1, ExamPolicyV1 } from "@app/sha
 import { McqQuestion } from "../../components/McqQuestion";
 import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
+import { formatDateTime } from "../../utils/time";
 
 function VersionsCard({
   policy,
@@ -154,7 +155,7 @@ function toLocalDateTimeInput(value: string): string {
 
 function formatUpdatedAt(value: string) {
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+  return Number.isNaN(d.getTime()) ? value : formatDateTime(d);
 }
 
 function buildExamLink(subject: string, examId: string): string {

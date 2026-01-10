@@ -13,6 +13,7 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
 import { Badge } from "../components/ui/Badge";
+import { formatDateTime } from "../utils/time";
 
 type StatusTone = "info" | "warn" | "error" | "success";
 type StatusMessage = { tone: StatusTone; text: string } | null;
@@ -121,7 +122,7 @@ export function HistoryPage({ session, setSession }: Props) {
               <Card key={s.submissionId} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-semibold text-text">{new Date(s.submittedAt).toLocaleString()}</div>
+                    <div className="text-sm font-semibold text-text">{formatDateTime(s.submittedAt)}</div>
                     <div className="text-xs text-textMuted">Exam: {s.examId}</div>
                   </div>
                   <Badge tone="info">

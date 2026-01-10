@@ -6,7 +6,9 @@ import clsx from "clsx";
 import { PageShell } from "../components/layout/PageShell";
 import { useTheme } from "../theme/useTheme";
 import { AdminAuthGate } from "../components/admin/AdminAuthGate";
-import { getR2Usage, type R2UsageResponse } from "../api/sourcesAdmin";
+import { getR2Usage, setDefaultTimezone, type R2UsageResponse } from "../api/sourcesAdmin";
+import { getDefaultTimezone } from "../api";
+import { formatDateTime, listTimezones, setCachedTimezone } from "../utils/time";
 
 type Notice = { tone: "success" | "error" | "warn" | "info"; text: string };
 
@@ -49,9 +51,82 @@ export function SettingsPage() {
       </Card>
 
       <AdminAuthGate>
+        <TimezoneSettingsCard />
         <UploadUsageCard />
       </AdminAuthGate>
     </PageShell>
+  );
+}
+
+function TimezoneSettingsCard() {
+  const [timezone, setTimezone] = useState("UTC");
+  const [options, setOptions] = useState<string[]>(() => listTimezones());
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  useEffect(() => {
+    setOptions(listTimezones());
+    getDefaultTimezone()
+      .then((tz) => {
+        if (tz) {
+          setTimezone(tz);
+          setCachedTimezone(tz);
+        }
+      })
+      .catch((err: any) => {
+        setNotice({ tone: "warn", text: err?.message ?? "Failed to load timezone" });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await setDefaultTimezone(timezone);
+      setCachedTimezone(res.timezone);
+      setNotice({ tone: "success", text: `Default timezone set to ${res.timezone}` });
+    } catch (err: any) {
+      setNotice({ tone: "error", text: err?.message ?? "Failed to save timezone" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold text-text">Default timezone</h2>
+        <p className="text-sm text-textMuted">All time displays use this timezone across the app.</p>
+      </div>
+      {notice ? <Alert tone={notice.tone}>{notice.text}</Alert> : null}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-text" htmlFor="default-timezone">
+          Timezone
+        </label>
+        <select
+          id="default-timezone"
+          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          disabled={loading || saving}
+        >
+          {options.map((tz) => (
+            <option key={tz} value={tz}>
+              {tz}
+            </option>
+          ))}
+        </select>
+        <div className="text-xs text-textMuted">
+          Current: {timezone}
+        </div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="secondary" onClick={handleSave} disabled={loading || saving}>
+          {saving ? "Saving..." : "Save timezone"}
+        </Button>
+      </div>
+    </Card>
   );
 }
 
@@ -177,6 +252,5 @@ function formatBytes(bytes: number) {
 }
 
 function formatUpdatedAt(value: string) {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+  return formatDateTime(value);
 }

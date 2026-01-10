@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { HashRouter, Route, Routes, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { listPublicExams } from "./api";
+import { getDefaultTimezone, listPublicExams } from "./api";
 import { ExamPage } from "./pages/ExamPage";
 import { Card } from "./components/ui/Card";
 import { AdminHome } from "./pages/admin/AdminHome";
@@ -19,6 +19,7 @@ import { Input } from "./components/ui/Input";
 import { TopBar } from "./components/layout/TopBar";
 import { PageShell } from "./components/layout/PageShell";
 import { StepIndicator } from "./components/ui/StepIndicator";
+import { formatDateTime, initDefaultTimezone } from "./utils/time";
 const showAdminLink = new URLSearchParams(window.location.search).get("admin") === "1";
 function Home() {
     const [examId, setExamId] = useState("");
@@ -27,16 +28,17 @@ function Home() {
     const [openError, setOpenError] = useState(null);
     const navigate = useNavigate();
     const parseExamLink = (raw) => {
+        var _a, _b, _c, _d;
         const trimmed = raw.trim();
         if (!trimmed)
             return null;
         try {
             const u = new URL(trimmed);
-            const m = (u.hash ?? "").match(/#\/exam\/([^/?]+)\/([^/?]+)/);
+            const m = ((_a = u.hash) !== null && _a !== void 0 ? _a : "").match(/#\/exam\/([^/?]+)\/([^/?]+)/);
             if (m) {
                 return { subject: decodeURIComponent(m[1]), examId: decodeURIComponent(m[2]) };
             }
-            const legacy = (u.hash ?? "").match(/#\/exam\/([^/?]+)/);
+            const legacy = ((_b = u.hash) !== null && _b !== void 0 ? _b : "").match(/#\/exam\/([^/?]+)/);
             if (legacy) {
                 return { subject: "discrete-math", examId: decodeURIComponent(legacy[1]) };
             }
@@ -44,11 +46,11 @@ function Home() {
         catch {
             // not a full URL
         }
-        const m = trimmed.match(/#\/exam\/([^/?]+)\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)\/([^/?]+)/);
+        const m = (_c = trimmed.match(/#\/exam\/([^/?]+)\/([^/?]+)/)) !== null && _c !== void 0 ? _c : trimmed.match(/\/exam\/([^/?]+)\/([^/?]+)/);
         if (m) {
             return { subject: decodeURIComponent(m[1]), examId: decodeURIComponent(m[2]) };
         }
-        const legacy = trimmed.match(/#\/exam\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)/);
+        const legacy = (_d = trimmed.match(/#\/exam\/([^/?]+)/)) !== null && _d !== void 0 ? _d : trimmed.match(/\/exam\/([^/?]+)/);
         if (legacy) {
             return { subject: "discrete-math", examId: decodeURIComponent(legacy[1]) };
         }
@@ -63,18 +65,19 @@ function Home() {
     const formatDate = (value) => {
         if (!value)
             return "—";
-        const d = new Date(value);
-        return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+        return formatDateTime(value);
     };
     useEffect(() => {
         setOpenLoading(true);
         listPublicExams()
             .then((res) => {
-            setOpenExams(res.items ?? []);
+            var _a;
+            setOpenExams((_a = res.items) !== null && _a !== void 0 ? _a : []);
             setOpenError(null);
         })
             .catch((err) => {
-            setOpenError(err?.message ?? "Failed to load open exams.");
+            var _a;
+            setOpenError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to load open exams.");
         })
             .finally(() => {
             setOpenLoading(false);
@@ -109,5 +112,8 @@ function Home() {
                                 ] })] })] }), _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Open exams" }), _jsx("p", { className: "text-sm text-textMuted", children: "Public exams that don\u2019t require sign-in or access codes." })] }), openError ? _jsx("div", { className: "text-sm text-error", children: openError }) : null, openLoading ? (_jsx("div", { className: "text-sm text-textMuted", children: "Loading open exams..." })) : openExams.length ? (_jsx("div", { className: "space-y-2 text-sm", children: openExams.map((exam) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "font-medium text-text", children: ["Exam ", exam.examId] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Created ", formatDate(exam.createdAt), " \u00B7 Expires ", formatDate(exam.expiresAt)] })] }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => navigate(`/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`), children: "Open" })] }, exam.examId))) })) : (_jsx("div", { className: "text-sm text-textMuted", children: "No open exams right now." }))] }), showAdminLink ? (_jsx("div", { className: "text-xs text-textMuted", children: _jsx(Link, { to: "/admin", className: "hover:underline", children: "Admin" }) })) : null] }));
 }
 export function AppRouter({ session, setSession }) {
+    useEffect(() => {
+        void initDefaultTimezone(getDefaultTimezone);
+    }, []);
     return (_jsx(HashRouter, { children: _jsxs("div", { className: "min-h-screen bg-bg", children: [_jsx(TopBar, { session: session }), _jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(Home, {}) }), _jsx(Route, { path: "/exam/:subject/:examId", element: _jsx(ExamPage, { session: session, setSession: setSession }) }), _jsx(Route, { path: "/exam/:examId", element: _jsx(ExamPage, { session: session, setSession: setSession }) }), _jsx(Route, { path: "/s/:code", element: _jsx(ShortLinkRedirect, {}) }), _jsx(Route, { path: "/history", element: _jsx(HistoryPage, { session: session, setSession: setSession }) }), _jsx(Route, { path: "/account", element: _jsx(AccountPage, {}) }), _jsx(Route, { path: "/settings", element: _jsx(SettingsPage, {}) }), _jsx(Route, { path: "/admin", element: _jsx(AdminHome, {}) }), _jsx(Route, { path: "/admin/exams", element: _jsx(AdminExamsPage, {}) }), _jsx(Route, { path: "/admin/exams/new", element: _jsx(CreateExamPage, {}) }), _jsx(Route, { path: "/admin/users", element: _jsx(AdminUsersPage, {}) }), _jsx(Route, { path: "/admin/sources", element: _jsx(SourcesManagerPage, {}) }), _jsx(Route, { path: "/admin/tools", element: _jsx(ExtraToolsPage, {}) })] })] }) }));
 }

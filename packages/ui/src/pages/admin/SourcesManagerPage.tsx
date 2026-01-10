@@ -29,6 +29,7 @@ import type {
   SourcesConfigV1,
   ZipSourceDefV1
 } from "@app/shared";
+import { formatDateTime } from "../../utils/time";
 
 type Notice = { tone: "success" | "error" | "warn" | "info"; text: string };
 
@@ -50,8 +51,7 @@ type BankSummary = {
 const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 function formatUpdatedAt(value: string) {
-  const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+  return formatDateTime(value);
 }
 
 function formatTopics(topics: string[], max = 6): string {
@@ -768,7 +768,7 @@ export function SourcesManagerPage() {
                     <a className="text-info hover:underline" href={ciStatus.url} target="_blank" rel="noreferrer">
                       View workflow run
                     </a>{" "}
-                    · Updated {new Date(ciStatus.updatedAt).toLocaleString()}
+                    · Updated {formatDateTime(ciStatus.updatedAt)}
                   </div>
                 </div>
               ) : (
@@ -804,7 +804,7 @@ export function SourcesManagerPage() {
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="text-sm font-semibold text-text">{summary.subject}</div>
                           <div className="text-xs text-textMuted">
-                            Generated {new Date(summary.generatedAt).toLocaleString()}
+                            Generated {formatDateTime(summary.generatedAt)}
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs">

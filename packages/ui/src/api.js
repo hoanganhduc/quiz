@@ -84,3 +84,7 @@ export async function listPublicExams() {
 export async function resolveShortLink(code) {
     return apiFetch(`/public/short/${encodeURIComponent(code)}`);
 }
+export async function getDefaultTimezone() {
+    const res = await apiFetch("/settings/timezone");
+    return res.timezone ?? null;
+}
