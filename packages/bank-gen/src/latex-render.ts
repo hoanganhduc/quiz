@@ -32,6 +32,7 @@ function buildTexDocument(body: string): string {
     "\\usepackage{tikz}",
     "\\usetikzlibrary{calc,intersections,arrows}",
     "\\usepackage[utf8]{vietnam}",
+    "\\usepackage[T5]{fontenc}",
     "\\pagestyle{empty}",
     "\\begin{document}",
     body,
