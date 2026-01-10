@@ -18,7 +18,8 @@ const DEFAULT_DRAFT = {
     codesEnabled: false,
     codes: [],
     expiresEnabled: false,
-    expiresAtLocal: ""
+    expiresAtLocal: "",
+    visibility: "private"
 };
 function normalizeCodes(codes) {
     const trimmed = codes.map((code) => code.trim()).filter(Boolean);
@@ -39,7 +40,8 @@ export function useExamDraft() {
         const body = {
             subject: draft.subject,
             composition,
-            policy: draft.policy
+            policy: draft.policy,
+            visibility: draft.visibility
         };
         if (!draft.autoSeed && draft.seed.trim()) {
             body.seed = draft.seed.trim();

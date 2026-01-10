@@ -103,6 +103,10 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const authSatisfied = authMode !== "required" || signedIn;
   const codesRequired = !!requireViewCode || !!requireSubmitCode;
   const codesEntered = (!requireViewCode || !!viewCode) && (!requireSubmitCode || !!submitCode);
+  const canShare = config?.visibility === "public" && authMode === "none" && !codesRequired;
+  const examLink = config
+    ? `${window.location.origin}/#/exam/${encodeURIComponent(config.subject)}/${encodeURIComponent(config.examId)}`
+    : "";
 
   const totalQuestions = bank?.questions.length ?? 0;
   const answeredCount = bank
@@ -289,6 +293,24 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     setDraftNotice("Saved for later");
     draftNoticeTimerRef.current = window.setTimeout(() => setDraftNotice(null), 2500);
     setStatus({ tone: "success", text: "Draft saved. You can submit later." });
+  };
+
+  const handleShare = async () => {
+    if (!canShare || !examLink) return;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: `Exam ${config?.examId ?? ""}`,
+          url: examLink
+        });
+        return;
+      }
+      await navigator.clipboard.writeText(examLink);
+      setStatus({ tone: "success", text: "Exam link copied." });
+    } catch (err: any) {
+      if (err?.name === "AbortError") return;
+      setStatus({ tone: "error", text: err?.message ?? "Share failed." });
+    }
   };
 
   const openClearDraftConfirm = () => {
@@ -491,6 +513,11 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
             <Button variant="ghost" size="sm" onClick={openClearDraftConfirm} disabled={!versionId || !hasDraft}>
               Clear saved draft
             </Button>
+            {canShare ? (
+              <Button variant="secondary" size="sm" onClick={handleShare}>
+                Share exam link
+              </Button>
+            ) : null}
             <div className="text-xs text-textMuted">Jump to question</div>
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: totalQuestions }).map((_, i) => {

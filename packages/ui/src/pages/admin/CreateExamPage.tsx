@@ -136,6 +136,7 @@ type ExamTemplate = {
   policy: ExamPolicyV1;
   codes?: string[];
   expiresAt?: string | null;
+  visibility?: "public" | "private";
 };
 type SavedTemplate = ExamTemplateRecord;
 
@@ -360,7 +361,8 @@ export function CreateExamPage() {
         composition: normalizedRequestBody.composition,
         policy: normalizedRequestBody.policy,
         codes: normalizedRequestBody.codes,
-        expiresAt: normalizedRequestBody.expiresAt ?? null
+        expiresAt: normalizedRequestBody.expiresAt ?? null,
+        visibility: normalizedRequestBody.visibility ?? "private"
       };
       localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(template));
       setLastTemplate(template);
@@ -454,6 +456,7 @@ export function CreateExamPage() {
       ),
       expiresEnabled: Boolean(template.expiresAt),
       expiresAtLocal: template.expiresAt ? toLocalDateTimeInput(template.expiresAt) : "",
+      visibility: template.visibility ?? "private",
       autoSeed: true,
       seed: ""
     }));
@@ -486,7 +489,8 @@ export function CreateExamPage() {
           composition: normalizedRequestBody.composition,
           policy: normalizedRequestBody.policy,
           codes: normalizedRequestBody.codes,
-          expiresAt: normalizedRequestBody.expiresAt ?? null
+          expiresAt: normalizedRequestBody.expiresAt ?? null,
+          visibility: normalizedRequestBody.visibility ?? "private"
         }
       });
       setSavedTemplates((prev) => [record, ...prev]);
@@ -561,7 +565,8 @@ export function CreateExamPage() {
           subject: res.exam.subject,
           composition: res.exam.composition,
           policy: res.exam.policy,
-          expiresAt: res.exam.expiresAt ?? null
+          expiresAt: res.exam.expiresAt ?? null,
+          visibility: res.exam.visibility ?? "private"
         };
         applyTemplate(template);
       })
@@ -591,7 +596,8 @@ export function CreateExamPage() {
         subject: res.subject,
         composition: res.composition,
         policy: res.policy,
-        expiresAt: res.expiresAt
+        expiresAt: res.expiresAt,
+        visibility: res.visibility
       };
       localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(template));
       setLastTemplate(template);
@@ -777,6 +783,25 @@ export function CreateExamPage() {
                       {errors["subject"]}
                     </p>
                   ) : null}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Public listing</p>
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                        Public exams appear on the homepage until they expire.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+                      <Switch
+                        id="visibility-toggle"
+                        checked={draft.visibility === "public"}
+                        onChange={(value) => setDraft({ ...draft, visibility: value ? "public" : "private" })}
+                      />
+                      <label htmlFor="visibility-toggle">Public</label>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-2">

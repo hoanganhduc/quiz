@@ -13,6 +13,7 @@ export type ExamDraft = {
   codes: string[];
   expiresEnabled: boolean;
   expiresAtLocal: string;
+  visibility: "public" | "private";
 };
 
 const DEFAULT_DRAFT: ExamDraft = {
@@ -34,7 +35,8 @@ const DEFAULT_DRAFT: ExamDraft = {
   codesEnabled: false,
   codes: [],
   expiresEnabled: false,
-  expiresAtLocal: ""
+  expiresAtLocal: "",
+  visibility: "private"
 };
 
 function normalizeCodes(codes: string[]): string[] {
@@ -59,7 +61,8 @@ export function useExamDraft() {
     const body: AdminExamRequest = {
       subject: draft.subject,
       composition,
-      policy: draft.policy
+      policy: draft.policy,
+      visibility: draft.visibility
     };
 
     if (!draft.autoSeed && draft.seed.trim()) {

@@ -80,6 +80,7 @@ export type ExamConfigResponse = {
   policy: ExamPolicyV1;
   expiresAt: string | null;
   auth: Session["provider"] | null;
+  visibility: "public" | "private";
 };
 
 export async function getExamConfig(examId: string): Promise<ExamConfigResponse> {
@@ -175,4 +176,19 @@ export type SubmissionDetail = {
 
 export async function getSubmissionDetail(submissionId: string): Promise<SubmissionDetail> {
   return apiFetch(`/me/submissions/${submissionId}`);
+}
+
+export type PublicExamSummary = {
+  examId: string;
+  subject: string;
+  createdAt: string;
+  expiresAt: string | null;
+};
+
+export async function listPublicExams(): Promise<{ items: PublicExamSummary[] }> {
+  return apiFetch("/public/exams");
+}
+
+export async function resolveShortLink(code: string): Promise<{ examId: string; subject: string }> {
+  return apiFetch(`/public/short/${encodeURIComponent(code)}`);
 }

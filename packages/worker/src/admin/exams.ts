@@ -5,8 +5,10 @@ import { getExam, getLatestBanks, putExam } from "../kv";
 import { createRng, hashAccessCode, shuffle } from "../utils";
 import {
   ExamV1Schema,
+  normalizeExamVisibility,
   normalizeExamPolicyDefaults,
   type BankPublicV1,
+  type ExamVisibility,
   type ExamPolicyV1,
   type ExamV1
 } from "@app/shared";
@@ -18,6 +20,7 @@ type AdminExamBody = {
   policy: ExamPolicyV1;
   codes?: string[];
   expiresAt?: string | null;
+  visibility?: ExamVisibility;
 };
 
 type ExamTemplateBody = {
@@ -33,11 +36,41 @@ type ExamTemplateBody = {
 
 const EXAM_PREFIX = "exam:";
 const TEMPLATE_PREFIX = "examTemplate:";
+const SHORT_PREFIX = "short:";
+const SHORT_EXAM_PREFIX = "shortExam:";
+
+function randomShortCode(length = 8): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  const bytes = new Uint8Array(length);
+  crypto.getRandomValues(bytes);
+  let out = "";
+  for (const b of bytes) {
+    out += alphabet[b % alphabet.length];
+  }
+  return out;
+}
 
 function parseLimit(value: string | null | undefined, fallback = 50) {
   const n = value ? Number(value) : NaN;
   if (!Number.isFinite(n)) return fallback;
   return Math.max(1, Math.min(100, Math.floor(n)));
+}
+
+function isExpired(expiresAt?: string): boolean {
+  if (!expiresAt) return false;
+  return Date.now() > Date.parse(expiresAt);
+}
+
+function isDeleted(deletedAt?: string): boolean {
+  if (!deletedAt) return false;
+  return Date.now() >= Date.parse(deletedAt);
+}
+
+function getExpiryTtlSeconds(expiresAt?: string): number | undefined {
+  if (!expiresAt) return undefined;
+  const ms = Date.parse(expiresAt) - Date.now();
+  if (!Number.isFinite(ms) || ms <= 0) return undefined;
+  return Math.ceil(ms / 1000);
 }
 
 async function hasSubmissions(env: Env, examId: string): Promise<boolean> {
@@ -118,6 +151,7 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
         questionCount: exam.questionUids.length,
         composition: exam.composition,
         policy: normalizeExamPolicyDefaults(exam.policy),
+        visibility: normalizeExamVisibility(exam.visibility),
         hasSubmissions: taken
       });
     }
@@ -198,6 +232,8 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
 
     const nextExpiresAt =
       body.expiresAt === null ? undefined : body.expiresAt ?? existing.value.expiresAt;
+    const nextVisibility =
+      body.visibility !== undefined ? normalizeExamVisibility(body.visibility) : existing.value.visibility;
     const updated: ExamV1 = {
       ...existing.value,
       subject: body.subject,
@@ -207,6 +243,7 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
       policy: normalizedPolicy,
       codesHashed,
       expiresAt: nextExpiresAt,
+      visibility: nextVisibility,
       updatedAt: new Date().toISOString()
     };
     const stored = await putExam(c.env, updated);
@@ -287,6 +324,43 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
     }
     const examUrl = `${c.env.UI_ORIGIN}/exam/${cloned.subject}/${newExamId}`;
     return c.json({ examId: newExamId, examUrl, seed: cloned.seed });
+  });
+
+  app.post("/admin/exams/:examId/shortlink", requireAdmin, async (c) => {
+    const examId = c.req.param("examId");
+    const found = await getExam(c.env, examId);
+    if (!found.ok) {
+      const status = found.status as 400 | 404 | 500;
+      return c.text(found.error, status);
+    }
+    if (isDeleted(found.value.deletedAt)) return c.text("Exam deleted", 410);
+    if (isExpired(found.value.expiresAt)) return c.text("Exam expired", 410);
+
+    const existingCode = await c.env.QUIZ_KV.get(`${SHORT_EXAM_PREFIX}${examId}`);
+    const ttl = getExpiryTtlSeconds(found.value.expiresAt);
+    if (existingCode) {
+      const shortUrl = `${c.env.UI_ORIGIN}/#/s/${existingCode}`;
+      return c.json({ code: existingCode, shortUrl });
+    }
+
+    let code = "";
+    for (let i = 0; i < 5; i += 1) {
+      const next = randomShortCode(8);
+      const exists = await c.env.QUIZ_KV.get(`${SHORT_PREFIX}${next}`);
+      if (!exists) {
+        code = next;
+        break;
+      }
+    }
+    if (!code) return c.text("Failed to generate short link", 500);
+
+    const payload = JSON.stringify({ examId, subject: found.value.subject });
+    const options = ttl ? { expirationTtl: ttl } : undefined;
+    await c.env.QUIZ_KV.put(`${SHORT_PREFIX}${code}`, payload, options);
+    await c.env.QUIZ_KV.put(`${SHORT_EXAM_PREFIX}${examId}`, code, options);
+
+    const shortUrl = `${c.env.UI_ORIGIN}/#/s/${code}`;
+    return c.json({ code, shortUrl });
   });
 
   app.post("/admin/exams/import", requireAdmin, async (c) => {

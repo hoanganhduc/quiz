@@ -78,3 +78,11 @@ export async function getUserSubmissions(cursor) {
 export async function getSubmissionDetail(submissionId) {
     return apiFetch(`/me/submissions/${submissionId}`);
 }
+
+export async function listPublicExams() {
+    return apiFetch("/public/exams");
+}
+
+export async function resolveShortLink(code) {
+    return apiFetch(`/public/short/${encodeURIComponent(code)}`);
+}

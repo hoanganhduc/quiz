@@ -6,8 +6,10 @@ import {
   ChoiceKey,
   ExamV1,
   ExamPolicyV1,
+  ExamVisibility,
   SubmissionIdentityV1,
   isLoggedInUser,
+  normalizeExamVisibility,
   normalizeExamPolicyDefaults,
   type AppUser,
   type SessionV2,
@@ -36,6 +38,7 @@ type AdminExamBody = {
   policy: ExamPolicyV1;
   codes?: string[];
   expiresAt?: string | null;
+  visibility?: ExamVisibility;
 };
 
 type SubmitBody = { answers: Record<string, AnswerValueV1>; code?: string };
@@ -87,6 +90,13 @@ function isExpired(expiresAt?: string): boolean {
 function isDeleted(deletedAt?: string): boolean {
   if (!deletedAt) return false;
   return Date.now() >= Date.parse(deletedAt);
+}
+
+function isOpenExam(exam: ExamV1): boolean {
+  const policy = normalizeExamPolicyDefaults(exam.policy);
+  if (policy.authMode !== "none") return false;
+  if (policy.requireViewCode || policy.requireSubmitCode) return false;
+  return true;
 }
 
 function selectQuestions(composition: AdminExamBody["composition"], bank: BankPublicV1, seed: string): string[] {
@@ -226,7 +236,8 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       questionUids,
       policy: normalizedPolicy,
       codesHashed,
-      expiresAt: body.expiresAt ?? undefined
+      expiresAt: body.expiresAt ?? undefined,
+      visibility: normalizeExamVisibility(body.visibility)
     };
 
     const stored = await putExam(c.env, exam);
@@ -253,7 +264,8 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       subject: found.value.subject,
       composition: found.value.composition,
       policy,
-      expiresAt: found.value.expiresAt ?? null
+      expiresAt: found.value.expiresAt ?? null,
+      visibility: normalizeExamVisibility(found.value.visibility)
     });
   });
 
@@ -277,7 +289,8 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       composition: found.value.composition,
       policy,
       expiresAt: found.value.expiresAt ?? null,
-      auth: resolved ? resolved.identity.provider : null
+      auth: resolved ? resolved.identity.provider : null,
+      visibility: normalizeExamVisibility(found.value.visibility)
     });
   });
 
@@ -504,5 +517,52 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
         version: submission.version
       }
     });
+  });
+
+  app.get("/public/exams", async (c) => {
+    const list = await c.env.QUIZ_KV.list({ prefix: "exam:", limit: 1000 });
+    const items = [];
+    for (const key of list.keys) {
+      const raw = await c.env.QUIZ_KV.get(key.name);
+      if (!raw) continue;
+      let exam: ExamV1;
+      try {
+        exam = JSON.parse(raw) as ExamV1;
+      } catch {
+        continue;
+      }
+      if (isDeleted(exam.deletedAt) || isExpired(exam.expiresAt)) continue;
+      if (normalizeExamVisibility(exam.visibility) !== "public") continue;
+      if (!isOpenExam(exam)) continue;
+      items.push({
+        examId: exam.examId,
+        subject: exam.subject,
+        createdAt: exam.createdAt,
+        expiresAt: exam.expiresAt ?? null
+      });
+    }
+    return c.json({ items });
+  });
+
+  app.get("/public/short/:code", async (c) => {
+    const code = c.req.param("code");
+    if (!code) return c.text("Missing code", 400);
+    const raw = await c.env.QUIZ_KV.get(`short:${code}`);
+    if (!raw) return c.text("Not found", 404);
+    let data: { examId?: string; subject?: string };
+    try {
+      data = JSON.parse(raw) as { examId?: string; subject?: string };
+    } catch {
+      return c.text("Invalid short link", 400);
+    }
+    if (!data.examId || !data.subject) return c.text("Invalid short link", 400);
+    const found = await getExam(c.env, data.examId);
+    if (!found.ok) {
+      const status = found.status as 400 | 404 | 500;
+      return c.text(found.error, status);
+    }
+    if (isDeleted(found.value.deletedAt)) return c.text("Exam deleted", 410);
+    if (isExpired(found.value.expiresAt)) return c.text("Exam expired", 410);
+    return c.json({ examId: data.examId, subject: data.subject });
   });
 }

@@ -21,7 +21,9 @@ import {
   type SecretSummary,
   type SourceTestResponse
 } from "../../api/sourcesAdmin";
+import { getLatestPublicBank, listAvailableBanks } from "../../api/admin";
 import type {
+  BankPublicV1,
   GitHubSourceDefV1,
   GoogleDriveFolderSourceDefV1,
   SourcesConfigV1,
@@ -36,9 +38,44 @@ type SourceDraftAuthKind = "githubToken" | "httpHeader";
 
 type TestResult = SourceTestResponse & { at: string };
 
+type BankSummary = {
+  subject: string;
+  total: number;
+  topics: string[];
+  generatedAt: string;
+  basic: number;
+  advanced: number;
+};
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? "";
+
 function formatUpdatedAt(value: string) {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+}
+
+function formatTopics(topics: string[], max = 6): string {
+  if (topics.length <= max) return topics.join(", ");
+  return `${topics.slice(0, max).join(", ")} +${topics.length - max} more`;
+}
+
+function buildBankSummary(bank: BankPublicV1): BankSummary {
+  const topicsSet = new Set<string>();
+  let basic = 0;
+  let advanced = 0;
+  for (const q of bank.questions) {
+    topicsSet.add(q.topic);
+    if (q.level === "basic") basic += 1;
+    if (q.level === "advanced") advanced += 1;
+  }
+  return {
+    subject: bank.subject,
+    total: bank.questions.length,
+    topics: Array.from(topicsSet).sort(),
+    generatedAt: bank.generatedAt,
+    basic,
+    advanced
+  };
 }
 
 function formatValidationError(err: any): string {
@@ -189,6 +226,9 @@ export function SourcesManagerPage() {
   const [ciTriggering, setCiTriggering] = useState(false);
   const [ciStatus, setCiStatus] = useState<null | { status: string; conclusion: string | null; url: string; updatedAt: string }>(null);
   const [ciStatusError, setCiStatusError] = useState<string | null>(null);
+  const [bankSummaries, setBankSummaries] = useState<BankSummary[]>([]);
+  const [bankSummaryLoading, setBankSummaryLoading] = useState(false);
+  const [bankSummaryError, setBankSummaryError] = useState<string | null>(null);
 
   // Secret modal state
   const [secretModalOpen, setSecretModalOpen] = useState(false);
@@ -262,8 +302,39 @@ export function SourcesManagerPage() {
         url: res.run.html_url,
         updatedAt: res.run.updated_at
       });
+      if (res.run.status === "completed" && API_BASE) {
+        void refreshBankSummaries();
+      }
     } catch (err: any) {
       setCiStatusError(err?.message ?? "Failed to fetch CI status");
+    }
+  };
+
+  const refreshBankSummaries = async () => {
+    if (!API_BASE) {
+      setBankSummaryError("VITE_API_BASE not set");
+      setBankSummaries([]);
+      return;
+    }
+    setBankSummaryLoading(true);
+    try {
+      const res = await listAvailableBanks(API_BASE);
+      const subjects = res.subjects ?? [];
+      if (!subjects.length) {
+        setBankSummaries([]);
+        setBankSummaryError(null);
+        return;
+      }
+      const summaries = await Promise.all(
+        subjects.map(async (subject) => buildBankSummary(await getLatestPublicBank(API_BASE, subject)))
+      );
+      summaries.sort((a, b) => a.subject.localeCompare(b.subject));
+      setBankSummaries(summaries);
+      setBankSummaryError(null);
+    } catch (err: any) {
+      setBankSummaryError(err?.message ?? "Failed to load bank stats");
+    } finally {
+      setBankSummaryLoading(false);
     }
   };
 
@@ -405,6 +476,11 @@ export function SourcesManagerPage() {
 
   useEffect(() => {
     void refreshCiStatus();
+  }, []);
+
+  useEffect(() => {
+    if (!API_BASE) return;
+    void refreshBankSummaries();
   }, []);
 
   useEffect(() => {
@@ -692,6 +768,53 @@ export function SourcesManagerPage() {
               ) : (
                 <div className="text-xs text-textMuted">No recent workflow run found.</div>
               )}
+
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-sm font-medium text-text">Latest bank stats</div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={refreshBankSummaries}
+                    disabled={bankSummaryLoading || !API_BASE}
+                  >
+                    {bankSummaryLoading ? "Refreshing…" : "Refresh"}
+                  </Button>
+                </div>
+                {bankSummaryError ? (
+                  <Alert tone="error">{bankSummaryError}</Alert>
+                ) : bankSummaryLoading ? (
+                  <p className="text-xs text-textMuted">Loading bank stats…</p>
+                ) : bankSummaries.length === 0 ? (
+                  <p className="text-xs text-textMuted">No banks found.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {bankSummaries.map((summary) => (
+                      <div
+                        key={summary.subject}
+                        className="rounded-lg border border-border bg-card px-3 py-2 space-y-2"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="text-sm font-semibold text-text">{summary.subject}</div>
+                          <div className="text-xs text-textMuted">
+                            Generated {new Date(summary.generatedAt).toLocaleString()}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2 text-xs">
+                          <Badge tone="info">Questions {summary.total}</Badge>
+                          <Badge tone="success">Basic {summary.basic}</Badge>
+                          <Badge tone="warn">Advanced {summary.advanced}</Badge>
+                          <Badge tone="muted">Topics {summary.topics.length}</Badge>
+                        </div>
+                        <div className="text-xs text-textMuted">
+                          Topics: {summary.topics.length ? formatTopics(summary.topics) : "None"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </Card>
 
             <Card className="space-y-4">

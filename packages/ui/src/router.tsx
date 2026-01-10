@@ -1,6 +1,7 @@
 import { HashRouter, Route, Routes, Link, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Session } from "./api";
+import { listPublicExams, type PublicExamSummary } from "./api";
 import { ExamPage } from "./pages/ExamPage";
 import { Card } from "./components/ui/Card";
 import { AdminHome } from "./pages/admin/AdminHome";
@@ -12,6 +13,7 @@ import { SourcesManagerPage } from "./pages/admin/SourcesManagerPage";
 import { ExtraToolsPage } from "./pages/admin/ExtraToolsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { ShortLinkRedirect } from "./pages/ShortLinkRedirect";
 import { Button } from "./components/ui/Button";
 import { Input } from "./components/ui/Input";
 import { TopBar } from "./components/layout/TopBar";
@@ -22,6 +24,9 @@ const showAdminLink = new URLSearchParams(window.location.search).get("admin") =
 
 function Home() {
   const [examId, setExamId] = useState("");
+  const [openExams, setOpenExams] = useState<PublicExamSummary[]>([]);
+  const [openLoading, setOpenLoading] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const parseExamLink = (raw: string): { subject: string; examId: string } | null => {
@@ -58,6 +63,27 @@ function Home() {
     if (!parsed) return;
     navigate(`/exam/${encodeURIComponent(parsed.subject)}/${encodeURIComponent(parsed.examId)}`);
   };
+
+  const formatDate = (value: string | null) => {
+    if (!value) return "—";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+  };
+
+  useEffect(() => {
+    setOpenLoading(true);
+    listPublicExams()
+      .then((res) => {
+        setOpenExams(res.items ?? []);
+        setOpenError(null);
+      })
+      .catch((err: any) => {
+        setOpenError(err?.message ?? "Failed to load open exams.");
+      })
+      .finally(() => {
+        setOpenLoading(false);
+      });
+  }, []);
 
   return (
     <PageShell maxWidth="4xl" className="space-y-4">
@@ -125,6 +151,40 @@ function Home() {
         </div>
       </Card>
 
+      <Card className="space-y-3">
+        <div>
+          <h2 className="text-lg font-semibold text-text">Open exams</h2>
+          <p className="text-sm text-textMuted">Public exams that don’t require sign-in or access codes.</p>
+        </div>
+        {openError ? <div className="text-sm text-error">{openError}</div> : null}
+        {openLoading ? (
+          <div className="text-sm text-textMuted">Loading open exams...</div>
+        ) : openExams.length ? (
+          <div className="space-y-2 text-sm">
+            {openExams.map((exam) => (
+              <div key={exam.examId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+                <div className="min-w-0">
+                  <div className="font-medium text-text">Exam {exam.examId}</div>
+                  <div className="text-xs text-textMuted">
+                    Created {formatDate(exam.createdAt)} · Expires {formatDate(exam.expiresAt)}
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => navigate(`/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`)}
+                >
+                  Open
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-sm text-textMuted">No open exams right now.</div>
+        )}
+      </Card>
+
       {showAdminLink ? (
         <div className="text-xs text-textMuted">
           <Link to="/admin" className="hover:underline">
@@ -150,6 +210,7 @@ export function AppRouter({ session, setSession }: Props) {
           <Route path="/" element={<Home />} />
           <Route path="/exam/:subject/:examId" element={<ExamPage session={session} setSession={setSession} />} />
           <Route path="/exam/:examId" element={<ExamPage session={session} setSession={setSession} />} />
+          <Route path="/s/:code" element={<ShortLinkRedirect />} />
           <Route path="/history" element={<HistoryPage session={session} setSession={setSession} />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/settings" element={<SettingsPage />} />

@@ -8,6 +8,7 @@ export type AdminExamRequest = {
   policy: ExamPolicyV1;
   codes?: string[];
   expiresAt?: string | null;
+  visibility?: "public" | "private";
 };
 
 export type CreateExamResponse = { examId: string; examUrl: string; seed: string };
@@ -17,6 +18,7 @@ export type ExamTemplateResponse = {
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
   expiresAt: string | null;
+  visibility: "public" | "private";
 };
 
 export type AdminExamSummary = {
@@ -26,6 +28,7 @@ export type AdminExamSummary = {
   updatedAt: string | null;
   deletedAt: string | null;
   expiresAt: string | null;
+  visibility: "public" | "private";
   questionCount: number;
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
@@ -44,6 +47,7 @@ export type DeleteExamResponse =
 
 export type ImportExamsResponse = { results: Array<{ examId: string; ok: boolean; error?: string }> };
 export type CloneExamResponse = { examId: string; examUrl: string; seed?: string };
+export type ExamShortLinkResponse = { code: string; shortUrl: string };
 
 export type ExamTemplateRecord = {
   templateId: string;
@@ -56,6 +60,7 @@ export type ExamTemplateRecord = {
     policy: ExamPolicyV1;
     codes?: string[];
     expiresAt?: string | null;
+    visibility?: "public" | "private";
   };
 };
 
@@ -219,6 +224,18 @@ export async function cloneExam(params: { apiBase: string; examId: string }): Pr
     throw await parseError(res);
   }
   return (await res.json()) as CloneExamResponse;
+}
+
+export async function createExamShortLink(params: { apiBase: string; examId: string }): Promise<ExamShortLinkResponse> {
+  const apiBase = normalizeBase(params.apiBase);
+  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/shortlink`, {
+    method: "POST",
+    credentials: "include"
+  });
+  if (!res.ok) {
+    throw await parseError(res);
+  }
+  return (await res.json()) as ExamShortLinkResponse;
 }
 
 export async function listTemplates(params: { apiBase: string }): Promise<ListTemplatesResponse> {

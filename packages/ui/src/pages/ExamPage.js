@@ -85,6 +85,10 @@ export function ExamPage({ session, setSession }) {
     const authSatisfied = authMode !== "required" || signedIn;
     const codesRequired = !!requireViewCode || !!requireSubmitCode;
     const codesEntered = (!requireViewCode || !!viewCode) && (!requireSubmitCode || !!submitCode);
+    const canShare = config?.visibility === "public" && authMode === "none" && !codesRequired;
+    const examLink = config
+        ? `${window.location.origin}/#/exam/${encodeURIComponent(config.subject)}/${encodeURIComponent(config.examId)}`
+        : "";
     const totalQuestions = bank?.questions.length ?? 0;
     const answeredCount = Object.values(answers).filter(Boolean).length;
     const remainingCount = Math.max(0, totalQuestions - answeredCount);
@@ -258,6 +262,26 @@ export function ExamPage({ session, setSession }) {
         draftNoticeTimerRef.current = window.setTimeout(() => setDraftNotice(null), 2500);
         setStatus({ tone: "success", text: "Draft saved. You can submit later." });
     };
+    const handleShare = async () => {
+        if (!canShare || !examLink)
+            return;
+        try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: `Exam ${config?.examId ?? ""}`,
+                    url: examLink
+                });
+                return;
+            }
+            await navigator.clipboard.writeText(examLink);
+            setStatus({ tone: "success", text: "Exam link copied." });
+        }
+        catch (err) {
+            if (err?.name === "AbortError")
+                return;
+            setStatus({ tone: "error", text: err?.message ?? "Share failed." });
+        }
+    };
     const openClearDraftConfirm = () => {
         if (!versionId || !hasDraft)
             return;
@@ -321,7 +345,7 @@ export function ExamPage({ session, setSession }) {
                                     ? "correct"
                                     : submission
                                         ? "incorrect"
-                                        : undefined }) }, q.uid)))) : (_jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-semibold text-text", children: "Questions not loaded" }), _jsx("p", { className: "text-sm text-textMuted", children: "Use the panels on the right to get started." })] }), _jsxs("ol", { className: "text-sm text-textMuted list-decimal pl-5 space-y-1", children: [_jsxs("li", { children: ["If needed, open the ", _jsx("strong", { children: "Authentication" }), " Accordion and sign in."] }), _jsxs("li", { children: ["If required, enter your ", _jsx("strong", { children: "View code" }), " in the ", _jsx("strong", { children: "Access codes" }), " Accordion."] }), _jsxs("li", { children: ["Click ", _jsx("strong", { children: "Load questions" }), "."] })] })] })) }), _jsxs("div", { className: "space-y-4", children: [_jsxs(Card, { className: "sticky top-24 space-y-3", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsx("div", { className: "text-sm font-semibold", children: "Summary" }), _jsxs(Badge, { tone: "info", children: [Math.round(completionPct), "%"] })] }), _jsx(ProgressBar, { value: completionPct }), _jsxs("div", { className: "grid grid-cols-2 gap-2 text-sm", children: [_jsxs("div", { className: "p-2 rounded-lg bg-muted", children: [_jsx("div", { className: "text-xs text-textMuted", children: "Answered" }), _jsx("div", { className: "font-semibold", children: answeredCount })] }), _jsxs("div", { className: "p-2 rounded-lg bg-muted", children: [_jsx("div", { className: "text-xs text-textMuted", children: "Remaining" }), _jsx("div", { className: "font-semibold", children: remainingCount })] })] }), timeLimitMinutes ? (_jsxs("div", { className: "rounded-lg border border-border p-2 text-xs text-textMuted", children: [_jsx("div", { className: "text-[11px] uppercase tracking-wide", children: "Time remaining" }), _jsx("div", { className: clsx("mt-1 text-sm font-semibold", timeExpired ? "text-warn" : "text-text"), children: timeRemainingMs === null ? "—" : formatTimeRemaining(timeRemainingMs) })] })) : null, submission ? (_jsxs("div", { className: "p-3 rounded-lg bg-success/10 text-success text-sm", children: ["Score: ", submission.score.correct, "/", submission.score.total] })) : null, _jsx(Button, { variant: "secondary", size: "sm", onClick: reviewUnanswered, disabled: !bank || remainingCount === 0, className: "w-full", children: "Review unanswered" }), _jsx(Button, { variant: "ghost", size: "sm", onClick: openClearDraftConfirm, disabled: !versionId || !hasDraft, children: "Clear saved draft" }), _jsx("div", { className: "text-xs text-textMuted", children: "Jump to question" }), _jsx("div", { className: "flex flex-wrap gap-2", children: Array.from({ length: totalQuestions }).map((_, i) => {
+                                        : undefined }) }, q.uid)))) : (_jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-semibold text-text", children: "Questions not loaded" }), _jsx("p", { className: "text-sm text-textMuted", children: "Use the panels on the right to get started." })] }), _jsxs("ol", { className: "text-sm text-textMuted list-decimal pl-5 space-y-1", children: [_jsxs("li", { children: ["If needed, open the ", _jsx("strong", { children: "Authentication" }), " Accordion and sign in."] }), _jsxs("li", { children: ["If required, enter your ", _jsx("strong", { children: "View code" }), " in the ", _jsx("strong", { children: "Access codes" }), " Accordion."] }), _jsxs("li", { children: ["Click ", _jsx("strong", { children: "Load questions" }), "."] })] })] })) }), _jsxs("div", { className: "space-y-4", children: [_jsxs(Card, { className: "sticky top-24 space-y-3", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsx("div", { className: "text-sm font-semibold", children: "Summary" }), _jsxs(Badge, { tone: "info", children: [Math.round(completionPct), "%"] })] }), _jsx(ProgressBar, { value: completionPct }), _jsxs("div", { className: "grid grid-cols-2 gap-2 text-sm", children: [_jsxs("div", { className: "p-2 rounded-lg bg-muted", children: [_jsx("div", { className: "text-xs text-textMuted", children: "Answered" }), _jsx("div", { className: "font-semibold", children: answeredCount })] }), _jsxs("div", { className: "p-2 rounded-lg bg-muted", children: [_jsx("div", { className: "text-xs text-textMuted", children: "Remaining" }), _jsx("div", { className: "font-semibold", children: remainingCount })] })] }), timeLimitMinutes ? (_jsxs("div", { className: "rounded-lg border border-border p-2 text-xs text-textMuted", children: [_jsx("div", { className: "text-[11px] uppercase tracking-wide", children: "Time remaining" }), _jsx("div", { className: clsx("mt-1 text-sm font-semibold", timeExpired ? "text-warn" : "text-text"), children: timeRemainingMs === null ? "—" : formatTimeRemaining(timeRemainingMs) })] })) : null, submission ? (_jsxs("div", { className: "p-3 rounded-lg bg-success/10 text-success text-sm", children: ["Score: ", submission.score.correct, "/", submission.score.total] })) : null, _jsx(Button, { variant: "secondary", size: "sm", onClick: reviewUnanswered, disabled: !bank || remainingCount === 0, className: "w-full", children: "Review unanswered" }), _jsx(Button, { variant: "ghost", size: "sm", onClick: openClearDraftConfirm, disabled: !versionId || !hasDraft, children: "Clear saved draft" }), canShare ? (_jsx(Button, { variant: "secondary", size: "sm", onClick: handleShare, children: "Share exam link" })) : null, _jsx("div", { className: "text-xs text-textMuted", children: "Jump to question" }), _jsx("div", { className: "flex flex-wrap gap-2", children: Array.from({ length: totalQuestions }).map((_, i) => {
                                             const idx = i + 1;
                                             const answered = !!answers[bank?.questions[i]?.uid ?? ""];
                                             return (_jsx("button", { className: clsx("w-9 h-9 rounded-full border text-sm font-semibold", answered ? "bg-info/10 border-info text-info" : "bg-muted border-border text-textMuted"), onClick: () => document.getElementById(`q-${idx}`)?.scrollIntoView({ behavior: "smooth" }), children: idx }, idx));
@@ -340,6 +364,7 @@ export function ExamPage({ session, setSession }) {
                                             handleClearDraft();
                                         }, children: "Clear draft" })] })] })] })) : null, _jsxs(FloatingActionBar, { show: true, children: [_jsxs(FloatingActionsRow, { className: "justify-between items-center text-xs text-textMuted", children: [_jsxs("div", { children: [answeredCount, "/", totalQuestions || "?", " answered"] }), _jsxs("div", { children: [Math.round(completionPct), "% complete"] })] }), _jsxs(FloatingActionsRow, { children: [requireViewCode ? (_jsx("input", { className: "flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info", value: viewCode, onChange: (e) => setViewCode(e.target.value), placeholder: "View code" })) : null, requireSubmitCode ? (_jsx("input", { className: "flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info", value: submitCode, onChange: (e) => setSubmitCode(e.target.value), placeholder: "Submit code" })) : null] }), _jsxs(FloatingActionsRow, { children: [_jsx(Button, { variant: "secondary", className: "flex-1", onClick: handleSaveForLater, disabled: !bank || !versionId, children: "Save & submit later" }), _jsx(Button, { variant: "secondary", className: "flex-1", onClick: reviewUnanswered, disabled: !bank || remainingCount === 0, children: "Review unanswered" }), _jsx(FloatingPrimaryButton, { disabled: submitDisabled, onClick: openSubmitConfirm, children: "Submit" })] })] })] }));
 }
+
 
 
 

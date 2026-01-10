@@ -11,6 +11,7 @@ import {
   updateTemplate,
   createTemplate,
   cloneExam,
+  createExamShortLink,
   type AdminExamSummary,
   type ExamTemplateRecord
 } from "../../api/admin";
@@ -40,6 +41,10 @@ function formatDate(value: string | null | undefined) {
   if (!value) return "—";
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? value : d.toLocaleString();
+}
+
+function buildExamLink(exam: AdminExamSummary): string {
+  return `${window.location.origin}/#/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`;
 }
 
 export function AdminExamsPage() {
@@ -320,6 +325,29 @@ export function AdminExamsPage() {
     }
   };
 
+  const handleCopyExamLink = async (exam: AdminExamSummary) => {
+    try {
+      await navigator.clipboard.writeText(buildExamLink(exam));
+      setNotice({ tone: "success", text: "Copied exam link." });
+    } catch (err: any) {
+      setNotice({ tone: "error", text: err?.message ?? "Copy failed" });
+    }
+  };
+
+  const handleCopyShortLink = async (exam: AdminExamSummary) => {
+    if (!apiBase) {
+      setNotice({ tone: "error", text: "API Base URL is required." });
+      return;
+    }
+    try {
+      const res = await createExamShortLink({ apiBase, examId: exam.examId });
+      await navigator.clipboard.writeText(res.shortUrl);
+      setNotice({ tone: "success", text: "Copied short link." });
+    } catch (err: any) {
+      setNotice({ tone: "error", text: err?.message ?? "Short link failed" });
+    }
+  };
+
   return (
     <AdminAuthGate>
       <PageShell maxWidth="6xl" className="space-y-6">
@@ -409,6 +437,9 @@ export function AdminExamsPage() {
                       <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-mono text-xs">{exam.examId}</span>
+                        <Badge tone={exam.visibility === "public" ? "info" : "muted"}>
+                          {exam.visibility === "public" ? "Public" : "Private"}
+                        </Badge>
                         {exam.deletedAt ? <Badge tone="warn">Deleted</Badge> : null}
                         {exam.hasSubmissions ? <Badge tone="info">Taken</Badge> : null}
                       </div>
@@ -420,6 +451,12 @@ export function AdminExamsPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <Button type="button" size="sm" variant="secondary" onClick={() => handleCloneExam(exam.examId)}>
                         Duplicate
+                      </Button>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => handleCopyExamLink(exam)}>
+                        Copy link
+                      </Button>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => handleCopyShortLink(exam)}>
+                        Copy short link
                       </Button>
                       <Button type="button" size="sm" variant="secondary" onClick={() => navigate(`/admin/exams/new?edit=${exam.examId}`)}>
                         Edit

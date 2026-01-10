@@ -60,6 +60,8 @@ export type ExamCompositionItemV1 = {
   n: number;
 };
 
+export type ExamVisibility = "public" | "private";
+
 export type ExamPolicyV1 = {
   authMode: "required" | "optional" | "none";
   requireViewCode: boolean;
@@ -102,6 +104,7 @@ export type ExamV1 = {
   policy: ExamPolicyV1;
   codesHashed: string[];
   expiresAt?: string;
+  visibility?: ExamVisibility;
 };
 
 export type SubmissionIdentityV1 = {
@@ -252,7 +255,8 @@ export const ExamV1Schema = z.object({
   questionUids: z.array(z.string()),
   policy: ExamPolicySchema,
   codesHashed: z.array(z.string()),
-  expiresAt: z.string().datetime().optional()
+  expiresAt: z.string().datetime().optional(),
+  visibility: z.enum(["public", "private"]).optional()
 });
 
 export const SubmissionIdentitySchema = z.object({
@@ -519,6 +523,10 @@ export type NormalizedExamPolicyV1 = ExamPolicyV1 & {
   shuffleQuestions: boolean;
   shuffleChoices: boolean;
 };
+
+export function normalizeExamVisibility(visibility?: ExamVisibility): ExamVisibility {
+  return visibility ?? "private";
+}
 
 export function normalizeExamPolicyDefaults(policy: ExamPolicyV1): NormalizedExamPolicyV1 {
   const versioningMode = policy.versioningMode ?? "fixed";
