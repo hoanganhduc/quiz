@@ -551,6 +551,69 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         </div>
 
         <div className="space-y-4">
+          {authMode === "required" ? (
+            <Accordion title="Authentication" defaultOpen tone="muted">
+              <div className="flex gap-2 flex-wrap">
+                <Button variant="secondary" size="sm" onClick={handleGithub}>
+                  GitHub Login
+                </Button>
+                <Button variant="secondary" size="sm" onClick={handleGoogle}>
+                  Google Login
+                </Button>
+              </div>
+              <div className="text-xs text-textMuted">
+                Sign in to access this exam.
+              </div>
+              <div className="text-xs text-textMuted">Current session: {session ? session.provider : "none"}</div>
+            </Accordion>
+          ) : null}
+
+          {codesRequired ? (
+            <Accordion title="Access codes" defaultOpen tone="warn">
+              <div className="text-xs text-textMuted">
+                View code unlocks questions. Submit code is only required when you submit your final answers.
+              </div>
+              {requireViewCode ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">View code</label>
+                  <input
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+                    value={viewCode}
+                    onChange={(e) => setViewCode(e.target.value)}
+                    placeholder="Enter view code"
+                  />
+                </div>
+              ) : null}
+
+              {requireSubmitCode ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Submit code</label>
+                  <input
+                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+                    value={submitCode}
+                    onChange={(e) => setSubmitCode(e.target.value)}
+                    placeholder="Enter submit code"
+                  />
+                </div>
+              ) : null}
+            </Accordion>
+          ) : null}
+
+          <Card className="space-y-3">
+            <div className="flex justify-between items-center">
+              <div className="font-semibold text-sm">Submit</div>
+              <Badge tone={submitDisabled ? "warn" : "info"}>
+                {answeredCount}/{totalQuestions} answered
+              </Badge>
+            </div>
+            <Button variant="secondary" onClick={handleSaveForLater} disabled={!bank || !versionId} className="w-full">
+              Save &amp; submit later
+            </Button>
+            <Button onClick={openSubmitConfirm} disabled={submitDisabled} className="w-full">
+              Submit answers
+            </Button>
+          </Card>
+
           <Card className="sticky top-24 space-y-3">
             <div className="flex items-center justify-between">
               <div className="text-sm font-semibold">Summary</div>
@@ -616,69 +679,6 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
                 );
               })}
             </div>
-          </Card>
-
-          {authMode === "required" ? (
-            <Accordion title="Authentication" defaultOpen tone="muted">
-              <div className="flex gap-2 flex-wrap">
-                <Button variant="secondary" size="sm" onClick={handleGithub}>
-                  GitHub Login
-                </Button>
-                <Button variant="secondary" size="sm" onClick={handleGoogle}>
-                  Google Login
-                </Button>
-              </div>
-              <div className="text-xs text-textMuted">
-                Sign in to access this exam.
-              </div>
-              <div className="text-xs text-textMuted">Current session: {session ? session.provider : "none"}</div>
-            </Accordion>
-          ) : null}
-
-          {codesRequired ? (
-            <Accordion title="Access codes" defaultOpen tone="warn">
-              <div className="text-xs text-textMuted">
-                View code unlocks questions. Submit code is only required when you submit your final answers.
-              </div>
-              {requireViewCode ? (
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">View code</label>
-                  <input
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-                    value={viewCode}
-                    onChange={(e) => setViewCode(e.target.value)}
-                    placeholder="Enter view code"
-                  />
-                </div>
-              ) : null}
-
-              {requireSubmitCode ? (
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Submit code</label>
-                  <input
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-                    value={submitCode}
-                    onChange={(e) => setSubmitCode(e.target.value)}
-                    placeholder="Enter submit code"
-                  />
-                </div>
-              ) : null}
-            </Accordion>
-          ) : null}
-
-          <Card className="space-y-3">
-            <div className="flex justify-between items-center">
-              <div className="font-semibold text-sm">Submit</div>
-              <Badge tone={submitDisabled ? "warn" : "info"}>
-                {answeredCount}/{totalQuestions} answered
-              </Badge>
-            </div>
-            <Button variant="secondary" onClick={handleSaveForLater} disabled={!bank || !versionId} className="w-full">
-              Save &amp; submit later
-            </Button>
-            <Button onClick={openSubmitConfirm} disabled={submitDisabled} className="w-full">
-              Submit answers
-            </Button>
           </Card>
         </div>
       </div>

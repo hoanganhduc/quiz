@@ -49,6 +49,34 @@
     padding: 0.1em 0.4em;
     border-radius: 0.2em;
   }
+  .latex-list {
+    margin: 0.35rem 0 0.35rem 1.25rem;
+    list-style-position: outside;
+  }
+  .latex-list li {
+    margin: 0.15rem 0;
+  }
+  .latex-figure {
+    margin: 0.5rem 0;
+  }
+  .latex-table {
+    margin: 0.5rem 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.95em;
+    white-space: pre-wrap;
+  }
+  .latex-graphic {
+    display: inline-block;
+    max-width: 100%;
+    height: auto;
+  }
+  .latex-omit {
+    color: var(--text-muted);
+    border: 1px dashed var(--border);
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.4rem;
+    font-style: italic;
+  }
 }
 
 @layer base {

@@ -770,64 +770,62 @@ export function CreateExamPage() {
     <AdminAuthGate>
       <div>
         <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
-          <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                {editExamId ? "Edit Exam" : "Create Exam"}
-              </h1>
-              <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
-                <Badge
-                  tone={
-                    connectionStatus === "connected"
-                      ? "success"
-                      : connectionStatus === "error"
-                        ? "error"
-                        : "muted"
-                  }
-                >
-                  {connectionStatus === "connected" ? "Connected" : "Not connected"}
-                </Badge>
-                <span className="text-xs">/{"/admin/exams"}</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="ghost" onClick={() => validate()} disabled={isSubmitting}>
-                Validate
+          <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap items-center justify-end gap-2">
+            <Button type="button" variant="ghost" onClick={() => validate()} disabled={isSubmitting}>
+              Validate
+            </Button>
+            <Button type="button" variant="secondary" onClick={handleOpenPreview} disabled={isSubmitting}>
+              Preview exam
+            </Button>
+            {activeExamId ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleCopyExamLink(activeExamId, normalizedRequestBody.subject)}
+                disabled={isSubmitting}
+              >
+                Copy link
               </Button>
-              <Button type="button" variant="secondary" onClick={handleOpenPreview} disabled={isSubmitting}>
-                Preview exam
+            ) : null}
+            {activeExamId ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => handleCopyShortLink(activeExamId)}
+                disabled={isSubmitting || shortLinkLoading}
+              >
+                {shortLinkLoading ? "Copying..." : "Copy short link"}
               </Button>
-              {activeExamId ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => handleCopyExamLink(activeExamId, normalizedRequestBody.subject)}
-                  disabled={isSubmitting}
-                >
-                  Copy link
-                </Button>
-              ) : null}
-              {activeExamId ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => handleCopyShortLink(activeExamId)}
-                  disabled={isSubmitting || shortLinkLoading}
-                >
-                  {shortLinkLoading ? "Copying..." : "Copy short link"}
-                </Button>
-              ) : null}
-              <Button type="button" variant="secondary" onClick={handleReset} disabled={isSubmitting}>
-                Reset
-              </Button>
-              <Button type="button" onClick={editExamId ? handleUpdate : handleCreate} disabled={!canCreate}>
-                {isSubmitting ? (editExamId ? "Updating..." : "Creating...") : editExamId ? "Update Exam" : "Create Exam"}
-              </Button>
-            </div>
+            ) : null}
+            <Button type="button" variant="secondary" onClick={handleReset} disabled={isSubmitting}>
+              Reset
+            </Button>
+            <Button type="button" onClick={editExamId ? handleUpdate : handleCreate} disabled={!canCreate}>
+              {isSubmitting ? (editExamId ? "Updating..." : "Creating...") : editExamId ? "Update Exam" : "Create Exam"}
+            </Button>
           </div>
         </div>
 
         <PageShell maxWidth="6xl" className="py-6 space-y-6">
+          <div>
+            <h1 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
+              {editExamId ? "Edit Exam" : "Create Exam"}
+            </h1>
+            <div className="flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300">
+              <Badge
+                tone={
+                  connectionStatus === "connected"
+                    ? "success"
+                    : connectionStatus === "error"
+                      ? "error"
+                      : "muted"
+                }
+              >
+                {connectionStatus === "connected" ? "Connected" : "Not connected"}
+              </Badge>
+              <span className="text-xs">/{"/admin/exams"}</span>
+            </div>
+          </div>
           {submitError ? <Alert tone="error">{submitError}</Alert> : null}
           {editExamId ? (
             <Alert tone={editHasSubmissions ? "warn" : "info"}>

@@ -85,9 +85,15 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - name: Install LaTeX rendering dependencies
+        if: steps.sources_compare.outputs.changed == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y texlive-latex-extra texlive-pictures texlive-fonts-recommended texlive-latex-recommended texlive-plain-generic texlive-science poppler-utils
+
       - name: Generate banks (from sources.runtime.json)
         if: steps.sources_compare.outputs.changed == 'true'
-        run: npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json
+        run: npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json --latex-assets-dir ../../packages/ui/dist/latex --latex-assets-base /${{ github.event.repository.name }}/latex/
 
       - name: Upload banks to KV (prod)
         if: steps.sources_compare.outputs.changed == 'true'

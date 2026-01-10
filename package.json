@@ -10,6 +10,7 @@
     "test": "npm run test --workspaces --if-present",
     "scan:secrets": "node scripts/scan-secrets.mjs",
     "bank:gen": "npm run generate --workspace @app/bank-gen",
+    "bank:gen:latex": "npm run gen --workspace @app/bank-gen -- --latex-assets-dir ../../packages/ui/dist/latex --latex-assets-base /quiz/latex/",
     "kv:seed": "npm run bank:gen && npx wrangler --config packages/worker/wrangler.toml kv key put banks:discrete-math:latest:public --binding=QUIZ_KV --preview --path=./packages/bank-gen/dist/bank.public.v1.json && npx wrangler --config packages/worker/wrangler.toml kv key put banks:discrete-math:latest:answers --binding=QUIZ_KV --preview --path=./packages/bank-gen/dist/bank.answers.v1.json"
   },
   "devDependencies": {

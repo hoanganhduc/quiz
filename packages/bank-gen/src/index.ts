@@ -18,6 +18,7 @@ import {
 import { importCanvasZipBytes, type AnswerKey as CanvasAnswerKey } from "@app/shared/importers";
 import { z } from "zod";
 import { cleanupTempDir, downloadSourcesToTemp, loadSourcesConfigFile } from "./sources.js";
+import { renderLatexAssets } from "./latex-render.js";
 
 const COURSE_CODE = "MAT3500";
 const SUBJECT = "discrete-math";
@@ -465,8 +466,10 @@ async function run(): Promise<void> {
   program.name("bank-gen").description("Generate bank JSON files from LaTeX sources");
 
   program.option("--sources-config <path>", "Path to sources config JSON (raw or exported)");
+  program.option("--latex-assets-dir <path>", "Output directory for rendered LaTeX assets (PNG)");
+  program.option("--latex-assets-base <url>", "Public base URL for rendered LaTeX assets");
 
-  program.action(async (opts: { sourcesConfig?: string }) => {
+  program.action(async (opts: { sourcesConfig?: string; latexAssetsDir?: string; latexAssetsBase?: string }) => {
     const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 
     let files: string[] = [];
@@ -525,6 +528,15 @@ async function run(): Promise<void> {
         publicBank = { ...publicBank, generatedAt, questions: merged.map((q) => q.publicQuestion) };
         answersBank = { ...answersBank, generatedAt, questions: merged.map((q) => q.answerQuestion) };
         questions = merged;
+      }
+
+      if (opts.latexAssetsDir && opts.latexAssetsBase) {
+        const rendered = renderLatexAssets(publicBank, answersBank, {
+          assetsDir: resolve(opts.latexAssetsDir),
+          assetsBase: opts.latexAssetsBase
+        });
+        publicBank = rendered.publicBank;
+        answersBank = rendered.answersBank;
       }
 
       BankPublicV1Schema.parse(publicBank);

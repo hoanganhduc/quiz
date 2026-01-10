@@ -109,20 +109,45 @@ function applyWrappedCommand(text: string, command: string, openTag: string, clo
 
 function transformLatexText(input: string): string {
   const verbTokens: string[] = [];
+  const imgTokens: string[] = [];
   let text = input.replace(/\\verb(.)([\s\S]*?)\1/g, (_match, _delim, body: string) => {
     const html = `<code class="latex-code">${escapeHtml(body)}</code>`;
     const token = `__LATEX_VERB_${verbTokens.length}__`;
     verbTokens.push(html);
     return token;
   });
+  text = text.replace(/\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g, (_match, src: string) => {
+    const cleanSrc = escapeHtml(src.trim());
+    const html = `<img class="latex-graphic" src="${cleanSrc}" alt="latex graphic" />`;
+    const token = `__LATEX_IMG_${imgTokens.length}__`;
+    imgTokens.push(html);
+    return token;
+  });
 
   text = escapeHtml(text);
+  text = text.replace(/\\dongkhung\s*\{/g, "\\dongkhung{");
+  text = text.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, '<div class="latex-figure latex-omit">[TikZ diagram omitted]</div>');
+  text = text.replace(/\\begin\{tikz\}[\s\S]*?\\end\{tikz\}/g, '<div class="latex-figure latex-omit">[TikZ diagram omitted]</div>');
   text = text.replace(/\\begin\{center\}/g, '<div class="latex-center">');
   text = text.replace(/\\end\{center\}/g, "</div>");
   text = text.replace(/\\begin\{flushleft\}/g, '<div class="latex-left">');
   text = text.replace(/\\end\{flushleft\}/g, "</div>");
   text = text.replace(/\\begin\{flushright\}/g, '<div class="latex-right">');
   text = text.replace(/\\end\{flushright\}/g, "</div>");
+  text = text.replace(/\\begin\{dongkhung\}/g, '<div class="latex-box">');
+  text = text.replace(/\\end\{dongkhung\}/g, "</div>");
+  text = text.replace(/\\begin\{figure\}/g, '<div class="latex-figure">');
+  text = text.replace(/\\end\{figure\}/g, "</div>");
+  text = text.replace(/\\begin\{table\}/g, '<div class="latex-table">');
+  text = text.replace(/\\end\{table\}/g, "</div>");
+  text = text.replace(/\\begin\{tabular\}(\[[^\]]*\])?(\{[^}]*\})?/g, '<div class="latex-table latex-tabular">');
+  text = text.replace(/\\end\{tabular\}/g, "</div>");
+  text = text.replace(/\\begin\{itemize\}/g, '<ul class="latex-list">');
+  text = text.replace(/\\end\{itemize\}/g, "</ul>");
+  text = text.replace(/\\begin\{enumerate\}/g, '<ol class="latex-list">');
+  text = text.replace(/\\end\{enumerate\}/g, "</ol>");
+  text = text.replace(/\\item\s*/g, "<li>");
+  text = text.replace(/<li>([\s\S]*?)(?=<li>|<\/ul>|<\/ol>)/g, "<li>$1</li>");
 
   text = applyWrappedCommand(text, "emph", "<em>", "</em>");
   text = applyWrappedCommand(text, "textit", "<em>", "</em>");
@@ -141,6 +166,9 @@ function transformLatexText(input: string): string {
   text = text.replace(/\r?\n/g, "<br />");
   verbTokens.forEach((html, index) => {
     text = text.replace(`__LATEX_VERB_${index}__`, html);
+  });
+  imgTokens.forEach((html, index) => {
+    text = text.replace(`__LATEX_IMG_${index}__`, html);
   });
   return text;
 }
