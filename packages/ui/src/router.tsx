@@ -19,7 +19,7 @@ import { Input } from "./components/ui/Input";
 import { TopBar } from "./components/layout/TopBar";
 import { PageShell } from "./components/layout/PageShell";
 import { StepIndicator } from "./components/ui/StepIndicator";
-import { formatDateTime, initDefaultTimezone } from "./utils/time";
+import { formatDateTime, initDefaultTimezone, onTimezoneChange } from "./utils/time";
 
 const showAdminLink = new URLSearchParams(window.location.search).get("admin") === "1";
 
@@ -202,9 +202,12 @@ type Props = {
 };
 
 export function AppRouter({ session, setSession }: Props) {
+  const [, setTimezoneTick] = useState(0);
+
   useEffect(() => {
     void initDefaultTimezone(getDefaultTimezone);
   }, []);
+  useEffect(() => onTimezoneChange(() => setTimezoneTick((v) => v + 1)), []);
 
   return (
     <HashRouter>
