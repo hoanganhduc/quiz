@@ -4,6 +4,7 @@ import { requireAdmin } from "./requireAdmin";
 import { getLatestBanks } from "../kv";
 
 const BANK_PREFIX = "banks:";
+const BANK_SUBJECT_PREFIX = /^banks:([^:]+):/;
 
 export function registerAdminBanksRoutes(app: Hono<{ Bindings: Env }>) {
   app.get("/admin/banks", requireAdmin, async (c) => {
@@ -35,5 +36,38 @@ export function registerAdminBanksRoutes(app: Hono<{ Bindings: Env }>) {
       return c.text(banks.error, status);
     }
     return c.json(banks.value.publicBank);
+  });
+
+  app.post("/admin/banks/clear", requireAdmin, async (c) => {
+    let body: { subject?: string } = {};
+    try {
+      body = (await c.req.json()) as { subject?: string };
+    } catch {
+      body = {};
+    }
+
+    let deleted = 0;
+    let cursor: string | undefined;
+    const prefix = body.subject ? `${BANK_PREFIX}${body.subject}:` : BANK_PREFIX;
+
+    do {
+      const res = await c.env.QUIZ_KV.list({ prefix, cursor, limit: 1000 });
+      for (const key of res.keys) {
+        await c.env.QUIZ_KV.delete(key.name);
+        deleted += 1;
+      }
+      cursor = res.list_complete ? undefined : res.cursor;
+    } while (cursor);
+
+    if (!body.subject && deleted === 0) {
+      // ensure we delete any fallback keys even if no list entry
+      const all = await c.env.QUIZ_KV.list({ prefix: BANK_PREFIX, limit: 1000 });
+      for (const key of all.keys) {
+        await c.env.QUIZ_KV.delete(key.name);
+        deleted += 1;
+      }
+    }
+
+    return c.json({ ok: true, deleted });
   });
 }

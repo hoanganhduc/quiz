@@ -77,6 +77,13 @@ export async function setDefaultTimezone(timezone) {
         body: JSON.stringify({ timezone })
     });
 }
+export async function clearBanks(subject) {
+    return request("/admin/banks/clear", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subject ? { subject } : {})
+    });
+}
 export async function setDefaultTimeFormat(format) {
     return request("/admin/settings/timeformat", {
         method: "PUT",

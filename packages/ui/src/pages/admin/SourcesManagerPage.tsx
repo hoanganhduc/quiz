@@ -9,6 +9,7 @@ import { Input } from "../../components/ui/Input";
 import { Select } from "../../components/ui/Select";
 import { Switch } from "../../components/ui/Switch";
 import {
+  clearBanks,
   deleteSecret,
   getSources,
   listSecrets,
@@ -222,6 +223,8 @@ export function SourcesManagerPage() {
   const [ciTriggering, setCiTriggering] = useState(false);
   const [ciStatus, setCiStatus] = useState<null | { status: string; conclusion: string | null; url: string; updatedAt: string }>(null);
   const [ciStatusError, setCiStatusError] = useState<string | null>(null);
+  const [clearLoading, setClearLoading] = useState(false);
+  const [clearNotice, setClearNotice] = useState<Notice | null>(null);
   const [bankSummaries, setBankSummaries] = useState<BankSummary[]>([]);
   const [bankSummaryLoading, setBankSummaryLoading] = useState(false);
   const [bankSummaryError, setBankSummaryError] = useState<string | null>(null);
@@ -284,6 +287,23 @@ export function SourcesManagerPage() {
       setNotice({ tone: "error", text: err?.message ?? "Failed to trigger CI" });
     } finally {
       setCiTriggering(false);
+    }
+  };
+
+  const handleClearBanks = async () => {
+    setClearNotice(null);
+    setClearLoading(true);
+    try {
+      const res = await clearBanks();
+      setClearNotice({
+        tone: "success",
+        text: res.deleted ? `Deleted ${res.deleted} stored bank entries.` : "No stored bank entries were found."
+      });
+      await refreshBankSummaries();
+    } catch (err: any) {
+      setClearNotice({ tone: "error", text: err?.message ?? "Failed to clear banks." });
+    } finally {
+      setClearLoading(false);
     }
   };
 
@@ -745,8 +765,12 @@ export function SourcesManagerPage() {
                 <Button type="button" variant="ghost" onClick={() => triggerCi(true)} disabled={ciTriggering}>
                   Force regenerate banks
                 </Button>
+                <Button type="button" variant="danger" onClick={handleClearBanks} disabled={clearLoading}>
+                  {clearLoading ? "Clearing…" : "Clear generated banks"}
+                </Button>
                 <p className="text-xs text-textMuted">Runs the GitHub Actions workflow_dispatch to regenerate banks.</p>
               </div>
+              {clearNotice ? <Alert tone={clearNotice.tone}>{clearNotice.text}</Alert> : null}
               {ciStatusError ? (
                 <Alert tone="error">{ciStatusError}</Alert>
               ) : ciStatus ? (

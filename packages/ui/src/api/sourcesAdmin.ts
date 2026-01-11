@@ -156,6 +156,14 @@ export async function setDefaultTimezone(timezone: string): Promise<{ ok: true; 
   });
 }
 
+export async function clearBanks(subject?: string): Promise<{ ok: true; deleted: number }> {
+  return request<{ ok: true; deleted: number }>("/admin/banks/clear", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subject ? { subject } : {})
+  });
+}
+
 export async function setDefaultTimeFormat(format: string): Promise<{ ok: true; format: string }> {
   return request<{ ok: true; format: string }>("/admin/settings/timeformat", {
     method: "PUT",
