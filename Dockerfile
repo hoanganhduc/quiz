@@ -1,5 +1,7 @@
 FROM ghcr.io/hoanganhduc/texlive:latest
 
+USER root
+
 # Metadata for the image
 LABEL org.opencontainers.image.title="Quiz Build TeXLive"
 LABEL org.opencontainers.image.source="https://github.com/hoanganhduc/quiz"
