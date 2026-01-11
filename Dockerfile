@@ -9,7 +9,11 @@ LABEL org.opencontainers.image.description="TeXLive build image for quiz bank ge
 LABEL org.opencontainers.image.licenses="MIT"
 LABEL org.opencontainers.image.authors="Duc A. Hoang <anhduc.hoang1990@gmail.com>"
 
-RUN pacman -Syu --noconfirm && \
+RUN pacman-key --init && \
+	pacman-key --populate archlinux && \
+	pacman -Sy --noconfirm --needed archlinux-keyring && \
+	pacman -Syu --noconfirm && \
+	rm -rf /var/cache/pacman/pkg/* && \
 	pacman -S --noconfirm --needed poppler ghostscript mupdf-tools imagemagick && \
 	yes | pacman -Scc
 	
