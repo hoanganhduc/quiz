@@ -45,8 +45,15 @@ jobs:
         id: image_digest
         run: |
           set -euo pipefail
+          AUTH=$(curl -fsSL -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
+            "https://ghcr.io/token?service=ghcr.io&scope=repository:hoanganhduc/quiz-build:pull")
+          TOKEN=$(printf "%s" "$AUTH" | jq -r '.token // empty')
+          if [ -z "$TOKEN" ]; then
+            echo "Failed to obtain GHCR token" >&2
+            exit 1
+          fi
           DIGEST=$(curl -fsSLI -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Authorization: Bearer $TOKEN" \
             https://ghcr.io/v2/hoanganhduc/quiz-build/manifests/latest \
             | tr -d '\r' | awk '/Docker-Content-Digest:/ {print $2}')
           if [ -z "$DIGEST" ]; then
