@@ -22,6 +22,14 @@ function hashContent(content: string): string {
   return createHash("sha256").update(content).digest("hex").slice(0, 16);
 }
 
+function normalizeBlockForRender(block: string): string {
+  const normalized = block.replace(/\r\n/g, "\n");
+  if (/^\\begin\{(tikzpicture|tikz)\}/.test(normalized)) {
+    return normalized.replace(/\n\s*\n+/g, "\n");
+  }
+  return normalized;
+}
+
 function buildTexDocument(body: string): string {
   return [
     "\\documentclass[preview]{standalone}",
@@ -143,11 +151,12 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
 }
 
 function renderBlockToImage(block: string, opts: RenderOptions): string {
-  const hash = hashContent(block);
+  const normalized = normalizeBlockForRender(block);
+  const hash = hashContent(normalized);
   const filename = `latex-${hash}.png`;
   const outputPath = resolve(opts.assetsDir, filename);
   if (!existsSync(outputPath)) {
-    runLatexToPng(block, outputPath, opts.dpi ?? 220);
+    runLatexToPng(normalized, outputPath, opts.dpi ?? 220);
   }
   const base = normalizeAssetsBase(opts.assetsBase);
   return `${base}${filename}`;
