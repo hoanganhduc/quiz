@@ -21,7 +21,7 @@ RUN pacman-key --init && \
 	pacman -Su --noconfirm --disable-download-timeout
 
 # Install necessary packages
-RUN	pacman -S --noconfirm --needed base-devel zsh zsh-completions openssh git curl \
+RUN	pacman -S --noconfirm --needed base-devel zsh zsh-completions openssh git curl jq \
 	wget sudo make fontconfig tree jre11-openjdk moreutils rsync unzip libxcrypt-compat \
 	perl-file-homedir perl-yaml-tiny poppler ghostscript mupdf-tools imagemagick && \
 	yes | pacman -Scc
