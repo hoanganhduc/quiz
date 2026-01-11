@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/hoanganhduc/quiz-build:latest
+      credentials: 
+        username: ${{ github. actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
       options: --user root
     environment:
       name: github-pages
