@@ -78,8 +78,8 @@ export function useExamDraft() {
             if (!topic) {
                 nextErrors[`composition.${idx}.topic`] = "Topic is required.";
             }
-            if (row.level !== "basic" && row.level !== "advanced") {
-                nextErrors[`composition.${idx}.level`] = "Level must be basic or advanced.";
+            if (row.level !== "basic" && row.level !== "advanced" && row.level !== "none") {
+                nextErrors[`composition.${idx}.level`] = "Level must be Basic, Advanced, or All levels.";
             }
             if (!Number.isInteger(row.n) || row.n < 1) {
                 nextErrors[`composition.${idx}.n`] = "N must be an integer >= 1.";
