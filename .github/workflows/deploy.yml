@@ -45,8 +45,8 @@ jobs:
         id: image_digest
         run: |
           set -euo pipefail
-          DIGEST=$(curl -fsSL -I -u "${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+          DIGEST=$(curl -fsSLI -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             https://ghcr.io/v2/hoanganhduc/quiz-build/manifests/latest \
             | tr -d '\r' | awk '/Docker-Content-Digest:/ {print $2}')
           if [ -z "$DIGEST" ]; then
