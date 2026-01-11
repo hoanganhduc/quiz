@@ -25,8 +25,21 @@ function hashContent(content: string): string {
 function normalizeBlockForRender(block: string): string {
   let normalized = block.replace(/\r\n?/g, "\n");
   if (/^\s*\\begin\{(tikzpicture|tikz)\}/.test(normalized)) {
-    // Comment-only lines become blank lines to TeX (after comment stripping) and can introduce \par.
-    normalized = normalized.replace(/^\s*%.*\n/gm, "");
+    // Some sources may inject blank lines or even literal \par inside the optional argument,
+    // which makes TikZ fail with "Paragraph ended before \\tikz@picture was complete".
+    normalized = normalized.replace(
+      /\\begin\{(tikzpicture|tikz)\}(\s*)\[([\s\S]*?)\]/,
+      (_m, env: string, ws: string, opts: string) => {
+        const cleaned = opts
+          .replace(/^[\t ]*%.*$/gm, "")
+          .replace(/(?<!\\)%.*$/gm, "")
+          .replace(/\\par\b/g, " ")
+          .replace(/\s*\n\s*/g, " ")
+          .replace(/\s{2,}/g, " ")
+          .trim();
+        return `\\begin{${env}}${ws}[${cleaned}]`;
+      }
+    );
     normalized = normalized.replace(/\n[\t ]*\n+/g, "\n");
   }
   return normalized;
@@ -168,9 +181,19 @@ function renderBlockToImage(block: string, opts: RenderOptions): string {
   return `${base}${filename}`;
 }
 
+function stripCommentLines(text: string): string {
+  if (!text) return text;
+  return text.replace(/^\s*%.*$/gm, "");
+}
+
 function replaceBlocks(text: string, opts: RenderOptions): string {
   if (!text) return text;
-  return text.replace(BLOCK_REGEX, (match) => `\\includegraphics{${renderBlockToImage(match, opts)}}`);
+  const cleaned = stripCommentLines(text);
+  return cleaned.replace(BLOCK_REGEX, (match) => `\\includegraphics{${renderBlockToImage(match, opts)}}`);
+}
+
+export function renderLatexText(text: string, opts: RenderOptions): string {
+  return replaceBlocks(text, opts);
 }
 
 function renderQuestionPublic(q: QuestionPublicV1, opts: RenderOptions): QuestionPublicV1 {
