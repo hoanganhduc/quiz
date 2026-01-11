@@ -11,7 +11,7 @@ LABEL org.opencontainers.image.authors="Duc A. Hoang <anhduc.hoang1990@gmail.com
 
 RUN pacman-key --init && \
 	pacman-key --populate archlinux && \
-	pacman -Sy --noconfirm --needed archlinux-keyring &&
+	pacman -Sy --noconfirm --needed archlinux-keyring && \
 	rm -rf /var/cache/pacman/pkg/* && \
 	pacman -S --noconfirm --needed poppler ghostscript mupdf-tools imagemagick && \
 	yes | pacman -Scc
