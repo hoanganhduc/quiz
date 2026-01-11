@@ -28,17 +28,16 @@ function Home() {
     const [openError, setOpenError] = useState(null);
     const navigate = useNavigate();
     const parseExamLink = (raw) => {
-        var _a, _b, _c, _d;
         const trimmed = raw.trim();
         if (!trimmed)
             return null;
         try {
             const u = new URL(trimmed);
-            const m = ((_a = u.hash) !== null && _a !== void 0 ? _a : "").match(/#\/exam\/([^/?]+)\/([^/?]+)/);
+            const m = (u.hash ?? "").match(/#\/exam\/([^/?]+)\/([^/?]+)/);
             if (m) {
                 return { subject: decodeURIComponent(m[1]), examId: decodeURIComponent(m[2]) };
             }
-            const legacy = ((_b = u.hash) !== null && _b !== void 0 ? _b : "").match(/#\/exam\/([^/?]+)/);
+            const legacy = (u.hash ?? "").match(/#\/exam\/([^/?]+)/);
             if (legacy) {
                 return { subject: "discrete-math", examId: decodeURIComponent(legacy[1]) };
             }
@@ -46,11 +45,11 @@ function Home() {
         catch {
             // not a full URL
         }
-        const m = (_c = trimmed.match(/#\/exam\/([^/?]+)\/([^/?]+)/)) !== null && _c !== void 0 ? _c : trimmed.match(/\/exam\/([^/?]+)\/([^/?]+)/);
+        const m = trimmed.match(/#\/exam\/([^/?]+)\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)\/([^/?]+)/);
         if (m) {
             return { subject: decodeURIComponent(m[1]), examId: decodeURIComponent(m[2]) };
         }
-        const legacy = (_d = trimmed.match(/#\/exam\/([^/?]+)/)) !== null && _d !== void 0 ? _d : trimmed.match(/\/exam\/([^/?]+)/);
+        const legacy = trimmed.match(/#\/exam\/([^/?]+)/) ?? trimmed.match(/\/exam\/([^/?]+)/);
         if (legacy) {
             return { subject: "discrete-math", examId: decodeURIComponent(legacy[1]) };
         }
@@ -71,13 +70,11 @@ function Home() {
         setOpenLoading(true);
         listPublicExams()
             .then((res) => {
-            var _a;
-            setOpenExams((_a = res.items) !== null && _a !== void 0 ? _a : []);
+            setOpenExams(res.items ?? []);
             setOpenError(null);
         })
             .catch((err) => {
-            var _a;
-            setOpenError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to load open exams.");
+            setOpenError(err?.message ?? "Failed to load open exams.");
         })
             .finally(() => {
             setOpenLoading(false);

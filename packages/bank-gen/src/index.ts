@@ -13,6 +13,10 @@ import {
   ChoiceKey,
   ChoiceV1,
   QuestionAnswersV1,
+  QuestionFillBlankAnswersV1,
+  QuestionFillBlankPublicV1,
+  QuestionMcqAnswersV1,
+  QuestionMcqPublicV1,
   QuestionPublicV1
 } from "@app/shared";
 import { importCanvasZipBytes, type AnswerKey as CanvasAnswerKey } from "@app/shared/importers";
@@ -61,32 +65,45 @@ function applyFigureReferencesToQuestion(
     ? resolver(question.answerQuestion.solution)
     : question.answerQuestion.solution;
 
-  const mapChoice = (choice: ChoiceV1) => ({
-    ...choice,
-    text: resolver(choice.text)
-  });
+  const updateChoices = (choices: ChoiceV1[]): ChoiceV1[] =>
+    choices.map((choice) => ({
+      ...choice,
+      text: resolver(choice.text)
+    }));
 
-  const updatedChoices = question.publicQuestion.choices
-    ? question.publicQuestion.choices.map(mapChoice)
-    : question.publicQuestion.choices;
+  let publicQuestion: QuestionPublicV1;
+  let answerQuestion: QuestionAnswersV1;
 
-  const publicQuestion: QuestionPublicV1 = {
-    ...question.publicQuestion,
-    prompt: updatedPrompt,
-    choices: updatedChoices
-  };
+  if (question.publicQuestion.type === "mcq-single") {
+    const mcq = question.publicQuestion as QuestionMcqPublicV1;
+    const mcqAnswer = question.answerQuestion as QuestionMcqAnswersV1;
+    const choices = updateChoices(mcq.choices);
+    publicQuestion = {
+      ...mcq,
+      prompt: updatedPrompt,
+      choices
+    };
+    answerQuestion = {
+      ...mcqAnswer,
+      prompt: updatedPrompt,
+      choices,
+      solution: updatedSolution
+    };
+  } else {
+    const fib = question.publicQuestion as QuestionFillBlankPublicV1;
+    const fibAnswer = question.answerQuestion as QuestionFillBlankAnswersV1;
+    publicQuestion = {
+      ...fib,
+      prompt: updatedPrompt
+    };
+    answerQuestion = {
+      ...fibAnswer,
+      prompt: updatedPrompt,
+      solution: updatedSolution
+    };
+  }
 
-  const answerQuestion: QuestionAnswersV1 = {
-    ...question.answerQuestion,
-    prompt: updatedPrompt,
-    choices: updatedChoices,
-    solution: updatedSolution
-  };
-
-  return {
-    publicQuestion,
-    answerQuestion
-  };
+  return { publicQuestion, answerQuestion };
 }
 
 function lineFromIndex(text: string, index: number): number {

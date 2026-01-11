@@ -27,14 +27,12 @@ function formatDate(value) {
     return formatDateTime(value);
 }
 function buildExamLink(exam) {
-    var _a;
-    const rawBase = (_a = import.meta.env.VITE_BASE_URL) !== null && _a !== void 0 ? _a : "/";
+    const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
     const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
     const base = trimmed === "/" ? "" : trimmed;
     return `${window.location.origin}${base}/#/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`;
 }
 export function AdminExamsPage() {
-    var _a, _b;
     const navigate = useNavigate();
     const [tab, setTab] = useState("exams");
     const [notice, setNotice] = useState(null);
@@ -51,7 +49,7 @@ export function AdminExamsPage() {
     const [templateName, setTemplateName] = useState("");
     const [templateJson, setTemplateJson] = useState("");
     const [editingTemplate, setEditingTemplate] = useState(null);
-    const apiBase = (_b = (_a = sessionStorage.getItem("admin_api_base")) !== null && _a !== void 0 ? _a : import.meta.env.VITE_API_BASE) !== null && _b !== void 0 ? _b : "";
+    const apiBase = sessionStorage.getItem("admin_api_base") ?? import.meta.env.VITE_API_BASE ?? "";
     const filteredExams = useMemo(() => {
         const q = examQuery.trim().toLowerCase();
         if (!q)
@@ -60,7 +58,6 @@ export function AdminExamsPage() {
     }, [examList, examQuery]);
     const allSelected = filteredExams.length > 0 && filteredExams.every((item) => selectedExamIds.includes(item.examId));
     const refreshExams = async () => {
-        var _a, _b;
         if (!apiBase) {
             setExamError("API Base URL is required.");
             return;
@@ -69,18 +66,17 @@ export function AdminExamsPage() {
         setExamError(null);
         try {
             const res = await listExams({ apiBase, includeDeleted });
-            setExamList((_a = res.items) !== null && _a !== void 0 ? _a : []);
-            setSelectedExamIds((prev) => prev.filter((id) => { var _a; return (_a = res.items) === null || _a === void 0 ? void 0 : _a.some((item) => item.examId === id); }));
+            setExamList(res.items ?? []);
+            setSelectedExamIds((prev) => prev.filter((id) => res.items?.some((item) => item.examId === id)));
         }
         catch (err) {
-            setExamError((_b = err === null || err === void 0 ? void 0 : err.message) !== null && _b !== void 0 ? _b : "Failed to load exams");
+            setExamError(err?.message ?? "Failed to load exams");
         }
         finally {
             setExamLoading(false);
         }
     };
     const refreshTemplates = async () => {
-        var _a, _b;
         if (!apiBase) {
             setTemplateError("API Base URL is required.");
             return;
@@ -89,10 +85,10 @@ export function AdminExamsPage() {
         setTemplateError(null);
         try {
             const res = await listTemplates({ apiBase });
-            setTemplateList((_a = res.items) !== null && _a !== void 0 ? _a : []);
+            setTemplateList(res.items ?? []);
         }
         catch (err) {
-            setTemplateError((_b = err === null || err === void 0 ? void 0 : err.message) !== null && _b !== void 0 ? _b : "Failed to load templates");
+            setTemplateError(err?.message ?? "Failed to load templates");
         }
         finally {
             setTemplateLoading(false);
@@ -107,17 +103,15 @@ export function AdminExamsPage() {
         }
     }, [tab, includeDeleted]);
     const handleExportExam = async (examId) => {
-        var _a;
         try {
             const res = await getAdminExam({ apiBase, examId });
             downloadJson(`exam-${examId}.json`, res.exam);
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Export failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Export failed" });
         }
     };
     const handleDeleteExam = async (examId, mode) => {
-        var _a;
         const confirmText = mode === "hard"
             ? "Delete permanently? This cannot be undone."
             : "Soft delete this exam? Students will no longer access it.";
@@ -129,11 +123,10 @@ export function AdminExamsPage() {
             await refreshExams();
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Delete failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Delete failed" });
         }
     };
     const handleImportExams = async (file) => {
-        var _a;
         if (!apiBase) {
             setNotice({ tone: "error", text: "API Base URL is required." });
             return;
@@ -152,14 +145,13 @@ export function AdminExamsPage() {
             await refreshExams();
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Import failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Import failed" });
         }
     };
     const handleExportTemplate = (template) => {
         downloadJson(`template-${template.templateId}.json`, template);
     };
     const handleSaveTemplate = async () => {
-        var _a;
         const name = templateName.trim();
         if (!name) {
             setTemplateError("Template name is required.");
@@ -185,11 +177,10 @@ export function AdminExamsPage() {
             setNotice({ tone: "success", text: "Template created." });
         }
         catch (err) {
-            setTemplateError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Create failed");
+            setTemplateError(err?.message ?? "Create failed");
         }
     };
     const handleUpdateTemplate = async () => {
-        var _a;
         if (!editingTemplate)
             return;
         const name = templateName.trim();
@@ -223,11 +214,10 @@ export function AdminExamsPage() {
             setNotice({ tone: "success", text: "Template updated." });
         }
         catch (err) {
-            setTemplateError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Update failed");
+            setTemplateError(err?.message ?? "Update failed");
         }
     };
     const handleDeleteTemplate = async (template) => {
-        var _a;
         if (!apiBase) {
             setTemplateError("API Base URL is required.");
             return;
@@ -240,11 +230,10 @@ export function AdminExamsPage() {
             setNotice({ tone: "success", text: "Template deleted." });
         }
         catch (err) {
-            setTemplateError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Delete failed");
+            setTemplateError(err?.message ?? "Delete failed");
         }
     };
     const handleImportTemplates = async (file) => {
-        var _a;
         if (!apiBase) {
             setNotice({ tone: "error", text: "API Base URL is required." });
             return;
@@ -255,19 +244,16 @@ export function AdminExamsPage() {
             const text = await file.text();
             const json = JSON.parse(text);
             const items = Array.isArray(json) ? json : [json];
-            const payload = items.map((item) => {
-                var _a;
-                return ({
-                    name: item.name,
-                    template: (_a = item.template) !== null && _a !== void 0 ? _a : item
-                });
-            });
+            const payload = items.map((item) => ({
+                name: item.name,
+                template: item.template ?? item
+            }));
             await importTemplates({ apiBase, items: payload });
             setNotice({ tone: "success", text: "Templates imported." });
             await refreshTemplates();
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Import failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Import failed" });
         }
     };
     const beginEditTemplate = (template) => {
@@ -286,7 +272,6 @@ export function AdminExamsPage() {
         setSelectedExamIds(filteredExams.map((item) => item.examId));
     };
     const handleBulkDelete = async (mode) => {
-        var _a;
         if (!selectedExamIds.length)
             return;
         if (!apiBase) {
@@ -310,11 +295,10 @@ export function AdminExamsPage() {
             await refreshExams();
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Bulk delete failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Bulk delete failed" });
         }
     };
     const handleCloneExam = async (examId) => {
-        var _a;
         if (!apiBase) {
             setNotice({ tone: "error", text: "API Base URL is required." });
             return;
@@ -325,21 +309,19 @@ export function AdminExamsPage() {
             await refreshExams();
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Duplicate failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Duplicate failed" });
         }
     };
     const handleCopyExamLink = async (exam) => {
-        var _a;
         try {
             await navigator.clipboard.writeText(buildExamLink(exam));
             setNotice({ tone: "success", text: "Copied exam link." });
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Copy failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Copy failed" });
         }
     };
     const handleCopyShortLink = async (exam) => {
-        var _a;
         if (!apiBase) {
             setNotice({ tone: "error", text: "API Base URL is required." });
             return;
@@ -350,15 +332,12 @@ export function AdminExamsPage() {
             setNotice({ tone: "success", text: "Copied short link." });
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Short link failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Short link failed" });
         }
     };
-    return (_jsx(AdminAuthGate, { children: _jsxs(PageShell, { maxWidth: "6xl", className: "space-y-6", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-2xl font-semibold text-text", children: "Exams & Templates" }), _jsx("p", { className: "text-sm text-textMuted", children: "Manage exams and reusable templates." })] }), _jsx("div", { className: "flex items-center gap-2", children: _jsx(Button, { type: "button", onClick: () => navigate("/admin/exams/new"), children: "Create exam" }) })] }), notice ? _jsx(Alert, { tone: notice.tone, children: notice.text }) : null, _jsx("div", { className: "flex flex-wrap items-center gap-2", children: _jsxs("div", { className: "inline-flex items-center gap-1 rounded-lg bg-muted p-1 border border-border", children: [_jsx(Button, { type: "button", size: "sm", variant: tab === "exams" ? "primary" : "ghost", onClick: () => setTab("exams"), children: "Exams" }), _jsx(Button, { type: "button", size: "sm", variant: tab === "templates" ? "primary" : "ghost", onClick: () => setTab("templates"), children: "Templates" })] }) }), tab === "exams" ? (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Input, { value: examQuery, onChange: (e) => setExamQuery(e.target.value), placeholder: "Search exam ID..." }), _jsxs(Select, { value: includeDeleted ? "all" : "active", onChange: (e) => setIncludeDeleted(e.target.value === "all"), children: [_jsx("option", { value: "active", children: "Active only" }), _jsx("option", { value: "all", children: "Include deleted" })] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsxs(Select, { value: examImportMode, onChange: (e) => setExamImportMode(e.target.value), children: [_jsx("option", { value: "keep", children: "Import keep existing" }), _jsx("option", { value: "overwrite", children: "Import overwrite" })] }), _jsxs("label", { className: "text-xs text-textMuted", children: ["Import exams", _jsx(Input, { type: "file", accept: "application/json", onChange: (e) => { var _a, _b; return handleImportExams((_b = (_a = e.target.files) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : null); } })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: refreshExams, children: "Refresh" })] })] }), selectedExamIds.length ? (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs", children: [_jsxs("div", { children: [selectedExamIds.length, " selected"] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleBulkDelete("soft"), children: "Bulk delete" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleBulkDelete("hard"), children: "Bulk delete permanently" })] })] })) : null, examError ? _jsx(Alert, { tone: "error", children: examError }) : null, examLoading ? (_jsx("div", { className: "text-sm text-textMuted", children: "Loading exams..." })) : filteredExams.length ? (_jsx("div", { className: "space-y-2 text-sm", children: filteredExams.map((exam) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "flex min-w-0 items-start gap-3", children: [_jsx("input", { type: "checkbox", className: "mt-1 h-4 w-4", checked: selectedExamIds.includes(exam.examId), onChange: () => toggleExamSelected(exam.examId), "aria-label": `Select ${exam.examId}` }), _jsxs("div", { children: [_jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("span", { className: "font-mono text-xs", children: exam.examId }), _jsx(Badge, { tone: exam.visibility === "public" ? "info" : "muted", children: exam.visibility === "public" ? "Public" : "Private" }), exam.deletedAt ? _jsx(Badge, { tone: "warn", children: "Deleted" }) : null, exam.hasSubmissions ? _jsx(Badge, { tone: "info", children: "Taken" }) : null] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Created ", formatDate(exam.createdAt), " \u00B7 Expires ", formatDate(exam.expiresAt)] })] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleCloneExam(exam.examId), children: "Duplicate" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleCopyExamLink(exam), children: "Copy link" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleCopyShortLink(exam), children: "Copy short link" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => navigate(`/admin/exams/new?edit=${exam.examId}`), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleExportExam(exam.examId), children: "Export" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteExam(exam.examId, "soft"), children: "Delete" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteExam(exam.examId, "hard"), children: "Delete permanently" })] })] }, exam.examId))) })) : (_jsx("div", { className: "text-sm text-textMuted", children: "No exams found." })), filteredExams.length ? (_jsxs("div", { className: "flex items-center gap-2 text-xs text-textMuted", children: [_jsx("input", { type: "checkbox", className: "h-4 w-4", checked: allSelected, onChange: toggleSelectAll }), "Select all filtered exams"] })) : null] })) : (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsx("div", { className: "text-sm font-semibold text-text", children: "Templates" }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsxs("label", { className: "text-xs text-textMuted", children: ["Import templates", _jsx(Input, { type: "file", accept: "application/json", onChange: (e) => { var _a, _b; return handleImportTemplates((_b = (_a = e.target.files) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : null); } })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: refreshTemplates, children: "Refresh" })] })] }), templateError ? _jsx(Alert, { tone: "error", children: templateError }) : null, _jsxs(Card, { padding: "sm", className: "space-y-3", children: [_jsx("div", { className: "text-sm font-semibold text-text", children: editingTemplate ? "Edit template" : "Create template" }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", children: "Name" }), _jsx(Input, { value: templateName, onChange: (e) => setTemplateName(e.target.value), placeholder: "Template name" })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", children: "Template JSON" }), _jsx(Textarea, { rows: 4, value: templateJson, onChange: (e) => setTemplateJson(e.target.value), placeholder: '{"subject":"discrete-math","composition":[...],"policy":{...}}' })] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", onClick: editingTemplate ? handleUpdateTemplate : handleSaveTemplate, children: editingTemplate ? "Update template" : "Create template" }), editingTemplate ? (_jsx(Button, { type: "button", variant: "ghost", onClick: () => {
+    return (_jsx(AdminAuthGate, { children: _jsxs(PageShell, { maxWidth: "6xl", className: "space-y-6", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-2xl font-semibold text-text", children: "Exams & Templates" }), _jsx("p", { className: "text-sm text-textMuted", children: "Manage exams and reusable templates." })] }), _jsx("div", { className: "flex items-center gap-2", children: _jsx(Button, { type: "button", onClick: () => navigate("/admin/exams/new"), children: "Create exam" }) })] }), notice ? _jsx(Alert, { tone: notice.tone, children: notice.text }) : null, _jsx("div", { className: "flex flex-wrap items-center gap-2", children: _jsxs("div", { className: "inline-flex items-center gap-1 rounded-lg bg-muted p-1 border border-border", children: [_jsx(Button, { type: "button", size: "sm", variant: tab === "exams" ? "primary" : "ghost", onClick: () => setTab("exams"), children: "Exams" }), _jsx(Button, { type: "button", size: "sm", variant: tab === "templates" ? "primary" : "ghost", onClick: () => setTab("templates"), children: "Templates" })] }) }), tab === "exams" ? (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Input, { value: examQuery, onChange: (e) => setExamQuery(e.target.value), placeholder: "Search exam ID..." }), _jsxs(Select, { value: includeDeleted ? "all" : "active", onChange: (e) => setIncludeDeleted(e.target.value === "all"), children: [_jsx("option", { value: "active", children: "Active only" }), _jsx("option", { value: "all", children: "Include deleted" })] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsxs(Select, { value: examImportMode, onChange: (e) => setExamImportMode(e.target.value), children: [_jsx("option", { value: "keep", children: "Import keep existing" }), _jsx("option", { value: "overwrite", children: "Import overwrite" })] }), _jsxs("label", { className: "text-xs text-textMuted", children: ["Import exams", _jsx(Input, { type: "file", accept: "application/json", onChange: (e) => handleImportExams(e.target.files?.[0] ?? null) })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: refreshExams, children: "Refresh" })] })] }), selectedExamIds.length ? (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs", children: [_jsxs("div", { children: [selectedExamIds.length, " selected"] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleBulkDelete("soft"), children: "Bulk delete" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleBulkDelete("hard"), children: "Bulk delete permanently" })] })] })) : null, examError ? _jsx(Alert, { tone: "error", children: examError }) : null, examLoading ? (_jsx("div", { className: "text-sm text-textMuted", children: "Loading exams..." })) : filteredExams.length ? (_jsx("div", { className: "space-y-2 text-sm", children: filteredExams.map((exam) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "flex min-w-0 items-start gap-3", children: [_jsx("input", { type: "checkbox", className: "mt-1 h-4 w-4", checked: selectedExamIds.includes(exam.examId), onChange: () => toggleExamSelected(exam.examId), "aria-label": `Select ${exam.examId}` }), _jsxs("div", { children: [_jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("span", { className: "font-mono text-xs", children: exam.examId }), _jsx(Badge, { tone: exam.visibility === "public" ? "info" : "muted", children: exam.visibility === "public" ? "Public" : "Private" }), exam.deletedAt ? _jsx(Badge, { tone: "warn", children: "Deleted" }) : null, exam.hasSubmissions ? _jsx(Badge, { tone: "info", children: "Taken" }) : null] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Created ", formatDate(exam.createdAt), " \u00B7 Expires ", formatDate(exam.expiresAt)] })] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleCloneExam(exam.examId), children: "Duplicate" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleCopyExamLink(exam), children: "Copy link" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleCopyShortLink(exam), children: "Copy short link" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => navigate(`/admin/exams/new?edit=${exam.examId}`), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleExportExam(exam.examId), children: "Export" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteExam(exam.examId, "soft"), children: "Delete" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteExam(exam.examId, "hard"), children: "Delete permanently" })] })] }, exam.examId))) })) : (_jsx("div", { className: "text-sm text-textMuted", children: "No exams found." })), filteredExams.length ? (_jsxs("div", { className: "flex items-center gap-2 text-xs text-textMuted", children: [_jsx("input", { type: "checkbox", className: "h-4 w-4", checked: allSelected, onChange: toggleSelectAll }), "Select all filtered exams"] })) : null] })) : (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsx("div", { className: "text-sm font-semibold text-text", children: "Templates" }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsxs("label", { className: "text-xs text-textMuted", children: ["Import templates", _jsx(Input, { type: "file", accept: "application/json", onChange: (e) => handleImportTemplates(e.target.files?.[0] ?? null) })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: refreshTemplates, children: "Refresh" })] })] }), templateError ? _jsx(Alert, { tone: "error", children: templateError }) : null, _jsxs(Card, { padding: "sm", className: "space-y-3", children: [_jsx("div", { className: "text-sm font-semibold text-text", children: editingTemplate ? "Edit template" : "Create template" }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", children: "Name" }), _jsx(Input, { value: templateName, onChange: (e) => setTemplateName(e.target.value), placeholder: "Template name" })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", children: "Template JSON" }), _jsx(Textarea, { rows: 4, value: templateJson, onChange: (e) => setTemplateJson(e.target.value), placeholder: '{"subject":"discrete-math","composition":[...],"policy":{...}}' })] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", onClick: editingTemplate ? handleUpdateTemplate : handleSaveTemplate, children: editingTemplate ? "Update template" : "Create template" }), editingTemplate ? (_jsx(Button, { type: "button", variant: "ghost", onClick: () => {
                                                 setEditingTemplate(null);
                                                 setTemplateName("");
                                                 setTemplateJson("");
-                                            }, children: "Cancel" })) : null] })] }), templateLoading ? (_jsx("div", { className: "text-sm text-textMuted", children: "Loading templates..." })) : templateList.length ? (_jsx("div", { className: "space-y-2 text-sm", children: templateList.map((template) => {
-                                var _a;
-                                return (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsx("div", { className: "font-medium text-text", children: template.name }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Updated ", formatDate((_a = template.updatedAt) !== null && _a !== void 0 ? _a : template.createdAt)] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => beginEditTemplate(template), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleExportTemplate(template), children: "Export" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteTemplate(template), children: "Delete" })] })] }, template.templateId));
-                            }) })) : (_jsx("div", { className: "text-sm text-textMuted", children: "No templates found." }))] }))] }) }));
+                                            }, children: "Cancel" })) : null] })] }), templateLoading ? (_jsx("div", { className: "text-sm text-textMuted", children: "Loading templates..." })) : templateList.length ? (_jsx("div", { className: "space-y-2 text-sm", children: templateList.map((template) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsx("div", { className: "font-medium text-text", children: template.name }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Updated ", formatDate(template.updatedAt ?? template.createdAt)] })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => beginEditTemplate(template), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleExportTemplate(template), children: "Export" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteTemplate(template), children: "Delete" })] })] }, template.templateId))) })) : (_jsx("div", { className: "text-sm text-textMuted", children: "No templates found." }))] }))] }) }));
 }

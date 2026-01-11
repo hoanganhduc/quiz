@@ -1,4 +1,3 @@
-var _a;
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from "react";
 import { createExam, createExamShortLink, createTemplate, deleteTemplate, getAdminExam, getExamTemplate, healthCheck, getLatestPublicBank, listAvailableBanks, listTemplates, updateExam } from "../../api/admin";
@@ -26,21 +25,19 @@ import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
 import { formatDateTime } from "../../utils/time";
 function VersionsCard({ policy, onChange, errors }) {
-    var _a, _b;
-    return (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Versions" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Control per-student shuffling and version counts." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "versioning-mode", children: "Versioning mode" }), _jsxs(Select, { id: "versioning-mode", value: (_a = policy.versioningMode) !== null && _a !== void 0 ? _a : "fixed", onChange: (e) => {
-                            var _a, _b;
+    return (_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Versions" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Control per-student shuffling and version counts." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "versioning-mode", children: "Versioning mode" }), _jsxs(Select, { id: "versioning-mode", value: policy.versioningMode ?? "fixed", onChange: (e) => {
                             const nextMode = e.target.value;
                             onChange({
                                 ...policy,
                                 versioningMode: nextMode,
-                                shuffleQuestions: nextMode === "per_student" ? (_a = policy.shuffleQuestions) !== null && _a !== void 0 ? _a : true : (_b = policy.shuffleQuestions) !== null && _b !== void 0 ? _b : false
+                                shuffleQuestions: nextMode === "per_student" ? policy.shuffleQuestions ?? true : policy.shuffleQuestions ?? false
                             });
-                        }, children: [_jsx("option", { value: "fixed", children: "Fixed (same for all)" }), _jsx("option", { value: "per_student", children: "Per student" })] })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Shuffle questions" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Deterministic per student when enabled." })] }), _jsx(Switch, { id: "shuffle-questions", checked: Boolean(policy.shuffleQuestions), onChange: (value) => onChange({ ...policy, shuffleQuestions: value }) })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Shuffle choices" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Reorders choices per student." })] }), _jsx(Switch, { id: "shuffle-choices", checked: Boolean(policy.shuffleChoices), onChange: (value) => onChange({ ...policy, shuffleChoices: value }) })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "version-count", children: "Version count (optional)" }), _jsx(Input, { id: "version-count", type: "number", value: (_b = policy.versionCount) !== null && _b !== void 0 ? _b : "", onChange: (e) => onChange({
+                        }, children: [_jsx("option", { value: "fixed", children: "Fixed (same for all)" }), _jsx("option", { value: "per_student", children: "Per student" })] })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Shuffle questions" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Deterministic per student when enabled." })] }), _jsx(Switch, { id: "shuffle-questions", checked: Boolean(policy.shuffleQuestions), onChange: (value) => onChange({ ...policy, shuffleQuestions: value }) })] }), _jsxs("div", { className: "flex items-center justify-between gap-3", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Shuffle choices" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Reorders choices per student." })] }), _jsx(Switch, { id: "shuffle-choices", checked: Boolean(policy.shuffleChoices), onChange: (value) => onChange({ ...policy, shuffleChoices: value }) })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "version-count", children: "Version count (optional)" }), _jsx(Input, { id: "version-count", type: "number", value: policy.versionCount ?? "", onChange: (e) => onChange({
                             ...policy,
                             versionCount: e.target.value ? Number(e.target.value) : undefined
                         }), placeholder: "2-50", hasError: Boolean(errors["policy.versionCount"]) }), errors["policy.versionCount"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", children: errors["policy.versionCount"] })) : (_jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Only used when per-student; leave blank for unlimited." }))] })] }));
 }
-const API_BASE_DEFAULT = (_a = import.meta.env.VITE_API_BASE) !== null && _a !== void 0 ? _a : "";
+const API_BASE_DEFAULT = import.meta.env.VITE_API_BASE ?? "";
 const API_BASE_KEY = "admin_api_base";
 const TEMPLATE_STORAGE_KEY = "admin_exam_template_v1";
 function toLocalDateTimeInput(value) {
@@ -55,8 +52,7 @@ function formatUpdatedAt(value) {
     return Number.isNaN(d.getTime()) ? value : formatDateTime(d);
 }
 function buildExamLink(subject, examId) {
-    var _a;
-    const rawBase = (_a = import.meta.env.VITE_BASE_URL) !== null && _a !== void 0 ? _a : "/";
+    const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
     const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
     const base = trimmed === "/" ? "" : trimmed;
     return `${window.location.origin}${base}/#/exam/${encodeURIComponent(subject)}/${encodeURIComponent(examId)}`;
@@ -147,8 +143,7 @@ function errorKeyToFieldId(key) {
     return null;
 }
 export function CreateExamPage() {
-    var _a;
-    const [apiBase, setApiBase] = useState(() => { var _a; return (_a = sessionStorage.getItem(API_BASE_KEY)) !== null && _a !== void 0 ? _a : API_BASE_DEFAULT; });
+    const [apiBase, setApiBase] = useState(() => sessionStorage.getItem(API_BASE_KEY) ?? API_BASE_DEFAULT);
     const [searchParams] = useSearchParams();
     const { draft, setDraft, errors, warnings, normalizedRequestBody, validate, reset } = useExamDraft();
     const [connectionStatus, setConnectionStatus] = useState("idle");
@@ -199,14 +194,13 @@ export function CreateExamPage() {
         return { topics, counts, total: data.questions.length, subject: data.subject };
     };
     const loadBankSubjects = async (base) => {
-        var _a, _b, _c;
         if (!base)
             return;
         try {
             const res = await listAvailableBanks(base);
-            setBankSubjects((_a = res.subjects) !== null && _a !== void 0 ? _a : []);
+            setBankSubjects(res.subjects ?? []);
             setBankLoadError(null);
-            if (!((_b = res.subjects) === null || _b === void 0 ? void 0 : _b.length)) {
+            if (!res.subjects?.length) {
                 setBankSubject("");
                 setBankStats(null);
             }
@@ -216,11 +210,10 @@ export function CreateExamPage() {
             }
         }
         catch (err) {
-            setBankLoadError((_c = err === null || err === void 0 ? void 0 : err.message) !== null && _c !== void 0 ? _c : "Failed to load bank list");
+            setBankLoadError(err?.message ?? "Failed to load bank list");
         }
     };
     const loadSelectedBank = async () => {
-        var _a;
         if (!apiBase || !bankSubject)
             return;
         setBankLoading(true);
@@ -233,7 +226,7 @@ export function CreateExamPage() {
         catch (err) {
             setBankStats(null);
             setBankPublic(null);
-            setBankLoadError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to load bank");
+            setBankLoadError(err?.message ?? "Failed to load bank");
         }
         finally {
             setBankLoading(false);
@@ -248,7 +241,7 @@ export function CreateExamPage() {
         return date.toISOString();
     }, [draft.expiresEnabled, draft.expiresAtLocal]);
     const canCreate = !isSubmitting && Object.keys(errors).length === 0;
-    const activeExamId = (_a = editExamId !== null && editExamId !== void 0 ? editExamId : result === null || result === void 0 ? void 0 : result.examId) !== null && _a !== void 0 ? _a : null;
+    const activeExamId = editExamId ?? result?.examId ?? null;
     const studentSignIn = draft.policy.authMode === "required"
         ? "Sign-in required"
         : draft.policy.authMode === "optional"
@@ -320,7 +313,6 @@ export function CreateExamPage() {
         await handleCopy(link, "Exam link copied");
     };
     const handleCopyShortLink = async (examId) => {
-        var _a;
         if (!apiBase) {
             setToast({ message: "API Base URL is required.", tone: "error" });
             return;
@@ -331,14 +323,13 @@ export function CreateExamPage() {
             await handleCopy(res.shortUrl, "Short link copied");
         }
         catch (err) {
-            setToast({ message: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Short link failed", tone: "error" });
+            setToast({ message: err?.message ?? "Short link failed", tone: "error" });
         }
         finally {
             setShortLinkLoading(false);
         }
     };
     const handleOpenPreview = async () => {
-        var _a, _b;
         setPreviewError(null);
         setPreviewOpen(true);
         setPreviewAnswers({});
@@ -361,28 +352,27 @@ export function CreateExamPage() {
                 setBankPublic(bank);
                 setBankStats(computeBankStats(bank));
             }
-            const previewSeed = ((_a = normalizedRequestBody.seed) !== null && _a !== void 0 ? _a : (draft.seed ? draft.seed.trim() : "")) ||
+            const previewSeed = (normalizedRequestBody.seed ?? (draft.seed ? draft.seed.trim() : "")) ||
                 `preview:${normalizedRequestBody.subject}:${JSON.stringify(composition)}`;
             const questions = buildPreviewQuestions(bank, composition, normalizedRequestBody.policy, previewSeed);
             setPreviewQuestions(questions);
         }
         catch (err) {
             setPreviewQuestions([]);
-            setPreviewError((_b = err === null || err === void 0 ? void 0 : err.message) !== null && _b !== void 0 ? _b : "Failed to build preview");
+            setPreviewError(err?.message ?? "Failed to build preview");
         }
         finally {
             setPreviewLoading(false);
         }
     };
     const handleCreate = async () => {
-        var _a, _b, _c, _d, _e;
         setSubmitError(null);
         const ok = validate();
         if (!ok) {
             const firstKey = Object.keys(errors)[0];
             const fieldId = firstKey ? errorKeyToFieldId(firstKey) : null;
             if (fieldId) {
-                (_a = document.getElementById(fieldId)) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth", block: "center" });
+                document.getElementById(fieldId)?.scrollIntoView({ behavior: "smooth", block: "center" });
             }
             setSubmitError("Fix validation errors before creating the exam.");
             return;
@@ -402,16 +392,16 @@ export function CreateExamPage() {
                 composition: normalizedRequestBody.composition,
                 policy: normalizedRequestBody.policy,
                 codes: normalizedRequestBody.codes,
-                expiresAt: (_b = normalizedRequestBody.expiresAt) !== null && _b !== void 0 ? _b : null,
-                visibility: (_c = normalizedRequestBody.visibility) !== null && _c !== void 0 ? _c : "private"
+                expiresAt: normalizedRequestBody.expiresAt ?? null,
+                visibility: normalizedRequestBody.visibility ?? "private"
             };
             localStorage.setItem(TEMPLATE_STORAGE_KEY, JSON.stringify(template));
             setLastTemplate(template);
         }
         catch (err) {
             const apiError = err;
-            const status = (_d = apiError.status) !== null && _d !== void 0 ? _d : 0;
-            const message = (_e = apiError.message) !== null && _e !== void 0 ? _e : "Unknown error";
+            const status = apiError.status ?? 0;
+            const message = apiError.message ?? "Unknown error";
             setSubmitError(`Create failed (${status}). ${message}`);
         }
         finally {
@@ -440,7 +430,6 @@ export function CreateExamPage() {
         void loadBankSubjects(apiBase);
     }, [apiBase]);
     const handleUpdate = async () => {
-        var _a, _b, _c, _d;
         if (!editExamId)
             return;
         setSubmitError(null);
@@ -449,7 +438,7 @@ export function CreateExamPage() {
             const firstKey = Object.keys(errors)[0];
             const fieldId = firstKey ? errorKeyToFieldId(firstKey) : null;
             if (fieldId) {
-                (_a = document.getElementById(fieldId)) === null || _a === void 0 ? void 0 : _a.scrollIntoView({ behavior: "smooth", block: "center" });
+                document.getElementById(fieldId)?.scrollIntoView({ behavior: "smooth", block: "center" });
             }
             setSubmitError("Fix validation errors before updating the exam.");
             return;
@@ -462,7 +451,7 @@ export function CreateExamPage() {
         try {
             const updateBody = {
                 ...normalizedRequestBody,
-                expiresAt: draft.expiresEnabled ? (_b = normalizedRequestBody.expiresAt) !== null && _b !== void 0 ? _b : null : null
+                expiresAt: draft.expiresEnabled ? normalizedRequestBody.expiresAt ?? null : null
             };
             const response = await updateExam({ apiBase, examId: editExamId, body: updateBody });
             setToast({
@@ -472,8 +461,8 @@ export function CreateExamPage() {
         }
         catch (err) {
             const apiError = err;
-            const status = (_c = apiError.status) !== null && _c !== void 0 ? _c : 0;
-            const message = (_d = apiError.message) !== null && _d !== void 0 ? _d : "Unknown error";
+            const status = apiError.status ?? 0;
+            const message = apiError.message ?? "Unknown error";
             setSubmitError(`Update failed (${status}). ${message}`);
         }
         finally {
@@ -486,24 +475,21 @@ export function CreateExamPage() {
         setSubmitError(null);
     };
     const applyTemplate = (template) => {
-        setDraft((prev) => {
-            var _a, _b;
-            return ({
-                ...prev,
-                subject: template.subject,
-                composition: template.composition.map((row) => ({ ...row })),
-                policy: { ...template.policy },
-                codes: (_a = template.codes) !== null && _a !== void 0 ? _a : [],
-                codesEnabled: Boolean((template.codes && template.codes.length > 0) ||
-                    template.policy.requireSubmitCode ||
-                    template.policy.requireViewCode),
-                expiresEnabled: Boolean(template.expiresAt),
-                expiresAtLocal: template.expiresAt ? toLocalDateTimeInput(template.expiresAt) : "",
-                visibility: (_b = template.visibility) !== null && _b !== void 0 ? _b : "private",
-                autoSeed: true,
-                seed: ""
-            });
-        });
+        setDraft((prev) => ({
+            ...prev,
+            subject: template.subject,
+            composition: template.composition.map((row) => ({ ...row })),
+            policy: { ...template.policy },
+            codes: template.codes ?? [],
+            codesEnabled: Boolean((template.codes && template.codes.length > 0) ||
+                template.policy.requireSubmitCode ||
+                template.policy.requireViewCode),
+            expiresEnabled: Boolean(template.expiresAt),
+            expiresAtLocal: template.expiresAt ? toLocalDateTimeInput(template.expiresAt) : "",
+            visibility: template.visibility ?? "private",
+            autoSeed: true,
+            seed: ""
+        }));
     };
     const handleUseLastTemplate = () => {
         if (!lastTemplate)
@@ -513,7 +499,6 @@ export function CreateExamPage() {
         setToast({ message: "Loaded last template", tone: "success" });
     };
     const handleSaveTemplate = async () => {
-        var _a, _b, _c, _d;
         const name = templateName.trim();
         if (!name) {
             setTemplateError("Template name is required.");
@@ -533,8 +518,8 @@ export function CreateExamPage() {
                     composition: normalizedRequestBody.composition,
                     policy: normalizedRequestBody.policy,
                     codes: normalizedRequestBody.codes,
-                    expiresAt: (_a = normalizedRequestBody.expiresAt) !== null && _a !== void 0 ? _a : null,
-                    visibility: (_b = normalizedRequestBody.visibility) !== null && _b !== void 0 ? _b : "private"
+                    expiresAt: normalizedRequestBody.expiresAt ?? null,
+                    visibility: normalizedRequestBody.visibility ?? "private"
                 }
             });
             setSavedTemplates((prev) => [record, ...prev]);
@@ -543,8 +528,8 @@ export function CreateExamPage() {
         }
         catch (err) {
             const apiError = err;
-            const status = (_c = apiError.status) !== null && _c !== void 0 ? _c : 0;
-            const message = (_d = apiError.message) !== null && _d !== void 0 ? _d : "Unknown error";
+            const status = apiError.status ?? 0;
+            const message = apiError.message ?? "Unknown error";
             setTemplateError(`Save failed (${status}). ${message}`);
         }
     };
@@ -554,7 +539,6 @@ export function CreateExamPage() {
         setToast({ message: "Loaded saved template", tone: "success" });
     };
     const handleDeleteTemplate = async (template) => {
-        var _a, _b;
         if (!apiBase) {
             setTemplateError("API Base URL is required.");
             return;
@@ -568,8 +552,8 @@ export function CreateExamPage() {
         }
         catch (err) {
             const apiError = err;
-            const status = (_a = apiError.status) !== null && _a !== void 0 ? _a : 0;
-            const message = (_b = apiError.message) !== null && _b !== void 0 ? _b : "Unknown error";
+            const status = apiError.status ?? 0;
+            const message = apiError.message ?? "Unknown error";
             setTemplateError(`Delete failed (${status}). ${message}`);
         }
     };
@@ -580,16 +564,14 @@ export function CreateExamPage() {
         setTemplatesLoading(true);
         listTemplates({ apiBase })
             .then((res) => {
-            var _a;
             if (cancelled)
                 return;
-            setSavedTemplates((_a = res.items) !== null && _a !== void 0 ? _a : []);
+            setSavedTemplates(res.items ?? []);
         })
             .catch((err) => {
-            var _a;
             if (cancelled)
                 return;
-            setTemplateError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to load templates");
+            setTemplateError(err?.message ?? "Failed to load templates");
         })
             .finally(() => {
             if (cancelled)
@@ -606,7 +588,6 @@ export function CreateExamPage() {
         let cancelled = false;
         getAdminExam({ apiBase, examId: editExamId })
             .then((res) => {
-            var _a, _b;
             if (cancelled)
                 return;
             if (res.exam.deletedAt) {
@@ -618,24 +599,22 @@ export function CreateExamPage() {
                 subject: res.exam.subject,
                 composition: res.exam.composition,
                 policy: res.exam.policy,
-                expiresAt: (_a = res.exam.expiresAt) !== null && _a !== void 0 ? _a : null,
-                visibility: (_b = res.exam.visibility) !== null && _b !== void 0 ? _b : "private"
+                expiresAt: res.exam.expiresAt ?? null,
+                visibility: res.exam.visibility ?? "private"
             };
             applyTemplate(template);
-            setDraft((prev) => { var _a; return ({ ...prev, title: (_a = res.exam.title) !== null && _a !== void 0 ? _a : "" }); });
+            setDraft((prev) => ({ ...prev, title: res.exam.title ?? "" }));
         })
             .catch((err) => {
-            var _a;
             if (cancelled)
                 return;
-            setSubmitError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to load exam");
+            setSubmitError(err?.message ?? "Failed to load exam");
         });
         return () => {
             cancelled = true;
         };
     }, [apiBase, editExamId]);
     const handleLoadTemplate = async () => {
-        var _a, _b;
         if (!apiBase) {
             setTemplateError("API Base URL is required.");
             return;
@@ -662,8 +641,8 @@ export function CreateExamPage() {
         }
         catch (err) {
             const apiError = err;
-            const status = (_a = apiError.status) !== null && _a !== void 0 ? _a : 0;
-            const message = (_b = apiError.message) !== null && _b !== void 0 ? _b : "Unknown error";
+            const status = apiError.status ?? 0;
+            const message = apiError.message ?? "Unknown error";
             setTemplateError(`Load failed (${status}). ${message}`);
         }
         finally {
@@ -676,10 +655,7 @@ export function CreateExamPage() {
                                                     ? "error"
                                                     : "muted", children: connectionStatus === "connected" ? "Connected" : "Not connected" }), _jsxs("span", { className: "text-xs", children: ["/", "/admin/exams"] })] })] }), submitError ? _jsx(Alert, { tone: "error", children: submitError }) : null, editExamId ? (_jsx(Alert, { tone: editHasSubmissions ? "warn" : "info", children: editHasSubmissions
                                 ? "This exam already has submissions. Updating will not change past submissions."
-                                : "Editing an existing exam. Changes apply immediately to future attempts." })) : null, _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-neutral-900 dark:text-neutral-100", children: "Steps" }), _jsx("div", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Fill out each section below. The preview updates live." })] }), _jsx(StepIndicator, { steps: stepIndicatorSteps })] }), _jsxs("div", { className: "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]", children: [_jsxs("div", { className: "space-y-6", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Template" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Reuse settings from a previous exam to avoid re-entering fields." })] }), templateError ? _jsx(Alert, { tone: "error", children: templateError }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-exam-id", children: "Load by exam ID" }), _jsx(Input, { id: "template-exam-id", value: templateExamId, onChange: (e) => setTemplateExamId(e.target.value), placeholder: "exam-uuid" })] }), _jsxs("div", { className: "flex items-end gap-2", children: [_jsx(Button, { type: "button", variant: "secondary", onClick: handleLoadTemplate, disabled: templateLoading, children: templateLoading ? "Loading..." : "Load template" }), lastTemplate ? (_jsx(Button, { type: "button", onClick: handleUseLastTemplate, children: "Use last template" })) : null] })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-name", children: "Template name" }), _jsx(Input, { id: "template-name", value: templateName, onChange: (e) => setTemplateName(e.target.value), placeholder: "Midterm template" })] }), _jsx("div", { className: "flex items-end", children: _jsx(Button, { type: "button", variant: "secondary", onClick: handleSaveTemplate, disabled: !templateName.trim(), children: "Save current as template" }) })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Saved templates" }), templatesLoading ? (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Loading templates..." })) : savedTemplates.length ? (_jsx("div", { className: "space-y-2 text-xs", children: savedTemplates.map((item) => {
-                                                                var _a;
-                                                                return (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsx("div", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: item.name }), _jsx("div", { className: "text-neutral-500 dark:text-neutral-400", children: formatUpdatedAt((_a = item.updatedAt) !== null && _a !== void 0 ? _a : item.createdAt) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleUseSavedTemplate(item), children: "Use" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteTemplate(item), children: "Delete" })] })] }, item.templateId));
-                                                            }) })) : (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "No saved templates yet." }))] }), _jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Templates are stored on the server for admin access." })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Basics" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Choose the subject and (optionally) an expiry time." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "subject", children: "Subject" }), _jsx(Select, { id: "subject", value: draft.subject, onChange: (e) => setDraft({ ...draft, subject: e.target.value }), hasError: Boolean(errors["subject"]), "aria-describedby": errors["subject"] ? "subject-error" : undefined, children: _jsx("option", { value: "discrete-math", children: "Discrete Math" }) }), errors["subject"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "subject-error", children: errors["subject"] })) : null] }), _jsx("div", { className: "space-y-2", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Public listing" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Public exams appear on the homepage until they expire." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "visibility-toggle", checked: draft.visibility === "public", onChange: (value) => setDraft({ ...draft, visibility: value ? "public" : "private" }) }), _jsx("label", { htmlFor: "visibility-toggle", children: "Public" })] })] }) }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "exam-title", children: "Optional label/title" }), _jsx(Input, { id: "exam-title", value: draft.title, onChange: (e) => setDraft({ ...draft, title: e.target.value }), placeholder: "Midterm A" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Displayed on the exam page and stored with the exam." })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Expires at" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Optional expiry timestamp (UTC sent to backend)." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "expires-toggle", checked: draft.expiresEnabled, onChange: (value) => setDraft({ ...draft, expiresEnabled: value }) }), _jsx("label", { htmlFor: "expires-toggle", children: "Enable expiry" })] })] }), draft.expiresEnabled ? (_jsxs("div", { className: "space-y-2", children: [_jsx(Input, { id: "expires-at", type: "datetime-local", value: draft.expiresAtLocal, onChange: (e) => setDraft({ ...draft, expiresAtLocal: e.target.value }), hasError: Boolean(errors["expiresAt"]), "aria-describedby": errors["expiresAt"] ? "expires-error" : undefined }), errors["expiresAt"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "expires-error", children: errors["expiresAt"] })) : null, _jsxs("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: ["ISO preview: ", expiresIso || "—"] })] })) : null] })] }), _jsxs("div", { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Access Rules" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Configure sign-in, codes, and when solutions appear." })] }), _jsx(PolicyCard, { policy: draft.policy, onChange: (policy) => setDraft({ ...draft, policy }), errors: errors }), _jsx(CodesEditor, { codesEnabled: draft.codesEnabled, codes: draft.codes, policy: draft.policy, onCodesEnabledChange: (value) => setDraft({ ...draft, codesEnabled: value, codes: value ? draft.codes : [] }), onCodesChange: (codes) => setDraft({ ...draft, codes }) })] }), _jsxs("div", { id: "composition-section", className: "space-y-4", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Question bank" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Load the latest bank to populate topics and counts." })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[1fr_auto] items-end", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "bank-subject", children: "Available bank subjects" }), _jsxs(Select, { id: "bank-subject", value: bankSubject, onChange: (e) => {
+                                : "Editing an existing exam. Changes apply immediately to future attempts." })) : null, _jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-neutral-900 dark:text-neutral-100", children: "Steps" }), _jsx("div", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Fill out each section below. The preview updates live." })] }), _jsx(StepIndicator, { steps: stepIndicatorSteps })] }), _jsxs("div", { className: "grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]", children: [_jsxs("div", { className: "space-y-6", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Template" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Reuse settings from a previous exam to avoid re-entering fields." })] }), templateError ? _jsx(Alert, { tone: "error", children: templateError }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-exam-id", children: "Load by exam ID" }), _jsx(Input, { id: "template-exam-id", value: templateExamId, onChange: (e) => setTemplateExamId(e.target.value), placeholder: "exam-uuid" })] }), _jsxs("div", { className: "flex items-end gap-2", children: [_jsx(Button, { type: "button", variant: "secondary", onClick: handleLoadTemplate, disabled: templateLoading, children: templateLoading ? "Loading..." : "Load template" }), lastTemplate ? (_jsx(Button, { type: "button", onClick: handleUseLastTemplate, children: "Use last template" })) : null] })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "template-name", children: "Template name" }), _jsx(Input, { id: "template-name", value: templateName, onChange: (e) => setTemplateName(e.target.value), placeholder: "Midterm template" })] }), _jsx("div", { className: "flex items-end", children: _jsx(Button, { type: "button", variant: "secondary", onClick: handleSaveTemplate, disabled: !templateName.trim(), children: "Save current as template" }) })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Saved templates" }), templatesLoading ? (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Loading templates..." })) : savedTemplates.length ? (_jsx("div", { className: "space-y-2 text-xs", children: savedTemplates.map((item) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsx("div", { className: "font-medium text-neutral-900 dark:text-neutral-100", children: item.name }), _jsx("div", { className: "text-neutral-500 dark:text-neutral-400", children: formatUpdatedAt(item.updatedAt ?? item.createdAt) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => handleUseSavedTemplate(item), children: "Use" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: () => handleDeleteTemplate(item), children: "Delete" })] })] }, item.templateId))) })) : (_jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "No saved templates yet." }))] }), _jsx("div", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Templates are stored on the server for admin access." })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-neutral-900 dark:text-neutral-100", children: "Basics" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Choose the subject and (optionally) an expiry time." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "subject", children: "Subject" }), _jsx(Select, { id: "subject", value: draft.subject, onChange: (e) => setDraft({ ...draft, subject: e.target.value }), hasError: Boolean(errors["subject"]), "aria-describedby": errors["subject"] ? "subject-error" : undefined, children: _jsx("option", { value: "discrete-math", children: "Discrete Math" }) }), errors["subject"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "subject-error", children: errors["subject"] })) : null] }), _jsx("div", { className: "space-y-2", children: _jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Public listing" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Public exams appear on the homepage until they expire." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "visibility-toggle", checked: draft.visibility === "public", onChange: (value) => setDraft({ ...draft, visibility: value ? "public" : "private" }) }), _jsx("label", { htmlFor: "visibility-toggle", children: "Public" })] })] }) }), _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "exam-title", children: "Optional label/title" }), _jsx(Input, { id: "exam-title", value: draft.title, onChange: (e) => setDraft({ ...draft, title: e.target.value }), placeholder: "Midterm A" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Displayed on the exam page and stored with the exam." })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsxs("div", { children: [_jsx("p", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", children: "Expires at" }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Optional expiry timestamp (UTC sent to backend)." })] }), _jsxs("div", { className: "flex items-center gap-2 text-sm text-neutral-600 dark:text-neutral-300", children: [_jsx(Switch, { id: "expires-toggle", checked: draft.expiresEnabled, onChange: (value) => setDraft({ ...draft, expiresEnabled: value }) }), _jsx("label", { htmlFor: "expires-toggle", children: "Enable expiry" })] })] }), draft.expiresEnabled ? (_jsxs("div", { className: "space-y-2", children: [_jsx(Input, { id: "expires-at", type: "datetime-local", value: draft.expiresAtLocal, onChange: (e) => setDraft({ ...draft, expiresAtLocal: e.target.value }), hasError: Boolean(errors["expiresAt"]), "aria-describedby": errors["expiresAt"] ? "expires-error" : undefined }), errors["expiresAt"] ? (_jsx("p", { className: "text-xs text-error", role: "alert", id: "expires-error", children: errors["expiresAt"] })) : null, _jsxs("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: ["ISO preview: ", expiresIso || "—"] })] })) : null] })] }), _jsxs("div", { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Access Rules" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Configure sign-in, codes, and when solutions appear." })] }), _jsx(PolicyCard, { policy: draft.policy, onChange: (policy) => setDraft({ ...draft, policy }), errors: errors }), _jsx(CodesEditor, { codesEnabled: draft.codesEnabled, codes: draft.codes, policy: draft.policy, onCodesEnabledChange: (value) => setDraft({ ...draft, codesEnabled: value, codes: value ? draft.codes : [] }), onCodesChange: (codes) => setDraft({ ...draft, codes }) })] }), _jsxs("div", { id: "composition-section", className: "space-y-4", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-base font-semibold text-neutral-900 dark:text-neutral-100", children: "Question bank" }), _jsx("p", { className: "text-sm text-neutral-600 dark:text-neutral-300", children: "Load the latest bank to populate topics and counts." })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-[1fr_auto] items-end", children: [_jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "bank-subject", children: "Available bank subjects" }), _jsxs(Select, { id: "bank-subject", value: bankSubject, onChange: (e) => {
                                                                                 setBankSubject(e.target.value);
                                                                                 setBankStats(null);
                                                                             }, disabled: bankSubjects.length === 0, children: [bankSubjects.length === 0 ? (_jsx("option", { value: "", children: "No banks found" })) : null, bankSubjects.length > 0

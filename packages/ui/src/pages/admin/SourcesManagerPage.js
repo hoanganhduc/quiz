@@ -1,4 +1,3 @@
-var _a;
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from "react";
 import { AdminAuthGate } from "../../components/admin/AdminAuthGate";
@@ -13,7 +12,7 @@ import { Switch } from "../../components/ui/Switch";
 import { deleteSecret, getSources, listSecrets, putSecret, putSources, testSource, getCiStatus, triggerCiBuild, uploadSourceZip } from "../../api/sourcesAdmin";
 import { getLatestPublicBank, listAvailableBanks } from "../../api/admin";
 import { formatDateTime } from "../../utils/time";
-const API_BASE = (_a = import.meta.env.VITE_API_BASE) !== null && _a !== void 0 ? _a : "";
+const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 function formatUpdatedAt(value) {
     return formatDateTime(value);
 }
@@ -43,8 +42,7 @@ function buildBankSummary(bank) {
     };
 }
 function formatValidationError(err) {
-    var _a;
-    return (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Invalid configuration";
+    return err?.message ?? "Invalid configuration";
 }
 function validateAndNormalizeConfig(cfg) {
     const fail = (path, message) => {
@@ -73,7 +71,6 @@ function validateAndNormalizeConfig(cfg) {
         fail("uidNamespace", "Required");
     const ids = new Set();
     const sources = cfg.sources.map((src, index) => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t;
         const id = src.id.trim();
         if (!id)
             fail(`sources.${index}.id`, "Required");
@@ -81,9 +78,9 @@ function validateAndNormalizeConfig(cfg) {
             fail(`sources.${index}.id`, "id must be unique");
         ids.add(id);
         if (src.type === "github") {
-            const repo = (_c = (_b = (_a = src.repo) === null || _a === void 0 ? void 0 : _a.trim) === null || _b === void 0 ? void 0 : _b.call(_a)) !== null && _c !== void 0 ? _c : "";
-            const branch = (_f = (_e = (_d = src.branch) === null || _d === void 0 ? void 0 : _d.trim) === null || _e === void 0 ? void 0 : _e.call(_d)) !== null && _f !== void 0 ? _f : "";
-            const dir = (_j = (_h = (_g = src.dir) === null || _g === void 0 ? void 0 : _g.trim) === null || _h === void 0 ? void 0 : _h.call(_g)) !== null && _j !== void 0 ? _j : "";
+            const repo = src.repo?.trim?.() ?? "";
+            const branch = src.branch?.trim?.() ?? "";
+            const dir = src.dir?.trim?.() ?? "";
             const format = src.format === "canvas" || src.type === "canvas" ? "canvas" : "latex";
             if (!repoOk(repo))
                 fail(`sources.${index}.repo`, "repo must be OWNER/REPO");
@@ -94,7 +91,7 @@ function validateAndNormalizeConfig(cfg) {
             if (auth) {
                 if (auth.kind !== "githubToken")
                     fail(`sources.${index}.auth.kind`, "Invalid kind");
-                const ref = ((_k = auth.secretRef) !== null && _k !== void 0 ? _k : "").trim();
+                const ref = (auth.secretRef ?? "").trim();
                 if (!secretRefOk(ref)) {
                     fail(`sources.${index}.auth.secretRef`, "secretRef must be alphanumeric with dashes/underscores (max 60 chars)");
                 }
@@ -111,7 +108,7 @@ function validateAndNormalizeConfig(cfg) {
             return { id, type: "github", repo, branch, dir, format };
         }
         if (src.type === "gdrive") {
-            const folderId = (_o = (_m = (_l = src.folderId) === null || _l === void 0 ? void 0 : _l.trim) === null || _m === void 0 ? void 0 : _m.call(_l)) !== null && _o !== void 0 ? _o : "";
+            const folderId = src.folderId?.trim?.() ?? "";
             const format = src.format === "canvas" ? "canvas" : "latex";
             if (!folderId)
                 fail(`sources.${index}.folderId`, "Required");
@@ -122,7 +119,7 @@ function validateAndNormalizeConfig(cfg) {
             if (auth) {
                 if (auth.kind !== "httpHeader")
                     fail(`sources.${index}.auth.kind`, "Invalid kind");
-                const ref = ((_p = auth.secretRef) !== null && _p !== void 0 ? _p : "").trim();
+                const ref = (auth.secretRef ?? "").trim();
                 if (!secretRefOk(ref)) {
                     fail(`sources.${index}.auth.secretRef`, "secretRef must be alphanumeric with dashes/underscores (max 60 chars)");
                 }
@@ -137,7 +134,7 @@ function validateAndNormalizeConfig(cfg) {
             return { id, type: "gdrive", folderId, format };
         }
         // zip
-        const url = (_s = (_r = (_q = src.url) === null || _q === void 0 ? void 0 : _q.trim) === null || _r === void 0 ? void 0 : _r.call(_q)) !== null && _s !== void 0 ? _s : "";
+        const url = src.url?.trim?.() ?? "";
         if (!url)
             fail(`sources.${index}.url`, "Required");
         if (!url.startsWith("https://"))
@@ -161,7 +158,7 @@ function validateAndNormalizeConfig(cfg) {
         if (auth) {
             if (auth.kind !== "httpHeader")
                 fail(`sources.${index}.auth.kind`, "Invalid kind");
-            const ref = ((_t = auth.secretRef) !== null && _t !== void 0 ? _t : "").trim();
+            const ref = (auth.secretRef ?? "").trim();
             if (!secretRefOk(ref)) {
                 fail(`sources.${index}.auth.secretRef`, "secretRef must be alphanumeric with dashes/underscores (max 60 chars)");
             }
@@ -179,7 +176,6 @@ function validateAndNormalizeConfig(cfg) {
     return { version: "v1", courseCode, subject, uidNamespace, sources };
 }
 export function SourcesManagerPage() {
-    var _a, _b, _c, _d, _e;
     const [config, setConfig] = useState(null);
     const [secrets, setSecrets] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -223,16 +219,14 @@ export function SourcesManagerPage() {
     const secretNames = useMemo(() => secrets.map((s) => s.name), [secrets]);
     const configJson = useMemo(() => (config ? JSON.stringify(config, null, 2) : null), [config]);
     const refreshSecrets = async () => {
-        var _a;
         const res = await listSecrets();
-        setSecrets((_a = res.secrets) !== null && _a !== void 0 ? _a : []);
+        setSecrets(res.secrets ?? []);
     };
     const refreshConfig = async () => {
         const cfg = await getSources();
         setConfig(cfg);
     };
     const triggerCi = async (forceRegen = false) => {
-        var _a;
         setCiTriggering(true);
         try {
             const res = await triggerCiBuild(forceRegen ? { forceRegen: true } : undefined);
@@ -243,14 +237,13 @@ export function SourcesManagerPage() {
             await refreshCiStatus();
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to trigger CI" });
+            setNotice({ tone: "error", text: err?.message ?? "Failed to trigger CI" });
         }
         finally {
             setCiTriggering(false);
         }
     };
     const refreshCiStatus = async () => {
-        var _a;
         try {
             const res = await getCiStatus();
             setCiStatusError(null);
@@ -269,11 +262,10 @@ export function SourcesManagerPage() {
             }
         }
         catch (err) {
-            setCiStatusError((_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Failed to fetch CI status");
+            setCiStatusError(err?.message ?? "Failed to fetch CI status");
         }
     };
     const refreshBankSummaries = async () => {
-        var _a, _b;
         if (!API_BASE) {
             setBankSummaryError("VITE_API_BASE not set");
             setBankSummaries([]);
@@ -282,7 +274,7 @@ export function SourcesManagerPage() {
         setBankSummaryLoading(true);
         try {
             const res = await listAvailableBanks(API_BASE);
-            const subjects = (_a = res.subjects) !== null && _a !== void 0 ? _a : [];
+            const subjects = res.subjects ?? [];
             if (!subjects.length) {
                 setBankSummaries([]);
                 setBankSummaryError(null);
@@ -294,7 +286,7 @@ export function SourcesManagerPage() {
             setBankSummaryError(null);
         }
         catch (err) {
-            setBankSummaryError((_b = err === null || err === void 0 ? void 0 : err.message) !== null && _b !== void 0 ? _b : "Failed to load bank stats");
+            setBankSummaryError(err?.message ?? "Failed to load bank stats");
         }
         finally {
             setBankSummaryLoading(false);
@@ -309,7 +301,7 @@ export function SourcesManagerPage() {
     };
     const openSecretModal = (name) => {
         setSecretModalOpen(true);
-        setSecretName(name !== null && name !== void 0 ? name : "");
+        setSecretName(name ?? "");
         setSecretValue("");
         setShowSecretValue(false);
         setSecretModalNotice(null);
@@ -332,27 +324,26 @@ export function SourcesManagerPage() {
         setSecretRef("");
     };
     const openSourceModal = (index, draftType = "github") => {
-        var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l;
         setSourceModalOpen(true);
         setSourceModalNotice(null);
         if (config && index !== undefined) {
             setSourceEditingIndex(index);
             const src = config.sources[index];
             setSourceType(src.type);
-            setSourceId((_a = src.id) !== null && _a !== void 0 ? _a : "");
-            setSourceDir((_b = src.dir) !== null && _b !== void 0 ? _b : "");
+            setSourceId(src.id ?? "");
+            setSourceDir(src.dir ?? "");
             if (src.type === "github") {
-                setGithubRepo((_c = src.repo) !== null && _c !== void 0 ? _c : "");
-                setGithubBranch((_d = src.branch) !== null && _d !== void 0 ? _d : "");
-                setGithubFormat((_e = src.format) !== null && _e !== void 0 ? _e : "latex");
+                setGithubRepo(src.repo ?? "");
+                setGithubBranch(src.branch ?? "");
+                setGithubFormat(src.format ?? "latex");
                 setZipUrl("");
                 setZipFormat("latex");
                 setDriveFolderId("");
                 setAuthKind("githubToken");
             }
             else if (src.type === "gdrive") {
-                setDriveFolderId((_f = src.folderId) !== null && _f !== void 0 ? _f : "");
-                setDriveFormat((_g = src.format) !== null && _g !== void 0 ? _g : "latex");
+                setDriveFolderId(src.folderId ?? "");
+                setDriveFormat(src.format ?? "latex");
                 setZipUrl("");
                 setZipFormat("latex");
                 setGithubRepo("");
@@ -360,7 +351,7 @@ export function SourcesManagerPage() {
                 setAuthKind("httpHeader");
             }
             else if (src.type === "canvas") {
-                setZipUrl((_h = src.url) !== null && _h !== void 0 ? _h : "");
+                setZipUrl(src.url ?? "");
                 setZipFormat("canvas");
                 setDriveFolderId("");
                 setGithubRepo("");
@@ -369,8 +360,8 @@ export function SourcesManagerPage() {
                 setSourceType("zip");
             }
             else {
-                setZipUrl((_j = src.url) !== null && _j !== void 0 ? _j : "");
-                setZipFormat((_k = src.format) !== null && _k !== void 0 ? _k : "latex");
+                setZipUrl(src.url ?? "");
+                setZipFormat(src.format ?? "latex");
                 setDriveFolderId("");
                 setGithubRepo("");
                 setGithubBranch("");
@@ -378,7 +369,7 @@ export function SourcesManagerPage() {
             }
             if (src.auth) {
                 setAuthEnabled(true);
-                setSecretRef((_l = src.auth.secretRef) !== null && _l !== void 0 ? _l : "");
+                setSecretRef(src.auth.secretRef ?? "");
                 setAuthKind(src.auth.kind);
             }
             else {
@@ -409,7 +400,6 @@ export function SourcesManagerPage() {
         setPageError(null);
         Promise.allSettled([getSources(), listSecrets()])
             .then((results) => {
-            var _a, _b, _c, _d, _e;
             if (cancelled)
                 return;
             const [cfgRes, secretsRes] = results;
@@ -417,13 +407,13 @@ export function SourcesManagerPage() {
                 setConfig(cfgRes.value);
             }
             else {
-                setPageError((_b = (_a = cfgRes.reason) === null || _a === void 0 ? void 0 : _a.message) !== null && _b !== void 0 ? _b : "Failed to load sources");
+                setPageError(cfgRes.reason?.message ?? "Failed to load sources");
             }
             if (secretsRes.status === "fulfilled") {
-                setSecrets((_c = secretsRes.value.secrets) !== null && _c !== void 0 ? _c : []);
+                setSecrets(secretsRes.value.secrets ?? []);
             }
             else {
-                setPageError((_e = (_d = secretsRes.reason) === null || _d === void 0 ? void 0 : _d.message) !== null && _e !== void 0 ? _e : "Failed to load secrets");
+                setPageError(secretsRes.reason?.message ?? "Failed to load secrets");
             }
         })
             .finally(() => {
@@ -454,7 +444,6 @@ export function SourcesManagerPage() {
         return () => window.clearInterval(id);
     }, [ciStatus]);
     const saveSecret = async () => {
-        var _a;
         const name = secretName.trim();
         if (!name) {
             setSecretModalNotice({ tone: "error", text: "Secret name is required." });
@@ -473,7 +462,7 @@ export function SourcesManagerPage() {
             closeSecretModal(); // clears value from state
         }
         catch (err) {
-            setSecretModalNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Save failed" });
+            setSecretModalNotice({ tone: "error", text: err?.message ?? "Save failed" });
         }
         finally {
             setSecretSaving(false);
@@ -481,7 +470,6 @@ export function SourcesManagerPage() {
         }
     };
     const confirmAndDeleteSecret = async (name) => {
-        var _a;
         const ok = window.confirm(`Delete secret "${name}"? This cannot be undone.`);
         if (!ok)
             return;
@@ -492,7 +480,7 @@ export function SourcesManagerPage() {
             setNotice({ tone: "success", text: `Deleted secret: ${name}` });
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Delete failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Delete failed" });
         }
     };
     const authBadge = (src) => {
@@ -585,7 +573,6 @@ export function SourcesManagerPage() {
         }
     };
     const saveConfigToServer = async () => {
-        var _a;
         if (!config)
             return;
         setNotice(null);
@@ -605,14 +592,13 @@ export function SourcesManagerPage() {
             setNotice({ tone: "success", text: "Saved sources config" });
         }
         catch (err) {
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Save failed" });
+            setNotice({ tone: "error", text: err?.message ?? "Save failed" });
         }
         finally {
             setConfigSaving(false);
         }
     };
     const runTest = async (sourceIdToTest) => {
-        var _a;
         setNotice(null);
         try {
             const res = await testSource(sourceIdToTest);
@@ -620,20 +606,16 @@ export function SourcesManagerPage() {
             setNotice({ tone: res.ok ? "success" : "error", text: res.ok ? `Test OK (${res.status})` : `Test failed (${res.status})` });
         }
         catch (err) {
-            setTestResults((prev) => {
-                var _a;
-                return ({
-                    ...prev,
-                    [sourceIdToTest]: { ok: false, status: 0, message: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Test failed", at: new Date().toISOString() }
-                });
-            });
-            setNotice({ tone: "error", text: (_a = err === null || err === void 0 ? void 0 : err.message) !== null && _a !== void 0 ? _a : "Test failed" });
+            setTestResults((prev) => ({
+                ...prev,
+                [sourceIdToTest]: { ok: false, status: 0, message: err?.message ?? "Test failed", at: new Date().toISOString() }
+            }));
+            setNotice({ tone: "error", text: err?.message ?? "Test failed" });
         }
     };
-    return (_jsx(AdminAuthGate, { children: _jsxs(PageShell, { maxWidth: "4xl", className: "space-y-6", children: [_jsxs("div", { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-2xl font-semibold text-text", children: "Sources & Secrets" }), _jsx("p", { className: "text-sm text-textMuted", children: "Configure where banks come from (Sources) and the credentials they need (Secrets). Typical flow: create secrets \u2192 add sources \u2192 test \u2192 save." })] }), _jsx(Alert, { tone: "info", children: _jsxs("ul", { className: "list-disc pl-5 space-y-1", children: [_jsxs("li", { children: [_jsx("strong", { children: "Secrets are write-only." }), " You can create/replace a secret value, but you can\u2019t view existing values in the UI."] }), _jsxs("li", { children: [_jsx("strong", { children: "Export is CI-only." }), " The export endpoint returns resolved secrets and must never be called from a browser."] })] }) }), _jsx("div", { className: "flex flex-wrap items-center gap-2", children: _jsxs("div", { className: "inline-flex items-center gap-1 rounded-lg bg-muted p-1 border border-border", children: [_jsx(Button, { type: "button", size: "sm", variant: tab === "sources" ? "primary" : "ghost", onClick: () => setTab("sources"), "aria-pressed": tab === "sources", children: "Sources" }), _jsx(Button, { type: "button", size: "sm", variant: tab === "secrets" ? "primary" : "ghost", onClick: () => setTab("secrets"), "aria-pressed": tab === "secrets", children: "Secrets" })] }) })] }), notice ? _jsx(Alert, { tone: notice.tone, children: notice.text }) : null, pageError ? _jsx(Alert, { tone: "error", children: pageError }) : null, tab === "sources" ? (_jsxs("div", { className: "grid gap-4", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "CI Integration" }), _jsx("p", { className: "text-sm text-textMuted", children: "Export is CI-only and returns resolved secrets." })] }), _jsxs(Alert, { tone: "warn", children: ["Do ", _jsx("strong", { children: "not" }), " run the export endpoint in the browser. It returns resolved secrets and is intended for CI only."] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Worker base URL" }), _jsx("pre", { className: "text-xs bg-muted border border-border rounded-md p-3 overflow-auto", children: (_a = import.meta.env.VITE_API_BASE) !== null && _a !== void 0 ? _a : "(VITE_API_BASE not set)" })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Example curl (CI only)" }), _jsx("pre", { className: "text-xs bg-muted border border-border rounded-md p-3 overflow-auto", children: `curl -fsS \\\n  -H "Authorization: Bearer <ADMIN_TOKEN>" \\\n  "${(_b = import.meta.env.VITE_API_BASE) !== null && _b !== void 0 ? _b : "<WORKER_BASE_URL>"}/admin/sources/export"` }), _jsx("p", { className: "text-xs text-textMuted", children: "Token is a placeholder only \u2014 the UI never reads or stores admin tokens." })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [_jsx(Button, { type: "button", variant: "secondary", onClick: () => triggerCi(false), disabled: ciTriggering, children: ciTriggering ? "Triggering…" : "Trigger CI build" }), _jsx(Button, { type: "button", variant: "ghost", onClick: () => triggerCi(true), disabled: ciTriggering, children: "Force regenerate banks" }), _jsx("p", { className: "text-xs text-textMuted", children: "Runs the GitHub Actions workflow_dispatch to regenerate banks." })] }), ciStatusError ? (_jsx(Alert, { tone: "error", children: ciStatusError })) : ciStatus ? (_jsxs("div", { className: "text-xs text-textMuted", children: [_jsxs("div", { children: ["Status: ", _jsx("span", { className: "font-semibold text-text", children: ciStatus.status }), ciStatus.conclusion ? (_jsxs(_Fragment, { children: [" ", "\u00B7 Conclusion: ", _jsx("span", { className: "font-semibold text-text", children: ciStatus.conclusion })] })) : null] }), _jsxs("div", { className: "mt-1", children: [_jsx("a", { className: "text-info hover:underline", href: ciStatus.url, target: "_blank", rel: "noreferrer", children: "View workflow run" }), " ", "\u00B7 Updated ", formatDateTime(ciStatus.updatedAt)] })] })) : (_jsx("div", { className: "text-xs text-textMuted", children: "No recent workflow run found." })), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Latest bank stats" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: refreshBankSummaries, disabled: bankSummaryLoading || !API_BASE, children: bankSummaryLoading ? "Refreshing…" : "Refresh" })] }), bankSummaryError ? (_jsx(Alert, { tone: "error", children: bankSummaryError })) : bankSummaryLoading ? (_jsx("p", { className: "text-xs text-textMuted", children: "Loading bank stats\u2026" })) : bankSummaries.length === 0 ? (_jsx("p", { className: "text-xs text-textMuted", children: "No banks found." })) : (_jsx("div", { className: "space-y-2", children: bankSummaries.map((summary) => (_jsxs("div", { className: "rounded-lg border border-border bg-card px-3 py-2 space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsx("div", { className: "text-sm font-semibold text-text", children: summary.subject }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Generated ", formatDateTime(summary.generatedAt)] })] }), _jsxs("div", { className: "flex flex-wrap gap-2 text-xs", children: [_jsxs(Badge, { tone: "info", children: ["Questions ", summary.total] }), _jsxs(Badge, { tone: "success", children: ["Basic ", summary.basic] }), _jsxs(Badge, { tone: "warn", children: ["Advanced ", summary.advanced] }), _jsxs(Badge, { tone: "muted", children: ["Topics ", summary.topics.length] })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Topics: ", summary.topics.length ? formatTopics(summary.topics) : "None"] })] }, summary.subject))) }))] })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-start justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Sources configuration" }), _jsx("p", { className: "text-sm text-textMuted", children: "Edit config locally, then Save to persist." })] }), _jsx("div", { className: "flex items-center gap-2", children: _jsx(Button, { type: "button", onClick: saveConfigToServer, disabled: loading || !config || configSaving, children: configSaving ? "Saving…" : "Save config" }) })] }), _jsxs(Card, { padding: "sm", className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-text", children: "Add a source" }), _jsx("div", { className: "text-xs text-textMuted", children: "Pick the kind of source students will pull banks from." })] }), _jsxs("div", { className: "space-y-3", children: [_jsxs("button", { type: "button", className: "w-full text-left rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 overflow-hidden", onClick: () => openSourceModal(undefined, "github"), disabled: loading, children: [_jsx("div", { className: "font-semibold text-text", children: "GitHub repository" }), _jsxs("div", { className: "mt-1 text-xs text-textMuted break-words", children: ["Example: ", _jsx("span", { className: "font-mono", children: "OWNER/REPO" }), " \u00B7 branch ", _jsx("span", { className: "font-mono", children: "main" }), " \u00B7 dir ", _jsx("span", { className: "font-mono", children: "discrete-math" })] })] }), _jsxs("button", { type: "button", className: "w-full text-left rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 overflow-hidden", onClick: () => openSourceModal(undefined, "gdrive"), disabled: loading, children: [_jsx("div", { className: "font-semibold text-text", children: "Google Drive folder" }), _jsxs("div", { className: "mt-1 text-xs text-textMuted break-words", children: ["Example: folderId ", _jsx("span", { className: "font-mono", children: "1AbC\u2026" }), " (latex or canvas)"] })] }), _jsxs("button", { type: "button", className: "w-full text-left rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 overflow-hidden", onClick: () => openSourceModal(undefined, "zip"), disabled: loading, children: [_jsx("div", { className: "font-semibold text-text", children: "Direct link to ZIP" }), _jsxs("div", { className: "mt-1 text-xs text-textMuted break-words", children: ["Example: ", _jsx("span", { className: "font-mono", children: "https://example.com/banks.zip" }), " (latex or canvas)"] })] })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["If the source needs credentials, create a secret first (Secrets tab), then reference it as ", _jsx("span", { className: "font-mono", children: "secretRef" }), "."] })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-3", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "course-code", children: "courseCode" }), _jsx(Input, { id: "course-code", value: (_c = config === null || config === void 0 ? void 0 : config.courseCode) !== null && _c !== void 0 ? _c : "", onChange: (e) => config && setConfig({ ...config, courseCode: e.target.value }), disabled: loading || !config })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "subject", children: "subject" }), _jsx(Input, { id: "subject", value: (_d = config === null || config === void 0 ? void 0 : config.subject) !== null && _d !== void 0 ? _d : "", onChange: (e) => config && setConfig({ ...config, subject: e.target.value }), disabled: loading || !config })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "uid-namespace", children: "uidNamespace" }), _jsx(Input, { id: "uid-namespace", value: (_e = config === null || config === void 0 ? void 0 : config.uidNamespace) !== null && _e !== void 0 ? _e : "", onChange: (e) => config && setConfig({ ...config, uidNamespace: e.target.value }), disabled: loading || !config })] })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsx("h3", { className: "text-base font-semibold text-text", children: "Sources" }), config ? _jsxs(Badge, { tone: "muted", children: [config.sources.length, " total"] }) : null] }), loading ? (_jsx("p", { className: "text-sm text-textMuted", children: "Loading\u2026" })) : !config ? (_jsxs("div", { className: "space-y-2", children: [_jsx("p", { className: "text-sm font-medium text-text", children: "No config loaded" }), _jsxs("p", { className: "text-sm text-textMuted", children: ["This usually means the admin endpoints could not be reached. Confirm you are signed in as an admin and that", _jsx("code", { className: "mx-1 font-mono", children: "VITE_API_BASE" }), "points at the Worker."] }), _jsx(Button, { type: "button", variant: "secondary", size: "sm", onClick: () => void refreshConfig(), children: "Retry loading" })] })) : config.sources.length === 0 ? (_jsx("p", { className: "text-sm text-textMuted", children: "No sources yet. Add one above." })) : (_jsx("div", { className: "space-y-2", children: config.sources.map((src, index) => {
-                                                var _a, _b, _c, _d;
+    return (_jsx(AdminAuthGate, { children: _jsxs(PageShell, { maxWidth: "4xl", className: "space-y-6", children: [_jsxs("div", { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-2xl font-semibold text-text", children: "Sources & Secrets" }), _jsx("p", { className: "text-sm text-textMuted", children: "Configure where banks come from (Sources) and the credentials they need (Secrets). Typical flow: create secrets \u2192 add sources \u2192 test \u2192 save." })] }), _jsx(Alert, { tone: "info", children: _jsxs("ul", { className: "list-disc pl-5 space-y-1", children: [_jsxs("li", { children: [_jsx("strong", { children: "Secrets are write-only." }), " You can create/replace a secret value, but you can\u2019t view existing values in the UI."] }), _jsxs("li", { children: [_jsx("strong", { children: "Export is CI-only." }), " The export endpoint returns resolved secrets and must never be called from a browser."] })] }) }), _jsx("div", { className: "flex flex-wrap items-center gap-2", children: _jsxs("div", { className: "inline-flex items-center gap-1 rounded-lg bg-muted p-1 border border-border", children: [_jsx(Button, { type: "button", size: "sm", variant: tab === "sources" ? "primary" : "ghost", onClick: () => setTab("sources"), "aria-pressed": tab === "sources", children: "Sources" }), _jsx(Button, { type: "button", size: "sm", variant: tab === "secrets" ? "primary" : "ghost", onClick: () => setTab("secrets"), "aria-pressed": tab === "secrets", children: "Secrets" })] }) })] }), notice ? _jsx(Alert, { tone: notice.tone, children: notice.text }) : null, pageError ? _jsx(Alert, { tone: "error", children: pageError }) : null, tab === "sources" ? (_jsxs("div", { className: "grid gap-4", children: [_jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "CI Integration" }), _jsx("p", { className: "text-sm text-textMuted", children: "Export is CI-only and returns resolved secrets." })] }), _jsxs(Alert, { tone: "warn", children: ["Do ", _jsx("strong", { children: "not" }), " run the export endpoint in the browser. It returns resolved secrets and is intended for CI only."] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Worker base URL" }), _jsx("pre", { className: "text-xs bg-muted border border-border rounded-md p-3 overflow-auto", children: import.meta.env.VITE_API_BASE ?? "(VITE_API_BASE not set)" })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Example curl (CI only)" }), _jsx("pre", { className: "text-xs bg-muted border border-border rounded-md p-3 overflow-auto", children: `curl -fsS \\\n  -H "Authorization: Bearer <ADMIN_TOKEN>" \\\n  "${import.meta.env.VITE_API_BASE ?? "<WORKER_BASE_URL>"}/admin/sources/export"` }), _jsx("p", { className: "text-xs text-textMuted", children: "Token is a placeholder only \u2014 the UI never reads or stores admin tokens." })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-3", children: [_jsx(Button, { type: "button", variant: "secondary", onClick: () => triggerCi(false), disabled: ciTriggering, children: ciTriggering ? "Triggering…" : "Trigger CI build" }), _jsx(Button, { type: "button", variant: "ghost", onClick: () => triggerCi(true), disabled: ciTriggering, children: "Force regenerate banks" }), _jsx("p", { className: "text-xs text-textMuted", children: "Runs the GitHub Actions workflow_dispatch to regenerate banks." })] }), ciStatusError ? (_jsx(Alert, { tone: "error", children: ciStatusError })) : ciStatus ? (_jsxs("div", { className: "text-xs text-textMuted", children: [_jsxs("div", { children: ["Status: ", _jsx("span", { className: "font-semibold text-text", children: ciStatus.status }), ciStatus.conclusion ? (_jsxs(_Fragment, { children: [" ", "\u00B7 Conclusion: ", _jsx("span", { className: "font-semibold text-text", children: ciStatus.conclusion })] })) : null] }), _jsxs("div", { className: "mt-1", children: [_jsx("a", { className: "text-info hover:underline", href: ciStatus.url, target: "_blank", rel: "noreferrer", children: "View workflow run" }), " ", "\u00B7 Updated ", formatDateTime(ciStatus.updatedAt)] })] })) : (_jsx("div", { className: "text-xs text-textMuted", children: "No recent workflow run found." })), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Latest bank stats" }), _jsx(Button, { type: "button", size: "sm", variant: "ghost", onClick: refreshBankSummaries, disabled: bankSummaryLoading || !API_BASE, children: bankSummaryLoading ? "Refreshing…" : "Refresh" })] }), bankSummaryError ? (_jsx(Alert, { tone: "error", children: bankSummaryError })) : bankSummaryLoading ? (_jsx("p", { className: "text-xs text-textMuted", children: "Loading bank stats\u2026" })) : bankSummaries.length === 0 ? (_jsx("p", { className: "text-xs text-textMuted", children: "No banks found." })) : (_jsx("div", { className: "space-y-2", children: bankSummaries.map((summary) => (_jsxs("div", { className: "rounded-lg border border-border bg-card px-3 py-2 space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsx("div", { className: "text-sm font-semibold text-text", children: summary.subject }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Generated ", formatDateTime(summary.generatedAt)] })] }), _jsxs("div", { className: "flex flex-wrap gap-2 text-xs", children: [_jsxs(Badge, { tone: "info", children: ["Questions ", summary.total] }), _jsxs(Badge, { tone: "success", children: ["Basic ", summary.basic] }), _jsxs(Badge, { tone: "warn", children: ["Advanced ", summary.advanced] }), _jsxs(Badge, { tone: "muted", children: ["Topics ", summary.topics.length] })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Topics: ", summary.topics.length ? formatTopics(summary.topics) : "None"] })] }, summary.subject))) }))] })] }), _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-start justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Sources configuration" }), _jsx("p", { className: "text-sm text-textMuted", children: "Edit config locally, then Save to persist." })] }), _jsx("div", { className: "flex items-center gap-2", children: _jsx(Button, { type: "button", onClick: saveConfigToServer, disabled: loading || !config || configSaving, children: configSaving ? "Saving…" : "Save config" }) })] }), _jsxs(Card, { padding: "sm", className: "space-y-3", children: [_jsxs("div", { children: [_jsx("div", { className: "text-sm font-semibold text-text", children: "Add a source" }), _jsx("div", { className: "text-xs text-textMuted", children: "Pick the kind of source students will pull banks from." })] }), _jsxs("div", { className: "space-y-3", children: [_jsxs("button", { type: "button", className: "w-full text-left rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 overflow-hidden", onClick: () => openSourceModal(undefined, "github"), disabled: loading, children: [_jsx("div", { className: "font-semibold text-text", children: "GitHub repository" }), _jsxs("div", { className: "mt-1 text-xs text-textMuted break-words", children: ["Example: ", _jsx("span", { className: "font-mono", children: "OWNER/REPO" }), " \u00B7 branch ", _jsx("span", { className: "font-mono", children: "main" }), " \u00B7 dir ", _jsx("span", { className: "font-mono", children: "discrete-math" })] })] }), _jsxs("button", { type: "button", className: "w-full text-left rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 overflow-hidden", onClick: () => openSourceModal(undefined, "gdrive"), disabled: loading, children: [_jsx("div", { className: "font-semibold text-text", children: "Google Drive folder" }), _jsxs("div", { className: "mt-1 text-xs text-textMuted break-words", children: ["Example: folderId ", _jsx("span", { className: "font-mono", children: "1AbC\u2026" }), " (latex or canvas)"] })] }), _jsxs("button", { type: "button", className: "w-full text-left rounded-xl border border-border bg-card hover:bg-muted transition-colors p-4 overflow-hidden", onClick: () => openSourceModal(undefined, "zip"), disabled: loading, children: [_jsx("div", { className: "font-semibold text-text", children: "Direct link to ZIP" }), _jsxs("div", { className: "mt-1 text-xs text-textMuted break-words", children: ["Example: ", _jsx("span", { className: "font-mono", children: "https://example.com/banks.zip" }), " (latex or canvas)"] })] })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["If the source needs credentials, create a secret first (Secrets tab), then reference it as ", _jsx("span", { className: "font-mono", children: "secretRef" }), "."] })] }), _jsxs("div", { className: "grid gap-3 sm:grid-cols-3", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "course-code", children: "courseCode" }), _jsx(Input, { id: "course-code", value: config?.courseCode ?? "", onChange: (e) => config && setConfig({ ...config, courseCode: e.target.value }), disabled: loading || !config })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "subject", children: "subject" }), _jsx(Input, { id: "subject", value: config?.subject ?? "", onChange: (e) => config && setConfig({ ...config, subject: e.target.value }), disabled: loading || !config })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "uid-namespace", children: "uidNamespace" }), _jsx(Input, { id: "uid-namespace", value: config?.uidNamespace ?? "", onChange: (e) => config && setConfig({ ...config, uidNamespace: e.target.value }), disabled: loading || !config })] })] }), _jsxs("div", { className: "space-y-2", children: [_jsxs("div", { className: "flex items-center justify-between", children: [_jsx("h3", { className: "text-base font-semibold text-text", children: "Sources" }), config ? _jsxs(Badge, { tone: "muted", children: [config.sources.length, " total"] }) : null] }), loading ? (_jsx("p", { className: "text-sm text-textMuted", children: "Loading\u2026" })) : !config ? (_jsxs("div", { className: "space-y-2", children: [_jsx("p", { className: "text-sm font-medium text-text", children: "No config loaded" }), _jsxs("p", { className: "text-sm text-textMuted", children: ["This usually means the admin endpoints could not be reached. Confirm you are signed in as an admin and that", _jsx("code", { className: "mx-1 font-mono", children: "VITE_API_BASE" }), "points at the Worker."] }), _jsx(Button, { type: "button", variant: "secondary", size: "sm", onClick: () => void refreshConfig(), children: "Retry loading" })] })) : config.sources.length === 0 ? (_jsx("p", { className: "text-sm text-textMuted", children: "No sources yet. Add one above." })) : (_jsx("div", { className: "space-y-2", children: config.sources.map((src, index) => {
                                                 const test = testResults[src.id];
-                                                const authRef = (_a = src.auth) === null || _a === void 0 ? void 0 : _a.secretRef;
+                                                const authRef = src.auth?.secretRef;
                                                 const missingSecret = authRef ? !secretNames.includes(authRef) : false;
                                                 const nextSteps = [];
                                                 if (test) {
@@ -659,9 +641,9 @@ export function SourcesManagerPage() {
                                                         nextSteps.push("After it passes, click Save config.");
                                                     }
                                                 }
-                                                return (_jsxs("div", { className: "rounded-lg border border-border bg-card p-3 space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-start justify-between gap-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "font-mono text-sm font-semibold text-text truncate", children: src.id }), _jsx(Badge, { tone: "muted", children: src.type }), authBadge(src), test ? (_jsxs(Badge, { tone: test.ok ? "success" : "error", children: ["Test: ", test.ok ? "OK" : "FAIL", " (", test.status, ")"] })) : null] }), _jsx("div", { className: "text-xs text-textMuted mt-1", children: src.type === "github" ? (_jsxs("span", { children: ["repo=", _jsx("span", { className: "font-mono", children: src.repo }), " \u00B7 branch=", _jsx("span", { className: "font-mono", children: src.branch }), " \u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: (_b = src.format) !== null && _b !== void 0 ? _b : "latex" })] })) : src.type === "gdrive" ? (_jsxs("span", { children: ["folderId=", _jsx("span", { className: "font-mono break-all", children: src.folderId }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: (_c = src.format) !== null && _c !== void 0 ? _c : "latex" })] })) : (_jsxs("span", { children: ["url=", _jsx("span", { className: "font-mono break-all", children: src.url }), src.dir ? (_jsxs(_Fragment, { children: [" ", "\u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir })] })) : null, " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: (_d = src.format) !== null && _d !== void 0 ? _d : "latex" })] })) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSourceModal(index), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => runTest(src.id), children: "Test" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSource(index), children: "Delete" })] })] }), test ? (_jsxs("div", { className: "rounded-lg border p-2 text-xs " +
+                                                return (_jsxs("div", { className: "rounded-lg border border-border bg-card p-3 space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-start justify-between gap-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "font-mono text-sm font-semibold text-text truncate", children: src.id }), _jsx(Badge, { tone: "muted", children: src.type }), authBadge(src), test ? (_jsxs(Badge, { tone: test.ok ? "success" : "error", children: ["Test: ", test.ok ? "OK" : "FAIL", " (", test.status, ")"] })) : null] }), _jsx("div", { className: "text-xs text-textMuted mt-1", children: src.type === "github" ? (_jsxs("span", { children: ["repo=", _jsx("span", { className: "font-mono", children: src.repo }), " \u00B7 branch=", _jsx("span", { className: "font-mono", children: src.branch }), " \u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) : src.type === "gdrive" ? (_jsxs("span", { children: ["folderId=", _jsx("span", { className: "font-mono break-all", children: src.folderId }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) : (_jsxs("span", { children: ["url=", _jsx("span", { className: "font-mono break-all", children: src.url }), src.dir ? (_jsxs(_Fragment, { children: [" ", "\u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir })] })) : null, " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSourceModal(index), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => runTest(src.id), children: "Test" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSource(index), children: "Delete" })] })] }), test ? (_jsxs("div", { className: "rounded-lg border p-2 text-xs " +
                                                                 (test.ok ? "border-success/30 bg-success/10 text-success" : "border-error/30 bg-error/10 text-error"), children: [_jsxs("div", { className: "font-medium", children: ["Last test: ", _jsx("span", { className: "font-mono", children: formatUpdatedAt(test.at) })] }), test.message ? _jsx("div", { className: "mt-1 whitespace-pre-wrap text-inherit", children: test.message }) : null, nextSteps.length ? (_jsx("ul", { className: "mt-2 list-disc pl-5 space-y-1 text-inherit", children: nextSteps.map((s) => (_jsx("li", { children: s }, s))) })) : null] })) : null] }, src.id));
-                                            }) }))] }), _jsxs("details", { className: "text-xs", children: [_jsx("summary", { className: "cursor-pointer text-textMuted", children: "Raw JSON" }), _jsx("pre", { className: "mt-2 bg-muted border border-border rounded-md p-3 overflow-auto", children: loading ? "Loading…" : configJson !== null && configJson !== void 0 ? configJson : "—" })] })] })] })) : (_jsx("div", { className: "grid gap-4", children: _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Secrets" }), _jsx("p", { className: "text-sm text-textMuted", children: "Secrets are write-only; only names + timestamps are shown." })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: () => openSecretModal(), children: "Create / replace secret" })] }), _jsx(Alert, { tone: "warn", children: "You can\u2019t view an existing secret value. Saving a name that already exists will replace it." }), loading ? (_jsx("p", { className: "text-sm text-textMuted", children: "Loading\u2026" })) : secrets.length === 0 ? (_jsx("p", { className: "text-sm text-textMuted", children: "No secrets." })) : (_jsx("div", { className: "space-y-2", children: secrets.map((s) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "text-sm font-semibold text-text font-mono truncate", children: s.name }), _jsx(Badge, { tone: "muted", children: "secret" })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Updated: ", formatUpdatedAt(s.updatedAt)] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSecretModal(s.name), children: "Replace" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSecret(s.name), children: "Delete" })] })] }, s.name))) }))] }) })), sourceModalOpen ? (_jsxs("div", { className: "fixed inset-0 z-40 flex items-center justify-center p-4", children: [_jsx("div", { className: "absolute inset-0 bg-black/40", onClick: closeSourceModal }), _jsxs(Card, { className: "relative w-full max-w-2xl space-y-4", padding: "md", children: [_jsxs("div", { className: "flex items-start justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h3", { className: "text-lg font-semibold text-text", children: "Add / edit source" }), _jsxs("p", { className: "text-sm text-textMuted", children: ["Choose the source type below. For ZIP sources, pick ", _jsx("span", { className: "font-mono", children: "format" }), " =", _jsx("span", { className: "font-mono", children: " latex" }), " or ", _jsx("span", { className: "font-mono", children: " canvas" }), " in the form. Secret values are never shown\u2014only secret references."] })] }), _jsx(Button, { type: "button", variant: "ghost", onClick: closeSourceModal, children: "Close" })] }), !config ? (_jsxs(Alert, { tone: "warn", children: ["Sources config has not loaded yet. Check ", _jsx("span", { className: "font-mono", children: "VITE_API_BASE" }), " / admin session. You can view the modal, but saving will fail until the API is reachable."] })) : null, sourceModalNotice ? _jsx(Alert, { tone: sourceModalNotice.tone, children: sourceModalNotice.text }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "source-type", children: "type" }), _jsxs(Select, { id: "source-type", value: sourceType, onChange: (e) => {
+                                            }) }))] }), _jsxs("details", { className: "text-xs", children: [_jsx("summary", { className: "cursor-pointer text-textMuted", children: "Raw JSON" }), _jsx("pre", { className: "mt-2 bg-muted border border-border rounded-md p-3 overflow-auto", children: loading ? "Loading…" : configJson ?? "—" })] })] })] })) : (_jsx("div", { className: "grid gap-4", children: _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Secrets" }), _jsx("p", { className: "text-sm text-textMuted", children: "Secrets are write-only; only names + timestamps are shown." })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: () => openSecretModal(), children: "Create / replace secret" })] }), _jsx(Alert, { tone: "warn", children: "You can\u2019t view an existing secret value. Saving a name that already exists will replace it." }), loading ? (_jsx("p", { className: "text-sm text-textMuted", children: "Loading\u2026" })) : secrets.length === 0 ? (_jsx("p", { className: "text-sm text-textMuted", children: "No secrets." })) : (_jsx("div", { className: "space-y-2", children: secrets.map((s) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "text-sm font-semibold text-text font-mono truncate", children: s.name }), _jsx(Badge, { tone: "muted", children: "secret" })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Updated: ", formatUpdatedAt(s.updatedAt)] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSecretModal(s.name), children: "Replace" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSecret(s.name), children: "Delete" })] })] }, s.name))) }))] }) })), sourceModalOpen ? (_jsxs("div", { className: "fixed inset-0 z-40 flex items-center justify-center p-4", children: [_jsx("div", { className: "absolute inset-0 bg-black/40", onClick: closeSourceModal }), _jsxs(Card, { className: "relative w-full max-w-2xl space-y-4", padding: "md", children: [_jsxs("div", { className: "flex items-start justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h3", { className: "text-lg font-semibold text-text", children: "Add / edit source" }), _jsxs("p", { className: "text-sm text-textMuted", children: ["Choose the source type below. For ZIP sources, pick ", _jsx("span", { className: "font-mono", children: "format" }), " =", _jsx("span", { className: "font-mono", children: " latex" }), " or ", _jsx("span", { className: "font-mono", children: " canvas" }), " in the form. Secret values are never shown\u2014only secret references."] })] }), _jsx(Button, { type: "button", variant: "ghost", onClick: closeSourceModal, children: "Close" })] }), !config ? (_jsxs(Alert, { tone: "warn", children: ["Sources config has not loaded yet. Check ", _jsx("span", { className: "font-mono", children: "VITE_API_BASE" }), " / admin session. You can view the modal, but saving will fail until the API is reachable."] })) : null, sourceModalNotice ? _jsx(Alert, { tone: sourceModalNotice.tone, children: sourceModalNotice.text }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "source-type", children: "type" }), _jsxs(Select, { id: "source-type", value: sourceType, onChange: (e) => {
                                                         const next = e.target.value;
                                                         setSourceType(next);
                                                         setAuthEnabled(false);
@@ -669,8 +651,7 @@ export function SourcesManagerPage() {
                                                         setSourceModalNotice(null);
                                                         setAuthKind(next === "github" ? "githubToken" : "httpHeader");
                                                     }, disabled: sourceSaving, children: [_jsx("option", { value: "github", children: "github" }), _jsx("option", { value: "gdrive", children: "gdrive" }), _jsx("option", { value: "zip", children: "zip" })] })] }), _jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "source-id", children: "id" }), _jsx(Input, { id: "source-id", value: sourceId, onChange: (e) => setSourceId(e.target.value), disabled: sourceSaving })] }), sourceType !== "gdrive" && !(sourceType === "zip" && zipFormat === "canvas") ? (_jsxs("div", { className: "space-y-1 sm:col-span-2", children: [_jsxs("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "source-dir", children: ["dir", sourceType === "zip" ? " (optional)" : ""] }), _jsx(Input, { id: "source-dir", value: sourceDir, onChange: (e) => setSourceDir(e.target.value), placeholder: sourceType === "zip" ? "(optional)" : "e.g. discrete-math", disabled: sourceSaving }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Relative only (no leading / and no '..')." })] })) : null, sourceType === "github" ? (_jsxs(_Fragment, { children: [_jsxs("div", { className: "space-y-1 sm:col-span-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "github-format", children: "format" }), _jsxs(Select, { id: "github-format", value: githubFormat, onChange: (e) => setGithubFormat(e.target.value), disabled: sourceSaving, children: [_jsx("option", { value: "latex", children: "latex" }), _jsx("option", { value: "canvas", children: "canvas" })] }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "latex = *.tex, canvas = IMS-CC *.zip" })] }), _jsxs("div", { className: "space-y-1 sm:col-span-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "github-repo", children: "repo" }), _jsx(Input, { id: "github-repo", value: githubRepo, onChange: (e) => setGithubRepo(e.target.value), placeholder: "OWNER/REPO", disabled: sourceSaving })] }), _jsxs("div", { className: "space-y-1 sm:col-span-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "github-branch", children: "branch" }), _jsx(Input, { id: "github-branch", value: githubBranch, onChange: (e) => setGithubBranch(e.target.value), placeholder: "main", disabled: sourceSaving })] })] })) : sourceType === "gdrive" ? (_jsxs("div", { className: "space-y-1 sm:col-span-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "drive-folderId", children: "folderId" }), _jsx(Input, { id: "drive-folderId", value: driveFolderId, onChange: (e) => setDriveFolderId(e.target.value), placeholder: "Google Drive folder ID", disabled: sourceSaving }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Downloads *.tex (latex) or *.zip (canvas) from the folder." }), _jsxs("div", { className: "pt-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "drive-format", children: "format" }), _jsxs(Select, { id: "drive-format", value: driveFormat, onChange: (e) => setDriveFormat(e.target.value), disabled: sourceSaving, children: [_jsx("option", { value: "latex", children: "latex" }), _jsx("option", { value: "canvas", children: "canvas" })] }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "latex = *.tex, canvas = IMS-CC *.zip" })] })] })) : (_jsxs("div", { className: "space-y-1 sm:col-span-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "zip-url", children: "url" }), _jsx(Input, { id: "zip-url", value: zipUrl, onChange: (e) => setZipUrl(e.target.value), placeholder: "https://...", disabled: sourceSaving || uploadingZip }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "Must be https." }), _jsxs("div", { className: "pt-2", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "zip-format", children: "format" }), _jsxs(Select, { id: "zip-format", value: zipFormat, onChange: (e) => setZipFormat(e.target.value), disabled: sourceSaving, children: [_jsx("option", { value: "latex", children: "latex" }), _jsx("option", { value: "canvas", children: "canvas" })] }), _jsx("p", { className: "text-xs text-neutral-500 dark:text-neutral-400", children: "latex = *.tex inside zip, canvas = IMS-CC zip" })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2 pt-1", children: [_jsx(Input, { id: "zip-upload", type: "file", accept: ".zip,application/zip", disabled: sourceSaving || uploadingZip, onChange: async (e) => {
-                                                                var _a, _b;
-                                                                const file = (_a = e.target.files) === null || _a === void 0 ? void 0 : _a[0];
+                                                                const file = e.target.files?.[0];
                                                                 if (!file)
                                                                     return;
                                                                 setUploadingZip(true);
@@ -691,7 +672,7 @@ export function SourcesManagerPage() {
                                                                     }
                                                                 }
                                                                 catch (err) {
-                                                                    setSourceModalNotice({ tone: "error", text: (_b = err === null || err === void 0 ? void 0 : err.message) !== null && _b !== void 0 ? _b : "Upload failed." });
+                                                                    setSourceModalNotice({ tone: "error", text: err?.message ?? "Upload failed." });
                                                                 }
                                                                 finally {
                                                                     setUploadingZip(false);
