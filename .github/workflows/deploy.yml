@@ -47,13 +47,13 @@ jobs:
           set -euo pipefail
           AUTH_HEADER="Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
           ACCEPT_HEADER="Accept: application/vnd.github+json"
-          DIGEST=$(curl -sS -H "$AUTH_HEADER" -H "$ACCEPT_HEADER" \
+          DIGEST=$(curl -sS -H "$AUTH_HEADER" -H "$ACCEPT_HEADER" -H "X-GitHub-Api-Version: 2022-11-28" \
             "https://api.github.com/users/hoanganhduc/packages/container/quiz-build/versions?per_page=1" \
-            | jq -r '.[0].metadata.container.digest // empty')
+            | jq -r 'if type=="array" then .[0].metadata.container.digest // empty else empty end')
           if [ -z "$DIGEST" ]; then
-            DIGEST=$(curl -sS -H "$AUTH_HEADER" -H "$ACCEPT_HEADER" \
+            DIGEST=$(curl -sS -H "$AUTH_HEADER" -H "$ACCEPT_HEADER" -H "X-GitHub-Api-Version: 2022-11-28" \
               "https://api.github.com/orgs/hoanganhduc/packages/container/quiz-build/versions?per_page=1" \
-              | jq -r '.[0].metadata.container.digest // empty')
+              | jq -r 'if type=="array" then .[0].metadata.container.digest // empty else empty end')
           fi
           if [ -z "$DIGEST" ]; then
             echo "Failed to resolve quiz-build digest" >&2
