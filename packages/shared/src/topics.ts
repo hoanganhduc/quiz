@@ -74,6 +74,11 @@ for (const category of topicCatalog) {
   }
 }
 
+const categoryLookup = new Map<string, TopicCategory>();
+for (const category of topicCatalog) {
+  categoryLookup.set(category.id.toLowerCase(), category);
+}
+
 function toTitleCase(topic: string): string {
   return topic
     .split(/[-_]/)
@@ -94,4 +99,20 @@ export function getTopicCategory(topic: string): TopicCategory | undefined {
   const entry = topicLookup.get(normalized);
   if (!entry) return undefined;
   return topicCatalog.find((category) => category.id === entry.categoryId);
+}
+
+export function getCategoryById(id: string): TopicCategory | undefined {
+  return categoryLookup.get(id.trim().toLowerCase());
+}
+
+export function getSubtopicsForCategory(categoryId: string): TopicDefinition[] {
+  return getCategoryById(categoryId)?.subtopics ?? [];
+}
+
+export function getSubtopicIdsForCategory(categoryId: string): string[] {
+  return getSubtopicsForCategory(categoryId).map((topic) => topic.id);
+}
+
+export function isTopicCategory(value: string): boolean {
+  return categoryLookup.has(value.trim().toLowerCase());
 }

@@ -155,3 +155,11 @@ export async function setDefaultTimezone(timezone: string): Promise<{ ok: true; 
     body: JSON.stringify({ timezone })
   });
 }
+
+export async function setDefaultTimeFormat(format: string): Promise<{ ok: true; format: string }> {
+  return request<{ ok: true; format: string }>("/admin/settings/timeformat", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ format })
+  });
+}

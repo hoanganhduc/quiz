@@ -6,9 +6,9 @@ import clsx from "clsx";
 import { PageShell } from "../components/layout/PageShell";
 import { useTheme } from "../theme/useTheme";
 import { AdminAuthGate } from "../components/admin/AdminAuthGate";
-import { getR2Usage, setDefaultTimezone, type R2UsageResponse } from "../api/sourcesAdmin";
-import { getDefaultTimezone } from "../api";
-import { formatDateTime, listTimezones, setCachedTimezone } from "../utils/time";
+import { getR2Usage, setDefaultTimeFormat, setDefaultTimezone, type R2UsageResponse } from "../api/sourcesAdmin";
+import { getDefaultTimeFormat, getDefaultTimezone } from "../api";
+import { formatDateTime, listTimeFormats, listTimezones, setCachedTimeFormat, setCachedTimezone } from "../utils/time";
 
 type Notice = { tone: "success" | "error" | "warn" | "info"; text: string };
 
@@ -52,6 +52,7 @@ export function SettingsPage() {
 
       <AdminAuthGate>
         <TimezoneSettingsCard />
+        <TimeFormatSettingsCard />
         <UploadUsageCard />
       </AdminAuthGate>
     </PageShell>
@@ -124,6 +125,76 @@ function TimezoneSettingsCard() {
       <div className="flex items-center gap-2">
         <Button type="button" variant="secondary" onClick={handleSave} disabled={loading || saving}>
           {saving ? "Saving..." : "Save timezone"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function TimeFormatSettingsCard() {
+  const options = listTimeFormats();
+  const [formatKey, setFormatKey] = useState(options[0].id);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+
+  useEffect(() => {
+    getDefaultTimeFormat()
+      .then((fmt) => {
+        if (fmt) {
+          setFormatKey(fmt);
+          setCachedTimeFormat(fmt);
+        }
+      })
+      .catch((err: any) => {
+        setNotice({ tone: "warn", text: err?.message ?? "Failed to load time format" });
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await setDefaultTimeFormat(formatKey);
+      setCachedTimeFormat(res.format);
+      setNotice({ tone: "success", text: `Default time format set to ${res.format}` });
+    } catch (err: any) {
+      setNotice({ tone: "error", text: err?.message ?? "Failed to save time format" });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold text-text">Time format</h2>
+        <p className="text-sm text-textMuted">Choose how timestamps are rendered throughout the app.</p>
+      </div>
+      {notice ? <Alert tone={notice.tone}>{notice.text}</Alert> : null}
+      <div className="space-y-2">
+        <label className="text-sm font-medium text-text" htmlFor="default-time-format">
+          Format
+        </label>
+        <select
+          id="default-time-format"
+          className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+          value={formatKey}
+          onChange={(e) => setFormatKey(e.target.value)}
+          disabled={loading || saving}
+        >
+          {options.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <div className="text-xs text-textMuted">{options.find((opt) => opt.id === formatKey)?.description}</div>
+        <div className="text-xs text-textMuted">Preview: {formatDateTime(new Date())}</div>
+      </div>
+      <div className="flex items-center gap-2">
+        <Button type="button" variant="secondary" onClick={handleSave} disabled={loading || saving}>
+          {saving ? "Saving..." : "Save format"}
         </Button>
       </div>
     </Card>

@@ -569,4 +569,4 @@ export function formatBank(bank: Bank): string {
 }
 
 export type { TopicCategory, TopicDefinition } from "./topics.js";
-export { getTopicTitle, getTopicCategory, topicCatalog } from "./topics.js";
+export { getTopicTitle, getTopicCategory, getCategoryById, getSubtopicIdsForCategory, isTopicCategory, topicCatalog } from "./topics.js";

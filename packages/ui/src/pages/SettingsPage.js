@@ -7,16 +7,16 @@ import clsx from "clsx";
 import { PageShell } from "../components/layout/PageShell";
 import { useTheme } from "../theme/useTheme";
 import { AdminAuthGate } from "../components/admin/AdminAuthGate";
-import { getR2Usage, setDefaultTimezone } from "../api/sourcesAdmin";
-import { getDefaultTimezone } from "../api";
-import { formatDateTime, listTimezones, setCachedTimezone } from "../utils/time";
+import { getR2Usage, setDefaultTimeFormat, setDefaultTimezone } from "../api/sourcesAdmin";
+import { getDefaultTimeFormat, getDefaultTimezone } from "../api";
+import { formatDateTime, listTimeFormats, listTimezones, setCachedTimeFormat, setCachedTimezone } from "../utils/time";
 export function SettingsPage() {
     const { theme, setTheme, resolvedTheme } = useTheme();
     const Option = ({ value, label }) => {
         const active = theme === value;
         return (_jsx(Button, { type: "button", size: "sm", variant: active ? "primary" : "secondary", onClick: () => setTheme(value), className: clsx("min-w-[90px]", active ? "" : "hover:bg-muted/70"), "aria-pressed": active, children: label }));
     };
-    return (_jsxs(PageShell, { maxWidth: "3xl", className: "space-y-4", children: [_jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-xl font-semibold text-text", children: "Appearance" }), _jsx("p", { className: "text-sm text-textMuted", children: "Choose how the UI looks on this device." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Theme" }), _jsxs("div", { role: "radiogroup", "aria-label": "Theme", className: "flex flex-wrap gap-2", children: [_jsx(Option, { value: "light", label: "Light" }), _jsx(Option, { value: "dark", label: "Dark" }), _jsx(Option, { value: "system", label: "System" })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Current: ", resolvedTheme] })] })] }), _jsxs(AdminAuthGate, { children: [_jsx(TimezoneSettingsCard, {}), _jsx(UploadUsageCard, {})] })] }));
+    return (_jsxs(PageShell, { maxWidth: "3xl", className: "space-y-4", children: [_jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h1", { className: "text-xl font-semibold text-text", children: "Appearance" }), _jsx("p", { className: "text-sm text-textMuted", children: "Choose how the UI looks on this device." })] }), _jsxs("div", { className: "space-y-2", children: [_jsx("div", { className: "text-sm font-medium text-text", children: "Theme" }), _jsxs("div", { role: "radiogroup", "aria-label": "Theme", className: "flex flex-wrap gap-2", children: [_jsx(Option, { value: "light", label: "Light" }), _jsx(Option, { value: "dark", label: "Dark" }), _jsx(Option, { value: "system", label: "System" })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Current: ", resolvedTheme] })] })] }), _jsxs(AdminAuthGate, { children: [_jsx(TimezoneSettingsCard, {}), _jsx(TimeFormatSettingsCard, {}), _jsx(UploadUsageCard, {})] })] }));
 }
 function TimezoneSettingsCard() {
     const [timezone, setTimezone] = useState("UTC");
@@ -53,6 +53,41 @@ function TimezoneSettingsCard() {
         }
     };
     return (_jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Default timezone" }), _jsx("p", { className: "text-sm text-textMuted", children: "All time displays use this timezone across the app." })] }), notice ? _jsx(Alert, { tone: notice.tone, children: notice.text }) : null, _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "default-timezone", children: "Timezone" }), _jsx("select", { id: "default-timezone", className: "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info", value: timezone, onChange: (e) => setTimezone(e.target.value), disabled: loading || saving, children: options.map((tz) => (_jsx("option", { value: tz, children: tz }, tz))) }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Current: ", timezone] })] }), _jsx("div", { className: "flex items-center gap-2", children: _jsx(Button, { type: "button", variant: "secondary", onClick: handleSave, disabled: loading || saving, children: saving ? "Saving..." : "Save timezone" }) })] }));
+}
+function TimeFormatSettingsCard() {
+    const options = listTimeFormats();
+    const [formatKey, setFormatKey] = useState(options[0].id);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [notice, setNotice] = useState(null);
+    useEffect(() => {
+        getDefaultTimeFormat()
+            .then((fmt) => {
+            if (fmt) {
+                setFormatKey(fmt);
+                setCachedTimeFormat(fmt);
+            }
+        })
+            .catch((err) => {
+            setNotice({ tone: "warn", text: err?.message ?? "Failed to load time format" });
+        })
+            .finally(() => setLoading(false));
+    }, []);
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            const res = await setDefaultTimeFormat(formatKey);
+            setCachedTimeFormat(res.format);
+            setNotice({ tone: "success", text: `Default time format set to ${res.format}` });
+        }
+        catch (err) {
+            setNotice({ tone: "error", text: err?.message ?? "Failed to save time format" });
+        }
+        finally {
+            setSaving(false);
+        }
+    };
+    return (_jsxs(Card, { className: "space-y-3", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Time format" }), _jsx("p", { className: "text-sm text-textMuted", children: "Choose how timestamps are rendered throughout the app." })] }), notice ? _jsx(Alert, { tone: notice.tone, children: notice.text }) : null, _jsxs("div", { className: "space-y-2", children: [_jsx("label", { className: "text-sm font-medium text-text", htmlFor: "default-time-format", children: "Format" }), _jsx("select", { id: "default-time-format", className: "w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info", value: formatKey, onChange: (e) => setFormatKey(e.target.value), disabled: loading || saving, children: options.map((option) => (_jsx("option", { value: option.id, children: option.label }, option.id))) }), _jsx("div", { className: "text-xs text-textMuted", children: options.find((opt) => opt.id === formatKey)?.description }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Preview: ", formatDateTime(new Date())] })] }), _jsx("div", { className: "flex items-center gap-2", children: _jsx(Button, { type: "button", variant: "secondary", onClick: handleSave, disabled: loading || saving, children: saving ? "Saving..." : "Save format" }) })] }));
 }
 function UploadUsageCard() {
     const [r2Usage, setR2Usage] = useState(null);

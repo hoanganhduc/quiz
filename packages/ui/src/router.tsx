@@ -1,7 +1,7 @@
 import { HashRouter, Route, Routes, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Session } from "./api";
-import { getDefaultTimezone, listPublicExams, type PublicExamSummary } from "./api";
+import { getDefaultTimeFormat, getDefaultTimezone, listPublicExams, type PublicExamSummary } from "./api";
 import { ExamPage } from "./pages/ExamPage";
 import { Card } from "./components/ui/Card";
 import { AdminHome } from "./pages/admin/AdminHome";
@@ -19,7 +19,7 @@ import { Input } from "./components/ui/Input";
 import { TopBar } from "./components/layout/TopBar";
 import { PageShell } from "./components/layout/PageShell";
 import { StepIndicator } from "./components/ui/StepIndicator";
-import { formatDateTime, initDefaultTimezone, onTimezoneChange } from "./utils/time";
+import { formatDateTime, initDefaultTimeFormat, initDefaultTimezone, onTimeFormatChange, onTimezoneChange } from "./utils/time";
 
 const showAdminLink = new URLSearchParams(window.location.search).get("admin") === "1";
 
@@ -206,8 +206,10 @@ export function AppRouter({ session, setSession }: Props) {
 
   useEffect(() => {
     void initDefaultTimezone(getDefaultTimezone);
+    void initDefaultTimeFormat(getDefaultTimeFormat);
   }, []);
   useEffect(() => onTimezoneChange(() => setTimezoneTick((v) => v + 1)), []);
+  useEffect(() => onTimeFormatChange(() => setTimezoneTick((v) => v + 1)), []);
 
   return (
     <HashRouter>

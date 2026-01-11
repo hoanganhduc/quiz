@@ -1,5 +1,13 @@
 import { useMemo } from "react";
-import { getTopicTitle, topicCatalog, type ExamCompositionItemV1, type ExamCompositionLevel } from "@app/shared";
+import {
+  getCategoryById,
+  getSubtopicIdsForCategory,
+  getTopicTitle,
+  isTopicCategory,
+  topicCatalog,
+  type ExamCompositionItemV1,
+  type ExamCompositionLevel
+} from "@app/shared";
 import { Card } from "../ui/Card";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
@@ -21,19 +29,31 @@ type Props = {
   bankStats?: BankStats | null;
 };
 
-const defaultPresetTopics = ["propositional", "set", "gt"];
-
-type TopicSuggestion = {
+type TopicOption = {
   value: string;
   label: string;
+  description?: string;
+  isCategory?: boolean;
 };
 
-const baseTopicOptions: TopicSuggestion[] = topicCatalog.flatMap((category) =>
+const categoryOptions: TopicOption[] = topicCatalog.map((category) => ({
+  value: category.id,
+  label: `${category.title} (all subtopics)`,
+  description: category.subtopics.map((topic) => topic.title).join(" · "),
+  isCategory: true
+}));
+
+const subtopicOptions: TopicOption[] = topicCatalog.flatMap((category) =>
   category.subtopics.map((topic) => ({
     value: topic.id,
-    label: `${topic.title} (${topic.id}) · ${category.title}`
+    label: `${topic.title} (${topic.id})`,
+    description: category.title
   }))
 );
+
+const baseTopicOptions: TopicOption[] = [...categoryOptions, ...subtopicOptions];
+
+const defaultPresetTopics = ["logic-and-proofs", "set", "gt"];
 
 export function CompositionBuilder({ composition, onChange, errors = {}, bankStats }: Props) {
 
@@ -54,10 +74,11 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
 
   const topicOptions = useMemo(() => {
     const options = [...baseTopicOptions];
-    const seen = new Set(options.map((option) => option.value));
+    const seen = new Set(options.map((option) => option.value.toLowerCase()));
     for (const topic of bankStats?.topics ?? []) {
-      if (seen.has(topic)) continue;
-      seen.add(topic);
+      const normalized = topic.toLowerCase();
+      if (seen.has(normalized)) continue;
+      seen.add(normalized);
       options.push({
         value: topic,
         label: `${getTopicTitle(topic)} (${topic})`
@@ -65,6 +86,27 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
     }
     return options;
   }, [bankStats?.topics]);
+
+  const getCountsForTopic = (topic: string) => {
+    if (!bankStats) {
+      return { basic: 0, advanced: 0 };
+    }
+    if (isTopicCategory(topic)) {
+      const subtopicIds = getSubtopicIdsForCategory(topic);
+      return subtopicIds.reduce(
+        (acc, id) => {
+          const bucket = bankStats.counts[id];
+          if (bucket) {
+            acc.basic += bucket.basic;
+            acc.advanced += bucket.advanced;
+          }
+          return acc;
+        },
+        { basic: 0, advanced: 0 }
+      );
+    }
+    return bankStats.counts[topic] ?? { basic: 0, advanced: 0 };
+  };
 
   const presets: { label: string; rows: ExamCompositionItemV1[] }[] = [
     {
@@ -121,13 +163,13 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
 
       <div className="space-y-3">
         {composition.map((row, idx) => {
-          const countsForTopic = bankStats?.counts[row.topic];
+          const countsForTopic = bankStats ? getCountsForTopic(row.topic) : null;
           const available =
-            row.level === "none"
-              ? countsForTopic
+            countsForTopic !== null
+              ? row.level === "none"
                 ? countsForTopic.basic + countsForTopic.advanced
-                : undefined
-              : countsForTopic?.[row.level as keyof typeof countsForTopic];
+                : countsForTopic[row.level as keyof typeof countsForTopic]
+              : undefined;
           const overLimit = typeof available === "number" && row.n > available;
           return (
             <div key={`${row.topic}-${idx}`} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">

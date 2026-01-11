@@ -20,6 +20,7 @@ import { CodesEditor } from "../../components/admin/CodesEditor";
 import { SeedCard } from "../../components/admin/SeedCard";
 import { RequestPreview } from "../../components/admin/RequestPreview";
 import { ResultCard } from "../../components/admin/ResultCard";
+import { getSubtopicIdsForCategory, isTopicCategory } from "@app/shared";
 import { McqQuestion } from "../../components/McqQuestion";
 import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
@@ -87,11 +88,27 @@ function shuffleWithRng(items, rand) {
 function shuffleWithSeed(items, seed) {
     return shuffleWithRng(items, mulberry32(hashString(seed)));
 }
+function getAllowedTopicsForRow(topic) {
+    if (!topic)
+        return [];
+    if (isTopicCategory(topic)) {
+        return getSubtopicIdsForCategory(topic);
+    }
+    return [topic];
+}
+function matchesTopicLevel(rowLevel, questionLevel) {
+    if (rowLevel === "none")
+        return true;
+    return questionLevel === rowLevel;
+}
 function buildPreviewQuestions(bank, composition, policy, seed) {
     const selected = [];
     const seen = new Set();
     for (const row of composition) {
-        const pool = bank.questions.filter((q) => q.topic === row.topic && q.level === row.level && !seen.has(q.uid));
+        const allowedTopics = getAllowedTopicsForRow(row.topic);
+        const pool = bank.questions.filter((q) => allowedTopics.includes(q.topic) &&
+            matchesTopicLevel(row.level, q.level) &&
+            !seen.has(q.uid));
         const ordered = policy.versioningMode === "per_student"
             ? shuffleWithSeed(pool, `${seed}|pool:${row.topic}:${row.level}`)
             : pool.slice().sort((a, b) => a.number - b.number);

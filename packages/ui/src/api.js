@@ -88,3 +88,7 @@ export async function getDefaultTimezone() {
     const res = await apiFetch("/settings/timezone");
     return res.timezone ?? null;
 }
+export async function getDefaultTimeFormat() {
+    const res = await apiFetch("/settings/timeformat");
+    return res.format ?? null;
+}

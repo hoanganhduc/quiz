@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { HashRouter, Route, Routes, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { getDefaultTimezone, listPublicExams } from "./api";
+import { getDefaultTimeFormat, getDefaultTimezone, listPublicExams } from "./api";
 import { ExamPage } from "./pages/ExamPage";
 import { Card } from "./components/ui/Card";
 import { AdminHome } from "./pages/admin/AdminHome";
@@ -19,7 +19,7 @@ import { Input } from "./components/ui/Input";
 import { TopBar } from "./components/layout/TopBar";
 import { PageShell } from "./components/layout/PageShell";
 import { StepIndicator } from "./components/ui/StepIndicator";
-import { formatDateTime, initDefaultTimezone, onTimezoneChange } from "./utils/time";
+import { formatDateTime, initDefaultTimeFormat, initDefaultTimezone, onTimeFormatChange, onTimezoneChange } from "./utils/time";
 const showAdminLink = new URLSearchParams(window.location.search).get("admin") === "1";
 function Home() {
     const [examId, setExamId] = useState("");
@@ -112,7 +112,9 @@ export function AppRouter({ session, setSession }) {
     const [, setTimezoneTick] = useState(0);
     useEffect(() => {
         void initDefaultTimezone(getDefaultTimezone);
+        void initDefaultTimeFormat(getDefaultTimeFormat);
     }, []);
     useEffect(() => onTimezoneChange(() => setTimezoneTick((v) => v + 1)), []);
+    useEffect(() => onTimeFormatChange(() => setTimezoneTick((v) => v + 1)), []);
     return (_jsx(HashRouter, { children: _jsxs("div", { className: "min-h-screen bg-bg", children: [_jsx(TopBar, { session: session }), _jsxs(Routes, { children: [_jsx(Route, { path: "/", element: _jsx(Home, {}) }), _jsx(Route, { path: "/exam/:subject/:examId", element: _jsx(ExamPage, { session: session, setSession: setSession }) }), _jsx(Route, { path: "/exam/:examId", element: _jsx(ExamPage, { session: session, setSession: setSession }) }), _jsx(Route, { path: "/s/:code", element: _jsx(ShortLinkRedirect, {}) }), _jsx(Route, { path: "/history", element: _jsx(HistoryPage, { session: session, setSession: setSession }) }), _jsx(Route, { path: "/account", element: _jsx(AccountPage, {}) }), _jsx(Route, { path: "/settings", element: _jsx(SettingsPage, {}) }), _jsx(Route, { path: "/admin", element: _jsx(AdminHome, {}) }), _jsx(Route, { path: "/admin/exams", element: _jsx(AdminExamsPage, {}) }), _jsx(Route, { path: "/admin/exams/new", element: _jsx(CreateExamPage, {}) }), _jsx(Route, { path: "/admin/users", element: _jsx(AdminUsersPage, {}) }), _jsx(Route, { path: "/admin/sources", element: _jsx(SourcesManagerPage, {}) }), _jsx(Route, { path: "/admin/tools", element: _jsx(ExtraToolsPage, {}) })] })] }) }));
 }

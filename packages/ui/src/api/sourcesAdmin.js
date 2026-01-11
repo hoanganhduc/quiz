@@ -77,3 +77,10 @@ export async function setDefaultTimezone(timezone) {
         body: JSON.stringify({ timezone })
     });
 }
+export async function setDefaultTimeFormat(format) {
+    return request("/admin/settings/timeformat", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ format })
+    });
+}
