@@ -329,6 +329,29 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
     return c.json({ examId: newExamId, examUrl, seed: cloned.seed });
   });
 
+  app.post("/admin/exams/:examId/restore", requireAdmin, async (c) => {
+    const examId = c.req.param("examId");
+    const found = await getExam(c.env, examId);
+    if (!found.ok) {
+      const status = found.status as 400 | 404 | 500;
+      return c.text(found.error, status);
+    }
+    if (!found.value.deletedAt) {
+      return c.text("Exam not deleted", 400);
+    }
+    const restored: ExamV1 = {
+      ...found.value,
+      deletedAt: undefined,
+      updatedAt: new Date().toISOString()
+    };
+    const stored = await putExam(c.env, restored);
+    if (!stored.ok) {
+      const status = stored.status as 400 | 404 | 500;
+      return c.text(stored.error, status);
+    }
+    return c.json({ examId, restoredAt: restored.updatedAt });
+  });
+
   app.post("/admin/exams/:examId/shortlink", requireAdmin, async (c) => {
     const examId = c.req.param("examId");
     const found = await getExam(c.env, examId);

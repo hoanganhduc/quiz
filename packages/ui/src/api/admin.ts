@@ -191,10 +191,22 @@ export async function deleteExam(params: {
     credentials: "include",
     body: JSON.stringify({ mode: params.mode })
   });
+    if (!res.ok) {
+      throw await parseError(res);
+    }
+    return (await res.json()) as DeleteExamResponse;
+}
+
+export async function restoreExam(params: { apiBase: string; examId: string }): Promise<{ examId: string; restoredAt: string }> {
+  const apiBase = normalizeBase(params.apiBase);
+  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/restore`, {
+    method: "POST",
+    credentials: "include"
+  });
   if (!res.ok) {
     throw await parseError(res);
   }
-  return (await res.json()) as DeleteExamResponse;
+  return (await res.json()) as { examId: string; restoredAt: string };
 }
 
 export async function importExams(params: {

@@ -94,6 +94,17 @@ export async function deleteExam(params) {
     }
     return (await res.json());
 }
+export async function restoreExam(params) {
+    const apiBase = normalizeBase(params.apiBase);
+    const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/restore`, {
+        method: "POST",
+        credentials: "include"
+    });
+    if (!res.ok) {
+        throw await parseError(res);
+    }
+    return (await res.json());
+}
 export async function importExams(params) {
     const apiBase = normalizeBase(params.apiBase);
     const res = await fetch(`${apiBase}/admin/exams/import`, {

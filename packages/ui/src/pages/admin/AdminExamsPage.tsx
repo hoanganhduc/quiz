@@ -8,6 +8,7 @@ import {
   importTemplates,
   listExams,
   listTemplates,
+  restoreExam,
   updateTemplate,
   createTemplate,
   cloneExam,
@@ -351,6 +352,25 @@ export function AdminExamsPage() {
     }
   };
 
+  const handleOpenExam = (exam: AdminExamSummary) => {
+    const url = buildExamLink(exam);
+    window.open(url, "_blank");
+  };
+
+  const handleRestoreExam = async (examId: string) => {
+    if (!apiBase) {
+      setNotice({ tone: "error", text: "API Base URL is required." });
+      return;
+    }
+    try {
+      await restoreExam({ apiBase, examId });
+      setNotice({ tone: "success", text: "Exam restored." });
+      await refreshExams();
+    } catch (err: any) {
+      setNotice({ tone: "error", text: err?.message ?? "Restore failed" });
+    }
+  };
+
   return (
     <AdminAuthGate>
       <PageShell maxWidth="6xl" className="space-y-6">
@@ -461,12 +481,20 @@ export function AdminExamsPage() {
                       <Button type="button" size="sm" variant="secondary" onClick={() => handleCopyShortLink(exam)}>
                         Copy short link
                       </Button>
+                      <Button type="button" size="sm" variant="secondary" onClick={() => handleOpenExam(exam)}>
+                        Open
+                      </Button>
                       <Button type="button" size="sm" variant="secondary" onClick={() => navigate(`/admin/exams/new?edit=${exam.examId}`)}>
                         Edit
                       </Button>
                       <Button type="button" size="sm" variant="secondary" onClick={() => handleExportExam(exam.examId)}>
                         Export
                       </Button>
+                      {exam.deletedAt ? (
+                        <Button type="button" size="sm" variant="secondary" onClick={() => handleRestoreExam(exam.examId)}>
+                          Restore
+                        </Button>
+                      ) : null}
                       <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteExam(exam.examId, "soft")}>
                         Delete
                       </Button>
