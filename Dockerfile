@@ -43,51 +43,52 @@ RUN	pacman -S --noconfirm --needed base-devel zsh zsh-completions openssh git cu
 RUN pacman -S --noconfirm --needed texlive texlive-lang texlive-doc biber && \
 	yes | pacman -Scc
 	
-# Copy pax binary to /usr/bin/
-COPY pax /usr/bin/
+# # Copy pax binary to /usr/bin/
+# COPY pax /usr/bin/
 
-# Copy custom zsh configuration
-COPY .zshrc /root/
+# # Copy custom zsh configuration
+# COPY .zshrc /root/
 
-# Download and install PDFBox
-RUN wget https://cyfuture.dl.sourceforge.net/project/pdfbox/PDFBox/PDFBox-0.7.3/PDFBox-0.7.3.zip \
-	&& unzip PDFBox-0.7.3.zip -d /usr/share/java \
-	&& rm -rf PDFBox-0.7.3.zip
+# # Download and install PDFBox
+# RUN wget https://cyfuture.dl.sourceforge.net/project/pdfbox/PDFBox/PDFBox-0.7.3/PDFBox-0.7.3.zip \
+# 	&& unzip PDFBox-0.7.3.zip -d /usr/share/java \
+# 	&& rm -rf PDFBox-0.7.3.zip
 
-# Define build arguments for user creation
-ARG USERNAME=vscode
-ARG USERHOME=/home/$USERNAME
-ARG USERID=1000
+# # Define build arguments for user creation
+# ARG USERNAME=vscode
+# ARG USERHOME=/home/$USERNAME
+# ARG USERID=1000
 
-# Create a new user with specified arguments
-RUN useradd \
-	--create-home \
-	--home-dir "$USERHOME" \
-	--password "" \
-	--uid "$USERID" \
-	--shell /bin/zsh \
-	"$USERNAME" && \
-	echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+# # Create a new user with specified arguments
+# RUN useradd \
+# 	--create-home \
+# 	--home-dir "$USERHOME" \
+# 	--password "" \
+# 	--uid "$USERID" \
+# 	--shell /bin/zsh \
+# 	"$USERNAME" && \
+# 	echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 
-# Switch to the new user and set the working directory
-USER $USERNAME
-WORKDIR $USERNAME
+# # Switch to the new user and set the working directory
+# USER $USERNAME
+# WORKDIR $USERNAME
 
-# Clone and install yay (AUR helper)
-RUN git clone https://aur.archlinux.org/yay.git && \
-	cd yay && \
-	makepkg --noconfirm --needed -sri && \
-	cd .. && \
-	rm -rf yay
+# # Clone and install yay (AUR helper)
+# RUN git clone https://aur.archlinux.org/yay.git && \
+# 	cd yay && \
+# 	makepkg --noconfirm --needed -sri && \
+# 	cd .. && \
+# 	rm -rf yay
 
-# Install additional packages using yay
-RUN yay -S --noconfirm --needed oh-my-zsh-git \
-	bullet-train-oh-my-zsh-theme-git \
-	bibtex-tidy && \
-	yes | yay -Scc
+# # Install additional packages using yay
+# RUN yay -S --noconfirm --needed oh-my-zsh-git \
+# 	bullet-train-oh-my-zsh-theme-git \
+# 	bibtex-tidy && \
+# 	yes | yay -Scc
 
-# Copy custom zsh configuration
-COPY .zshrc /home/$USERNAME/
+# # Copy custom zsh configuration
+# COPY .zshrc /home/$USERNAME/
 
-# Set the default command to zsh
-CMD [ "/bin/zsh" ]
+# # Set the default command to zsh
+# CMD [ "/bin/zsh" ]
+CMD [ "/bin/bash" ]
