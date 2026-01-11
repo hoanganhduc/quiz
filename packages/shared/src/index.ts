@@ -6,12 +6,14 @@ export type ChoiceV1 = { key: ChoiceKey; text: string };
 
 export type AnswerValueV1 = string | string[];
 
+export type QuestionLevel = "basic" | "advanced";
+
 export type QuestionBaseV1 = {
   uid: string;
   subject: "discrete-math";
   id: string;
   topic: string;
-  level: "basic" | "advanced";
+  level: QuestionLevel;
   number: number;
   prompt: string;
 };
@@ -54,9 +56,11 @@ export type BankAnswersV1 = {
   questions: QuestionAnswersV1[];
 };
 
+export type ExamCompositionLevel = QuestionLevel | "none";
+
 export type ExamCompositionItemV1 = {
   topic: string;
-  level: "basic" | "advanced";
+  level: ExamCompositionLevel;
   n: number;
 };
 
@@ -486,16 +490,23 @@ export function parseQuestionId(id: string): {
   level: "basic" | "advanced";
   number: number;
 } {
-  const advancedMatch = /^advance([a-z0-9-]+):q(\d+)$/i.exec(id);
+  const normalized = id.trim();
+  const advancedMatch = /^advance([a-z0-9-]+):q(\d+)$/i.exec(normalized);
   if (advancedMatch) {
     const [, topic, num] = advancedMatch;
-    return { topic, level: "advanced", number: parseInt(num, 10) };
+    return { topic: topic.toLowerCase(), level: "advanced", number: parseInt(num, 10) };
   }
 
-  const basicMatch = /^([a-z0-9-]+):q(\d+)$/i.exec(id);
-  if (basicMatch) {
-    const [, topic, num] = basicMatch;
-    return { topic, level: "basic", number: parseInt(num, 10) };
+  const basicPrefixedMatch = /^basic([a-z0-9-]+):q(\d+)$/i.exec(normalized);
+  if (basicPrefixedMatch) {
+    const [, topic, num] = basicPrefixedMatch;
+    return { topic: topic.toLowerCase(), level: "basic", number: parseInt(num, 10) };
+  }
+
+  const genericMatch = /^([a-z0-9-]+):q(\d+)$/i.exec(normalized);
+  if (genericMatch) {
+    const [, topic, num] = genericMatch;
+    return { topic: topic.toLowerCase(), level: "basic", number: parseInt(num, 10) };
   }
 
   throw new Error(`Invalid question id: ${id}`);
@@ -556,3 +567,6 @@ export const sharedVersion = "0.0.1";
 export function formatBank(bank: Bank): string {
   return `${bank.name} (${bank.country})`;
 }
+
+export type { TopicCategory, TopicDefinition } from "./topics.js";
+export { getTopicTitle, getTopicCategory, topicCatalog } from "./topics.js";

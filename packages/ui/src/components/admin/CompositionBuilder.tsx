@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ExamCompositionItemV1 } from "@app/shared";
+import { getTopicTitle, topicCatalog, type ExamCompositionItemV1, type ExamCompositionLevel } from "@app/shared";
 import { Card } from "../ui/Card";
 import { Input } from "../ui/Input";
 import { Select } from "../ui/Select";
@@ -21,7 +21,19 @@ type Props = {
   bankStats?: BankStats | null;
 };
 
-const defaultPresetTopics = ["logic", "sets", "graphs"];
+const defaultPresetTopics = ["propositional", "set", "gt"];
+
+type TopicSuggestion = {
+  value: string;
+  label: string;
+};
+
+const baseTopicOptions: TopicSuggestion[] = topicCatalog.flatMap((category) =>
+  category.subtopics.map((topic) => ({
+    value: topic.id,
+    label: `${topic.title} (${topic.id}) · ${category.title}`
+  }))
+);
 
 export function CompositionBuilder({ composition, onChange, errors = {}, bankStats }: Props) {
 
@@ -39,6 +51,20 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
   }, [composition]);
 
   const topics = bankStats?.topics.length ? bankStats.topics : defaultPresetTopics;
+
+  const topicOptions = useMemo(() => {
+    const options = [...baseTopicOptions];
+    const seen = new Set(options.map((option) => option.value));
+    for (const topic of bankStats?.topics ?? []) {
+      if (seen.has(topic)) continue;
+      seen.add(topic);
+      options.push({
+        value: topic,
+        label: `${getTopicTitle(topic)} (${topic})`
+      });
+    }
+    return options;
+  }, [bankStats?.topics]);
 
   const presets: { label: string; rows: ExamCompositionItemV1[] }[] = [
     {
@@ -95,7 +121,13 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
 
       <div className="space-y-3">
         {composition.map((row, idx) => {
-          const available = bankStats?.counts[row.topic]?.[row.level];
+          const countsForTopic = bankStats?.counts[row.topic];
+          const available =
+            row.level === "none"
+              ? countsForTopic
+                ? countsForTopic.basic + countsForTopic.advanced
+                : undefined
+              : countsForTopic?.[row.level as keyof typeof countsForTopic];
           const overLimit = typeof available === "number" && row.n > available;
           return (
             <div key={`${row.topic}-${idx}`} className="grid gap-3 md:grid-cols-[2fr_1fr_1fr_auto]">
@@ -132,6 +164,7 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
                 >
                   <option value="basic">Basic</option>
                   <option value="advanced">Advanced</option>
+                  <option value="none">All levels</option>
                 </Select>
                 {errors[`composition.${idx}.level`] ? (
                   <p className="text-xs text-error" role="alert" id={`composition-${idx}-level-error`}>
@@ -192,10 +225,23 @@ export function CompositionBuilder({ composition, onChange, errors = {}, bankSta
         ))}
       </div>
       <datalist id="topic-suggestions">
-        {bankStats?.topics.map((topic) => (
-          <option key={topic} value={topic} />
+        {topicOptions.map((option) => (
+          <option key={`${option.value}-${option.label}`} value={option.value} label={option.label} />
         ))}
       </datalist>
+      <div className="space-y-2 text-[11px] text-textMuted">
+        <p className="text-xs font-semibold text-text">Topic groups</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {topicCatalog.map((category) => (
+            <div key={category.id}>
+              <p className="text-[11px] font-semibold text-text">{category.title}</p>
+              <p className="text-[11px] text-textMuted">
+                {category.subtopics.map((topic) => `${topic.title} (${topic.id})`).join(" · ")}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
     </Card>
   );
 }

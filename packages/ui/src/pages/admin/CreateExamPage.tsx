@@ -39,6 +39,7 @@ import { McqQuestion } from "../../components/McqQuestion";
 import { FillBlankQuestion } from "../../components/FillBlankQuestion";
 import { useSearchParams } from "react-router-dom";
 import { formatDateTime } from "../../utils/time";
+import { topicListFriendly } from "../../utils/topicDisplay";
 
 function VersionsCard({
   policy,
@@ -136,7 +137,7 @@ const TEMPLATE_STORAGE_KEY = "admin_exam_template_v1";
 
 type ExamTemplate = {
   subject: "discrete-math";
-  composition: { topic: string; level: "basic" | "advanced"; n: number }[];
+  composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
   codes?: string[];
   expiresAt?: string | null;
@@ -1090,7 +1091,8 @@ export function CreateExamPage() {
                   {bankLoadError ? <Alert tone="error">{bankLoadError}</Alert> : null}
                   {bankStats ? (
                     <Alert tone="info">
-                      Loaded {bankStats.subject} bank with {bankStats.total} questions across {bankStats.topics.length} topics.
+                      Loaded {bankStats.subject} bank with {bankStats.total} questions across {bankStats.topics.length} topics
+                      {bankStats.topics.length ? ` (${topicListFriendly(bankStats.topics)})` : ""}.
                     </Alert>
                   ) : null}
                 </Card>

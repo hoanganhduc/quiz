@@ -30,6 +30,7 @@ import type {
   ZipSourceDefV1
 } from "@app/shared";
 import { formatDateTime } from "../../utils/time";
+import { formatTopicSummary } from "../../utils/topicDisplay";
 
 type Notice = { tone: "success" | "error" | "warn" | "info"; text: string };
 
@@ -52,11 +53,6 @@ const API_BASE = import.meta.env.VITE_API_BASE ?? "";
 
 function formatUpdatedAt(value: string) {
   return formatDateTime(value);
-}
-
-function formatTopics(topics: string[], max = 6): string {
-  if (topics.length <= max) return topics.join(", ");
-  return `${topics.slice(0, max).join(", ")} +${topics.length - max} more`;
 }
 
 function buildBankSummary(bank: BankPublicV1): BankSummary {
@@ -814,7 +810,7 @@ export function SourcesManagerPage() {
                           <Badge tone="muted">Topics {summary.topics.length}</Badge>
                         </div>
                         <div className="text-xs text-textMuted">
-                          Topics: {summary.topics.length ? formatTopics(summary.topics) : "None"}
+                          Topics: {summary.topics.length ? formatTopicSummary(summary.topics) : "None"}
                         </div>
                       </div>
                     ))}
@@ -1107,9 +1103,12 @@ export function SourcesManagerPage() {
 
         {/* Source modal */}
         {sourceModalOpen ? (
-          <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-40 flex items-center justify-center p-3">
             <div className="absolute inset-0 bg-black/40" onClick={closeSourceModal} />
-            <Card className="relative w-full max-w-2xl space-y-4" padding="md">
+            <Card
+              className="relative w-full max-w-2xl space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto"
+              padding="md"
+            >
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <h3 className="text-lg font-semibold text-text">Add / edit source</h3>
