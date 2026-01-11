@@ -45,7 +45,9 @@ jobs:
         id: image_digest
         run: |
           set -euo pipefail
-          DIGEST=$(docker buildx imagetools inspect "${{ env.DOCKER_IMAGE }}" --format '{{ .Digest }}')
+          DIGEST=$(curl -fsSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            "https://api.github.com/orgs/hoanganhduc/packages/container/quiz-build/versions?per_page=1" \
+            | jq -r '.[0].metadata.container.digest // empty')
           if [ -z "$DIGEST" ]; then
             echo "Failed to resolve quiz-build digest" >&2
             exit 1
