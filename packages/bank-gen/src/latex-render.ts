@@ -48,6 +48,7 @@ function normalizeBlockForRender(block: string): string {
 function buildTexDocument(body: string): string {
   return [
     "\\documentclass[preview]{standalone}",
+    "\\usepackage[utf8]{inputenc}",
     "\\usepackage{amsmath,amssymb}",
     "\\usepackage{adjustbox}",
     "\\usepackage{array,booktabs,longtable}",
@@ -146,6 +147,8 @@ function renderPdfToPng(pdfPath: string, outputPath: string, dpi: number, workDi
   throw new Error(`No PDF renderer available. Tried: ${errors.join(" | ")}`);
 }
 
+const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
+
 function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
   const texPath = join(workDir, "snippet.tex");
@@ -154,14 +157,14 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
 
   try {
     writeFileSync(texPath, buildTexDocument(texBody), "utf8");
-    const latex = spawnSync("lualatex", ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, texPath], {
+    const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, texPath], {
       encoding: "utf8"
     });
     if (latex.status !== 0 || !existsSync(pdfPath)) {
       const log = existsSync(logPath) ? readFileSync(logPath, "utf8") : "";
       const logTail = log ? log.split("\n").slice(-80).join("\n") : "";
       const details = [latex.stderr, latex.stdout, logTail].filter(Boolean).join("\n");
-      throw new Error(`lualatex failed: ${details}`);
+      throw new Error(`${LATEX_CMD} failed: ${details}`);
     }
     renderPdfToPng(pdfPath, outputPath, dpi, workDir);
   } finally {
