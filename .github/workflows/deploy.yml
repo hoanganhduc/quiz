@@ -109,12 +109,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
-          python - <<'PY'
-            import json, pathlib
-
-            path = pathlib.Path("sources.runtime.json")
-            json.loads(path.read_text())
-          PY
+          python -c "import json, pathlib; json.loads(pathlib.Path('sources.runtime.json').read_text())"
 
       - name: Compute sources hash
         id: sources_hash
