@@ -24,7 +24,7 @@ function hashContent(content: string): string {
 
 function normalizeBlockForRender(block: string): string {
   const normalized = block.replace(/\r\n/g, "\n");
-  if (/^\\begin\{(tikzpicture|tikz)\}/.test(normalized)) {
+  if (/^\s*\\begin\{(tikzpicture|tikz)\}/.test(normalized)) {
     return normalized.replace(/\n\s*\n+/g, "\n");
   }
   return normalized;
