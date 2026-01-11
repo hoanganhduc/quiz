@@ -16,7 +16,7 @@ jobs:
   build-deploy:
     runs-on: ubuntu-latest
     container:
-      image: ghcr.io/hoanganhduc/texlive:latest
+      image: ghcr.io/hoanganhduc/quiz-build:latest
       options: --user root
     environment:
       name: github-pages
@@ -96,7 +96,7 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Ensure image rendering tools
+      - name: Verify image rendering tools
         if: steps.sources_compare.outputs.changed == 'true'
         run: |
           set -euo pipefail
@@ -106,20 +106,11 @@ jobs:
              command -v convert >/dev/null 2>&1 || \
              command -v gs >/dev/null 2>&1 || \
              command -v mutool >/dev/null 2>&1; then
-            echo "Image rendering tools already available."
+            echo "Image rendering tools available."
             exit 0
           fi
-          if command -v pacman >/dev/null 2>&1; then
-            pacman -Syu --noconfirm
-            pacman -S --noconfirm poppler ghostscript mupdf-tools imagemagick
-          elif command -v apt-get >/dev/null 2>&1; then
-            apt-get update
-            apt-get install -y poppler-utils ghostscript mupdf-tools imagemagick
-          elif command -v apk >/dev/null 2>&1; then
-            apk add --no-cache poppler-utils ghostscript mupdf-tools imagemagick
-          else
-            echo "No supported package manager found; relying on container preinstalled tools." >&2
-          fi
+          echo "No PDF renderer found in the build image." >&2
+          exit 1
 
       - name: Generate banks (from sources.runtime.json)
         if: steps.sources_compare.outputs.changed == 'true'
