@@ -98,6 +98,7 @@ const RENDER_TOOLS: RenderTool[] = [
 function renderPdfToPng(pdfPath: string, outputPath: string, dpi: number, workDir: string): void {
   const outputBase = join(workDir, "snippet");
   const errors: string[] = [];
+  mkdirSync(dirname(outputPath), { recursive: true });
 
   for (const tool of RENDER_TOOLS) {
     const args = tool.args(pdfPath, outputBase, outputPath, dpi);
