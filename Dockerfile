@@ -23,7 +23,8 @@ RUN pacman-key --init && \
 # Install necessary packages
 RUN	pacman -S --noconfirm --needed base-devel zsh zsh-completions openssh git curl jq \
 	wget sudo make fontconfig tree jre11-openjdk moreutils rsync unzip libxcrypt-compat \
-	perl-file-homedir perl-yaml-tiny poppler ghostscript mupdf-tools imagemagick && \
+	perl-file-homedir perl-yaml-tiny poppler ghostscript mupdf-tools imagemagick \
+	nodejs npm && \
 	yes | pacman -Scc
 
 ## Copy TeXLive profile and install TeXLive
