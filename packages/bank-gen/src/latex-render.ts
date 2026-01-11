@@ -23,9 +23,11 @@ function hashContent(content: string): string {
 }
 
 function normalizeBlockForRender(block: string): string {
-  const normalized = block.replace(/\r\n/g, "\n");
+  let normalized = block.replace(/\r\n?/g, "\n");
   if (/^\s*\\begin\{(tikzpicture|tikz)\}/.test(normalized)) {
-    return normalized.replace(/\n\s*\n+/g, "\n");
+    // Comment-only lines become blank lines to TeX (after comment stripping) and can introduce \par.
+    normalized = normalized.replace(/^\s*%.*\n/gm, "");
+    normalized = normalized.replace(/\n[\t ]*\n+/g, "\n");
   }
   return normalized;
 }
@@ -135,6 +137,7 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
   const texPath = join(workDir, "snippet.tex");
   const pdfPath = join(workDir, "snippet.pdf");
+  const logPath = join(workDir, "snippet.log");
 
   try {
     writeFileSync(texPath, buildTexDocument(texBody), "utf8");
@@ -142,7 +145,10 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
       encoding: "utf8"
     });
     if (latex.status !== 0 || !existsSync(pdfPath)) {
-      throw new Error(`lualatex failed: ${latex.stderr || latex.stdout}`);
+      const log = existsSync(logPath) ? readFileSync(logPath, "utf8") : "";
+      const logTail = log ? log.split("\n").slice(-80).join("\n") : "";
+      const details = [latex.stderr, latex.stdout, logTail].filter(Boolean).join("\n");
+      throw new Error(`lualatex failed: ${details}`);
     }
     renderPdfToPng(pdfPath, outputPath, dpi, workDir);
   } finally {
