@@ -42,6 +42,8 @@ function normalizeBlockForRender(block: string): string {
     );
     normalized = normalized.replace(/\n[\t ]*\n+/g, "\n");
   }
+  normalized = normalized.replace(/\]\s*\n\s*\n+/g, "]\n");
+  normalized = normalized.replace(/\n\s*\n+/g, "\n");
   return normalized;
 }
 
