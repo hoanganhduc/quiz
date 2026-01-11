@@ -107,6 +107,35 @@ function applyWrappedCommand(text: string, command: string, openTag: string, clo
   return result;
 }
 
+function applyBlockCommand(text: string, command: string, className: string): string {
+  const token = `\\${command}{`;
+  let result = "";
+  let index = 0;
+  while (index < text.length) {
+    const start = text.indexOf(token, index);
+    if (start === -1) {
+      result += text.slice(index);
+      break;
+    }
+    result += text.slice(index, start);
+    let pos = start + token.length;
+    let depth = 1;
+    while (pos < text.length && depth > 0) {
+      if (text[pos] === "{") depth += 1;
+      else if (text[pos] === "}") depth -= 1;
+      pos += 1;
+    }
+    if (depth !== 0) {
+      result += text.slice(start);
+      break;
+    }
+    const inner = text.slice(start + token.length, pos - 1);
+    result += `<div class="${className}">${inner}</div>`;
+    index = pos;
+  }
+  return result;
+}
+
 function transformLatexText(input: string): string {
   const verbTokens: string[] = [];
   const imgTokens: string[] = [];
@@ -134,8 +163,7 @@ function transformLatexText(input: string): string {
   text = text.replace(/\\end\{flushleft\}/g, "</div>");
   text = text.replace(/\\begin\{flushright\}/g, '<div class="latex-right">');
   text = text.replace(/\\end\{flushright\}/g, "</div>");
-  text = text.replace(/\\begin\{dongkhung\}/g, '<div class="latex-box">');
-  text = text.replace(/\\end\{dongkhung\}/g, "</div>");
+  text = applyBlockCommand(text, "dongkhung", "latex-box latex-box-block");
   text = text.replace(/\\begin\{figure\}/g, '<div class="latex-figure">');
   text = text.replace(/\\end\{figure\}/g, "</div>");
   text = text.replace(/\\begin\{table\}/g, '<div class="latex-table">');
@@ -158,7 +186,6 @@ function transformLatexText(input: string): string {
   text = applyWrappedCommand(text, "texttt", '<code class="latex-code">', "</code>");
   text = applyWrappedCommand(text, "textsuperscript", "<sup>", "</sup>");
   text = applyWrappedCommand(text, "textsubscript", "<sub>", "</sub>");
-  text = applyWrappedCommand(text, "dongkhung", '<span class="latex-box">', "</span>");
 
   text = text.replace(/\\par/g, "<br />");
   text = text.replace(/\\newline/g, "<br />");

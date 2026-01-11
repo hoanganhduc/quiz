@@ -49,6 +49,14 @@
     padding: 0.1em 0.4em;
     border-radius: 0.2em;
   }
+  .latex-box-block {
+    display: block;
+    width: 100%;
+    border-radius: 0.35em;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-muted);
+    margin: 0.5rem 0;
+  }
   .latex-list {
     margin: 0.35rem 0 0.35rem 1.25rem;
     list-style-position: outside;

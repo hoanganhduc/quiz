@@ -19,6 +19,7 @@ import { importCanvasZipBytes, type AnswerKey as CanvasAnswerKey } from "@app/sh
 import { z } from "zod";
 import { cleanupTempDir, downloadSourcesToTemp, loadSourcesConfigFile } from "./sources.js";
 import { renderLatexAssets } from "./latex-render.js";
+import { collectFigureLabelNumbers, replaceFigureReferences } from "./figure-labels.js";
 
 const COURSE_CODE = "MAT3500";
 const SUBJECT = "discrete-math";
@@ -49,6 +50,43 @@ export function stripComments(text: string): string {
       return line;
     })
     .join("\n");
+}
+
+function applyFigureReferencesToQuestion(
+  question: ParseResult,
+  resolver: (value: string) => string
+): ParseResult {
+  const updatedPrompt = resolver(question.publicQuestion.prompt);
+  const updatedSolution = question.answerQuestion.solution
+    ? resolver(question.answerQuestion.solution)
+    : question.answerQuestion.solution;
+
+  const mapChoice = (choice: ChoiceV1) => ({
+    ...choice,
+    text: resolver(choice.text)
+  });
+
+  const updatedChoices = question.publicQuestion.choices
+    ? question.publicQuestion.choices.map(mapChoice)
+    : question.publicQuestion.choices;
+
+  const publicQuestion: QuestionPublicV1 = {
+    ...question.publicQuestion,
+    prompt: updatedPrompt,
+    choices: updatedChoices
+  };
+
+  const answerQuestion: QuestionAnswersV1 = {
+    ...question.answerQuestion,
+    prompt: updatedPrompt,
+    choices: updatedChoices,
+    solution: updatedSolution
+  };
+
+  return {
+    publicQuestion,
+    answerQuestion
+  };
 }
 
 function lineFromIndex(text: string, index: number): number {
@@ -491,11 +529,22 @@ async function run(): Promise<void> {
       let answersBank: BankAnswersV1;
       let questions: ParseResult[] = [];
 
+      let figureLabelNumbers = new Map<string, string>();
       if (files.length > 0) {
         const built = await buildBanksFromFiles(files);
-        publicBank = built.publicBank;
-        answersBank = built.answersBank;
-        questions = built.questions;
+        figureLabelNumbers = collectFigureLabelNumbers(files);
+        const resolver = (value: string): string => replaceFigureReferences(value, figureLabelNumbers);
+        const normalized = built.questions.map((q) => applyFigureReferencesToQuestion(q, resolver));
+
+        publicBank = {
+          ...built.publicBank,
+          questions: normalized.map((q) => q.publicQuestion)
+        };
+        answersBank = {
+          ...built.answersBank,
+          questions: normalized.map((q) => q.answerQuestion)
+        };
+        questions = normalized;
       } else {
         const generatedAt = new Date().toISOString();
         publicBank = { version: "v1", subject: SUBJECT, generatedAt, questions: [] };
