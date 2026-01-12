@@ -788,7 +788,7 @@ export function CreateExamPage() {
   return (
     <AdminAuthGate>
       <div>
-        <div className="sticky top-0 z-20 border-b border-border bg-bg/90 backdrop-blur">
+        <div className="sticky top-0 z-50 border-b border-neutral-200 dark:border-neutral-800 bg-white/95 dark:bg-neutral-950/95 backdrop-blur shadow-sm">
           <div className="mx-auto max-w-6xl px-4 py-3 flex flex-wrap items-center justify-end gap-2">
             <Button type="button" variant="ghost" onClick={() => validate()} disabled={isSubmitting}>
               Validate
