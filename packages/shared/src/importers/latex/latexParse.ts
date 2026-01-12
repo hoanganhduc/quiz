@@ -16,13 +16,13 @@ export type AnswerKey = Record<
   string,
   | { type: "mcq-single"; correctKey: ChoiceKey; points?: number; solutionLatex?: string }
   | {
-      type: "fill-blank";
-      blankCount: number;
-      acceptedAnswers?: string[];
-      points?: number;
-      solutionLatex?: string;
-      notes?: string;
-    }
+    type: "fill-blank";
+    blankCount: number;
+    acceptedAnswers?: string[];
+    points?: number;
+    solutionLatex?: string;
+    notes?: string;
+  }
 >;
 
 type ParsedQuestion = {
@@ -217,6 +217,70 @@ function extractInlineBlanks(promptRaw: string): { maskedPrompt: string; answers
   return { maskedPrompt: out, answers, foundAny };
 }
 
+// Helper to manage footnotes per question
+class FootnoteManager {
+  private count = 1;
+  private notes: string[] = [];
+
+  process(text: string): string {
+    // Replace \footnote{content} with [N]
+    // We need to handle nested braces carefully? 
+    // For now, assume \footnote{...} is simple or use a regex specific to one level.
+    // Ideally use a parser, but strict regex for \footnote{...} might be fragile if nested.
+    // However, stripLatexComments and basic group parsing are already used.
+    // Let's use a loop with parseGroup for robustness if possible, OR a simpler regex if we assume standard formatting.
+    // Given existing code uses parseGroup, let's try a regex for simplicity first, as footnotes usually don't contain complex nested TeX in this context.
+    // Actually, latexParse already has `parseGroup`. We can find `\footnote` indices.
+
+    let result = text;
+    // We scan from start to end. 
+    // Since replacing changes indices, we can rebuild the string.
+
+    const cmd = "\\footnote";
+    let out = "";
+    let i = 0;
+    while (i < text.length) {
+      const idx = text.indexOf(cmd, i);
+      if (idx === -1) {
+        out += text.slice(i);
+        break;
+      }
+      out += text.slice(i, idx);
+
+      let pos = idx + cmd.length;
+      while (/\s/.test(text[pos] || "")) pos++;
+
+      if (text[pos] !== "{") {
+        // Not a valid footnote call, just plain text or error
+        out += text.slice(idx, pos); // Keep the \footnote part
+        i = pos;
+        continue;
+      }
+
+      const { content, end } = parseGroup(text, pos);
+      const marker = `[${this.count}]`;
+      this.notes.push(content);
+      this.count++;
+
+      out += marker;
+      i = end;
+    }
+    this.notes = this.notes; // keep for append
+    return result = out;
+  }
+
+  getAppendText(): string {
+    if (this.notes.length === 0) return "";
+    return "\n\n" + this.notes.map((n, i) => `[${i + 1}] ${n}`).join("\n");
+  }
+}
+
+function processCitations(text: string): string {
+  // Simple regex for \cite{key} -> [key]
+  // Handles multiple keys? \cite{k1,k2} -> [k1,k2]
+  return text.replace(/\\cite\s*\{([^}]+)\}/g, (_, key) => `[${key}]`);
+}
+
 export async function parseLatexQuestions(
   tex: string,
   opts: ImportOptions & { topic?: string }
@@ -262,7 +326,18 @@ export async function parseLatexQuestions(
             continue;
           }
 
-          const { correctKey, choices } = parseChoicesBlock(choicesRaw, id.trim());
+          // Process footnotes and citations
+          const fn = new FootnoteManager();
+          // We process choices first? No, order doesn't matter for valid parsing, 
+          // but footnote numbering order should follow reading order: Prompt then Choices.
+          const pPrompt = fn.process(processCitations(promptRaw));
+          const pChoices = fn.process(processCitations(choicesRaw));
+
+          const { correctKey, choices } = parseChoicesBlock(pChoices, id.trim());
+
+          // Append footnotes to prompt
+          const finalPrompt = (pPrompt.trim() + fn.getAppendText()).trim();
+
           const uid = `latex:${opts.courseCode}:${id.trim()}`;
           topics.add(idInfo.topic);
 
@@ -274,7 +349,7 @@ export async function parseLatexQuestions(
             topic: idInfo.topic,
             level: idInfo.level,
             number: idInfo.number,
-            prompt: promptRaw.trim(),
+            prompt: finalPrompt,
             choices
           };
 
@@ -282,7 +357,7 @@ export async function parseLatexQuestions(
           answerKey[uid] = {
             type: "mcq-single",
             correctKey,
-            solutionLatex: solutionRaw.trim()
+            solutionLatex: processCitations(solutionRaw.trim())
           };
           continue;
         }
@@ -319,11 +394,17 @@ export async function parseLatexQuestions(
             continue;
           }
 
-          const extracted = extractInlineBlanks(promptRaw);
+          // Process footnotes and citations
+          const fn = new FootnoteManager();
+          const pPrompt = fn.process(processCitations(promptRaw));
+
+          const extracted = extractInlineBlanks(pPrompt);
           if (!extracted.foundAny || extracted.answers.length === 0) {
             warnings.push(`Fill-blank ${id.trim()} has no \\blank or \\answer macros`);
             continue;
           }
+
+          const finalPrompt = (extracted.maskedPrompt.trim() + fn.getAppendText()).trim();
 
           const uid = `latex:${opts.courseCode}:${id.trim()}`;
           topics.add(idInfo.topic);
@@ -336,7 +417,7 @@ export async function parseLatexQuestions(
             topic: idInfo.topic,
             level: idInfo.level,
             number: idInfo.number,
-            prompt: extracted.maskedPrompt.trim(),
+            prompt: finalPrompt,
             blankCount: extracted.answers.length
           };
 
@@ -345,7 +426,7 @@ export async function parseLatexQuestions(
             type: "fill-blank",
             blankCount: extracted.answers.length,
             acceptedAnswers: extracted.answers,
-            solutionLatex: solutionRaw.trim()
+            solutionLatex: processCitations(solutionRaw.trim())
           };
           continue;
         }
