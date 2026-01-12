@@ -1,5 +1,5 @@
 import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import { basename, dirname, extname, join } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 
@@ -10,6 +10,14 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 
   for (const file of files) {
     const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
+    const parentDir = resolve(dirname(file), "..");
+    // Windows uses semicolon, others use colon for TEXINPUTS
+    const delimiter = process.platform === "win32" ? ";" : ":";
+    // . = current dir (where we run pdflatex from, which is file's dir)
+    // parentDir = the repo root (assuming file is in src/)
+    // Trailing delimiter ensures system defaults are appended
+    const texInputs = `.${delimiter}${parentDir}${delimiter}`;
+
     try {
       let success = true;
       for (let pass = 0; pass < 2; pass += 1) {
@@ -18,7 +26,8 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
           ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, basename(file)],
           {
             cwd: dirname(file),
-            encoding: "utf8"
+            encoding: "utf8",
+            env: { ...process.env, TEXINPUTS: texInputs }
           }
         );
         if (result.status !== 0) {
