@@ -23,7 +23,9 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
         );
         if (result.status !== 0) {
           success = false;
-          console.warn(`[${file}] ${LATEX_CMD} failed (pass ${pass + 1})`);
+          console.error(`[${file}] ${LATEX_CMD} failed (pass ${pass + 1})`);
+          if (result.stdout) console.error(`stdout:\n${result.stdout}`);
+          if (result.stderr) console.error(`stderr:\n${result.stderr}`);
           break;
         }
       }
