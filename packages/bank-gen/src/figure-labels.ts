@@ -11,6 +11,7 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 
   for (const file of files) {
     const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
+    const wrapperPath = join(workDir, "wrapper.tex");
 
     // Create wrapper file to ensure dethi.sty and common packages are loaded
     // This handles fragments that start with \baitracnghiem
@@ -22,27 +23,67 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 \\begin{document}
 \\input{${basename(file)}}
 \\end{document}
-    `;
-    const wrapperPath = join(workDir, "wrapper.tex");
-    try {
-      // Need writeFileSync, imported from node:fs
-      // We'll trust it's available or add it to imports if missing in the file view (it was likely not imported)
-      // Actually, looking at imports: existing are: existsSync, mkdtempSync, readFileSync, rmSync. 
-      // I need to add writeFileSync to imports. I will do that in a separate edit or assume I can replace imports too?
-      // "replace_file_content" works on a block. I can't check imports easily here without re-reading.
-      // But I can see line 1 in previous step view_file. writeFileSync was NOT imported.
-      // I should update imports first or use "fs.writeFileSync" if I import * as fs.
-      // Wait, I can use "const { writeFileSync } = require('node:fs')" ... no, it's TS details.
-      // I will assume likely I need to update imports.
-      // Let's use the tool on the WHOLE function and I'll remember to update imports in a separate call or same call if compatible.
-      // Actually, I can replace the function and assumed I'd update imports.
-      // But if I don't update imports, it will fail build.
-      // So I will update imports AND the function.
-    } catch (e) { }
+`;
+    writeFileSync(wrapperPath, wrapperContent);
 
-    // Just writing the function body here. I will handle import in NEXT step or a MultiReplace.
-    // Wait, let's use MultiReplace to do both.
+    // Windows uses semicolon, others use colon for TEXINPUTS
+    const delimiter = process.platform === "win32" ? ";" : ":";
+    // We run in workDir.
+    // Need to find:
+    // 1. The input file: dirname(file)
+    // 2. dethi.sty: repoRoot (or parent of src)
+    // 3. Nested inputs: parent of file directory (e.g. src root)
+    const fileParent = resolve(dirname(file), "..");
+
+    // . (workDir) : dirname(file) : fileParent : repoRoot : system
+    const texInputs = `.${delimiter}${dirname(file)}${delimiter}${fileParent}${delimiter}${repoRoot}${delimiter}`;
+
+    try {
+      let success = true;
+      for (let pass = 0; pass < 2; pass += 1) {
+        const result = spawnSync(
+          LATEX_CMD,
+          // Process wrapper.tex instead of raw file
+          ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, "wrapper.tex"],
+          {
+            cwd: workDir, // Run in temp dir
+            encoding: "utf8",
+            env: { ...process.env, TEXINPUTS: texInputs }
+          }
+        );
+        if (result.status !== 0) {
+          success = false;
+          console.error(`[${file}] ${LATEX_CMD} failed (pass ${pass + 1})`);
+          if (result.stdout) console.error(`stdout:\n${result.stdout}`);
+          if (result.stderr) console.error(`stderr:\n${result.stderr}`);
+          break;
+        }
+      }
+
+      if (!success) {
+        continue;
+      }
+
+      // Output is wrapper.aux
+      const auxPath = join(workDir, "wrapper.aux");
+      if (!existsSync(auxPath)) {
+        continue;
+      }
+
+      const aux = readFileSync(auxPath, "utf8");
+      const regex = /\\newlabel\{([^}]+)\}\{\{([^}]+)\}/g;
+      let match: RegExpExecArray | null;
+      while ((match = regex.exec(aux)) !== null) {
+        const [, label, number] = match;
+        if (!labelMap.has(label)) {
+          labelMap.set(label, number);
+        }
+      }
+    } finally {
+      rmSync(workDir, { recursive: true, force: true });
+    }
   }
+
   return labelMap;
 }
 
