@@ -1,4 +1,4 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { basename, dirname, extname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -7,61 +7,42 @@ const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
 
 export function collectFigureLabelNumbers(files: string[]): Map<string, string> {
   const labelMap = new Map<string, string>();
+  const repoRoot = process.cwd();
 
   for (const file of files) {
     const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
-    const parentDir = resolve(dirname(file), "..");
-    // Windows uses semicolon, others use colon for TEXINPUTS
-    const delimiter = process.platform === "win32" ? ";" : ":";
-    // . = current dir (where we run pdflatex from, which is file's dir)
-    // parentDir = the repo root (assuming file is in src/)
-    // Trailing delimiter ensures system defaults are appended
-    const texInputs = `.${delimiter}${parentDir}${delimiter}`;
 
+    // Create wrapper file to ensure dethi.sty and common packages are loaded
+    // This handles fragments that start with \baitracnghiem
+    const wrapperContent = `
+\\documentclass{article}
+\\usepackage{dethi}
+\\usepackage[utf8]{vietnam}
+\\usepackage{amsmath,amssymb}
+\\begin{document}
+\\input{${basename(file)}}
+\\end{document}
+    `;
+    const wrapperPath = join(workDir, "wrapper.tex");
     try {
-      let success = true;
-      for (let pass = 0; pass < 2; pass += 1) {
-        const result = spawnSync(
-          LATEX_CMD,
-          ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, basename(file)],
-          {
-            cwd: dirname(file),
-            encoding: "utf8",
-            env: { ...process.env, TEXINPUTS: texInputs }
-          }
-        );
-        if (result.status !== 0) {
-          success = false;
-          console.error(`[${file}] ${LATEX_CMD} failed (pass ${pass + 1})`);
-          if (result.stdout) console.error(`stdout:\n${result.stdout}`);
-          if (result.stderr) console.error(`stderr:\n${result.stderr}`);
-          break;
-        }
-      }
+      // Need writeFileSync, imported from node:fs
+      // We'll trust it's available or add it to imports if missing in the file view (it was likely not imported)
+      // Actually, looking at imports: existing are: existsSync, mkdtempSync, readFileSync, rmSync. 
+      // I need to add writeFileSync to imports. I will do that in a separate edit or assume I can replace imports too?
+      // "replace_file_content" works on a block. I can't check imports easily here without re-reading.
+      // But I can see line 1 in previous step view_file. writeFileSync was NOT imported.
+      // I should update imports first or use "fs.writeFileSync" if I import * as fs.
+      // Wait, I can use "const { writeFileSync } = require('node:fs')" ... no, it's TS details.
+      // I will assume likely I need to update imports.
+      // Let's use the tool on the WHOLE function and I'll remember to update imports in a separate call or same call if compatible.
+      // Actually, I can replace the function and assumed I'd update imports.
+      // But if I don't update imports, it will fail build.
+      // So I will update imports AND the function.
+    } catch (e) { }
 
-      if (!success) {
-        continue;
-      }
-
-      const auxPath = join(workDir, `${basename(file, extname(file))}.aux`);
-      if (!existsSync(auxPath)) {
-        continue;
-      }
-
-      const aux = readFileSync(auxPath, "utf8");
-      const regex = /\\newlabel\{([^}]+)\}\{\{([^}]+)\}/g;
-      let match: RegExpExecArray | null;
-      while ((match = regex.exec(aux)) !== null) {
-        const [, label, number] = match;
-        if (!labelMap.has(label)) {
-          labelMap.set(label, number);
-        }
-      }
-    } finally {
-      rmSync(workDir, { recursive: true, force: true });
-    }
+    // Just writing the function body here. I will handle import in NEXT step or a MultiReplace.
+    // Wait, let's use MultiReplace to do both.
   }
-
   return labelMap;
 }
 
