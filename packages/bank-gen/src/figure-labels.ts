@@ -6,82 +6,76 @@ import { spawnSync } from "node:child_process";
 const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
 
 export function collectFigureLabelNumbers(files: string[]): Map<string, string> {
+  if (files.length === 0) return new Map();
+
   const labelMap = new Map<string, string>();
   const repoRoot = process.cwd();
 
-  for (const file of files) {
-    const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
-    const wrapperPath = join(workDir, "wrapper.tex");
+  // Use a single batch run to ensure continuous numbering
+  const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
+  const wrapperPath = join(workDir, "wrapper.tex");
 
-    // Create wrapper file to ensure dethi.sty and common packages are loaded
-    // This handles fragments that start with \baitracnghiem
-    const wrapperContent = `
+  // Normalize paths for LaTeX \input (forward slashes)
+  const inputs = files
+    .map((f) => `\\input{${f.split("\\").join("/")}}`)
+    .join("\n");
+
+  // Create wrapper file including all fragments
+  // Create wrapper file including all fragments
+  const wrapperContent = `
 \\documentclass{article}
-\\usepackage{dethi}
+\\usepackage{mathpazo}
+\\voffset=-3cm
+\\textheight 25truecm
+\\textwidth 19.5truecm
+\\parskip 3pt
+\\headsep=12pt
+\\usepackage[baitap]{dethi}
 \\usepackage[utf8]{vietnam}
 \\usepackage{amsmath,amssymb}
+\\usepackage{tikz}
 \\begin{document}
-\\input{${basename(file)}}
+${inputs}
 \\end{document}
 `;
-    writeFileSync(wrapperPath, wrapperContent);
+  writeFileSync(wrapperPath, wrapperContent);
 
-    // Windows uses semicolon, others use colon for TEXINPUTS
-    const delimiter = process.platform === "win32" ? ";" : ":";
-    // We run in workDir.
-    // Need to find:
-    // 1. The input file: dirname(file)
-    // 2. dethi.sty: repoRoot (or parent of src)
-    // 3. Nested inputs: parent of file directory (e.g. src root)
-    const fileParent = resolve(dirname(file), "..");
+  // TEXINPUTS: Include repoRoot to resolve nested imports like \input{src/...}
+  const delimiter = process.platform === "win32" ? ";" : ":";
+  const texInputs = `.${delimiter}${repoRoot}${delimiter}`;
 
-    // . (workDir) : dirname(file) : fileParent : repoRoot : system
-    const texInputs = `.${delimiter}${dirname(file)}${delimiter}${fileParent}${delimiter}${repoRoot}${delimiter}`;
-
-    try {
-      let success = true;
-      for (let pass = 0; pass < 2; pass += 1) {
-        const result = spawnSync(
-          LATEX_CMD,
-          // Process wrapper.tex instead of raw file
-          ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, "wrapper.tex"],
-          {
-            cwd: workDir, // Run in temp dir
-            encoding: "utf8",
-            env: { ...process.env, TEXINPUTS: texInputs }
-          }
-        );
-        if (result.status !== 0) {
-          success = false;
-          console.error(`[${file}] ${LATEX_CMD} failed (pass ${pass + 1})`);
-          if (result.stdout) console.error(`stdout:\n${result.stdout}`);
-          if (result.stderr) console.error(`stderr:\n${result.stderr}`);
-          break;
-        }
+  try {
+    const result = spawnSync(
+      LATEX_CMD,
+      ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, "wrapper.tex"],
+      {
+        cwd: workDir,
+        encoding: "utf8",
+        env: { ...process.env, TEXINPUTS: texInputs }
       }
+    );
 
-      if (!success) {
-        continue;
-      }
+    if (result.status !== 0) {
+      console.error(`[bank-gen] ${LATEX_CMD} returned non-zero status. Check logs if numbers are missing.`);
+      // We don't abort immediately because valid labels might still be generated in aux
+    }
 
-      // Output is wrapper.aux
-      const auxPath = join(workDir, "wrapper.aux");
-      if (!existsSync(auxPath)) {
-        continue;
-      }
-
+    const auxPath = join(workDir, "wrapper.aux");
+    if (existsSync(auxPath)) {
       const aux = readFileSync(auxPath, "utf8");
+      // \newlabel{label}{{number}{page}}
       const regex = /\\newlabel\{([^}]+)\}\{\{([^}]+)\}/g;
       let match: RegExpExecArray | null;
       while ((match = regex.exec(aux)) !== null) {
         const [, label, number] = match;
+        // The first group in the value is the counter (e.g., figure number)
         if (!labelMap.has(label)) {
           labelMap.set(label, number);
         }
       }
-    } finally {
-      rmSync(workDir, { recursive: true, force: true });
     }
+  } finally {
+    rmSync(workDir, { recursive: true, force: true });
   }
 
   return labelMap;
@@ -90,10 +84,16 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 export function replaceFigureReferences(text: string, labelNumbers: Map<string, string>): string {
   if (!text) return text;
 
-  // Detect Vietnamese context (vietnam package or babel vietnamese)
+  // Detect Vietnamese context:
+  // 1. Explicit package usage
+  // 2. Usage of 'dethi' package (implies Vietnamese context for this project)
+  // 3. Usage of macros like '\baitracnghiem' (from dethi)
   const useVietnamPkg = /\\usepackage(\[.*\])?\{vietnam\}/.test(text);
   const useBabelVietnamese = /\\usepackage\[.*vietnamese.*\]\{babel\}/.test(text);
-  const isVietnamese = useVietnamPkg || useBabelVietnamese;
+  const useDethi = /\\usepackage\{dethi\}/.test(text);
+  const useMacro = text.includes("\\baitracnghiem");
+
+  const isVietnamese = useVietnamPkg || useBabelVietnamese || useDethi || useMacro;
 
   const figureName = isVietnamese ? "Hình" : "Figure";
 
