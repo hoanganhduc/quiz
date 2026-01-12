@@ -210,6 +210,52 @@ function parseChoicesBlock(
   return { answerKey, choices };
 }
 
+class FootnoteManager {
+  private count = 1;
+  private notes: string[] = [];
+
+  process(text: string): string {
+    const cmd = "\\footnote";
+    let out = "";
+    let i = 0;
+    while (i < text.length) {
+      const idx = text.indexOf(cmd, i);
+      if (idx === -1) {
+        out += text.slice(i);
+        break;
+      }
+      out += text.slice(i, idx);
+
+      let pos = idx + cmd.length;
+      while (/\s/.test(text[pos] || "")) pos++;
+
+      if (text[pos] !== "{") {
+        out += text.slice(idx, pos);
+        i = pos;
+        continue;
+      }
+
+      const { content, end } = parseGroup(text, pos, "footnote-processing");
+      const marker = `[${this.count}]`;
+      this.notes.push(content);
+      this.count++;
+
+      out += marker;
+      i = end;
+    }
+    return out;
+  }
+
+  getAppendText(): string {
+    if (this.notes.length === 0) return "";
+    return "\n\n" + this.notes.map((n, i) => `[${i + 1}] ${n}`).join("\n");
+  }
+}
+
+function processCitations(text: string): string {
+  return text.replace(/\\cite\s*\{([^}]+)\}/g, (_, key) => `[${key}]`);
+}
+
 export function parseQuestionsFromContent(content: string, file: string): ParseResult[] {
   const results: ParseResult[] = [];
   let cursor = 0;
@@ -232,7 +278,16 @@ export function parseQuestionsFromContent(content: string, file: string): ParseR
     const [id, promptRaw, choicesRaw, solutionRaw] = groups;
     const { topic, level, number } = parseQuestionId(id);
     const uid = makeUid(COURSE_CODE, id);
-    const { answerKey, choices } = parseChoicesBlock(choicesRaw, file, id);
+
+    // Process footnotes and citations
+    const fn = new FootnoteManager();
+    const promptProcessed = fn.process(processCitations(promptRaw));
+    const choicesProcessed = fn.process(processCitations(choicesRaw));
+
+    const { answerKey, choices } = parseChoicesBlock(choicesProcessed, file, id);
+
+    // Append footnotes to prompt
+    const finalPrompt = (promptProcessed.trim() + fn.getAppendText()).trim();
 
     const publicQuestion: QuestionPublicV1 = {
       uid,
@@ -242,14 +297,14 @@ export function parseQuestionsFromContent(content: string, file: string): ParseR
       topic,
       level,
       number,
-      prompt: promptRaw.trim(),
+      prompt: finalPrompt,
       choices
     };
 
     const answerQuestion: QuestionAnswersV1 = {
       ...publicQuestion,
       answerKey,
-      solution: solutionRaw.trim()
+      solution: processCitations(solutionRaw.trim())
     };
 
     results.push({ publicQuestion, answerQuestion });
@@ -347,8 +402,15 @@ export function parseFillBlankQuestionsFromContent(content: string, file: string
     const { topic, level, number } = parseQuestionId(id);
     const uid = makeUid(COURSE_CODE, id);
 
-    const extracted = extractInlineBlanks(promptRaw, file);
+    // Process footnotes and citations
+    const fn = new FootnoteManager();
+    const promptProcessed = fn.process(processCitations(promptRaw));
+
+    const extracted = extractInlineBlanks(promptProcessed, file);
     if (extracted.answers.length === 0) continue;
+
+    // Append footnotes to prompt
+    const finalPrompt = (extracted.maskedPrompt.trim() + fn.getAppendText()).trim();
 
     const publicQuestion: QuestionPublicV1 = {
       uid,
@@ -358,14 +420,14 @@ export function parseFillBlankQuestionsFromContent(content: string, file: string
       topic,
       level,
       number,
-      prompt: extracted.maskedPrompt.trim(),
+      prompt: finalPrompt,
       blankCount: extracted.answers.length
     };
 
     const answerQuestion: QuestionAnswersV1 = {
       ...publicQuestion,
       answers: extracted.answers,
-      solution: solutionRaw.trim()
+      solution: processCitations(solutionRaw.trim())
     };
 
     results.push({ publicQuestion, answerQuestion });
