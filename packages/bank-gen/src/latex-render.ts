@@ -162,7 +162,8 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
 
   try {
     writeFileSync(texPath, buildTexDocument(texBody), "utf8");
-    const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, texPath], {
+    const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "snippet.tex"], {
+      cwd: workDir,
       encoding: "utf8"
     });
     if (LATEX_DEBUG) {
