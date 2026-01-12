@@ -63,7 +63,6 @@ function buildTexDocument(body: string): string {
     "\\usepackage{tkz-tab}",
     "\\usepackage[T5]{fontenc}",
     "\\usepackage[utf8]{vietnam}",
-    "\\usepackage[baitap]{dethi}",
     "\\usepackage{xcolor}",
     "\\pagestyle{empty}",
     "\\newcommand{\\dongkhung}[1]{\\par\\noindent\\fbox{\\begin{minipage}{\\linewidth-2\\fboxsep}\\vspace{0.15cm}#1\\vspace{0.15cm}\\end{minipage}}\\par}",
