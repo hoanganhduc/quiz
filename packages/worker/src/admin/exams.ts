@@ -5,17 +5,22 @@ import { getExam, getLatestBanks, putExam } from "../kv";
 import { createRng, hashAccessCode, shuffle } from "../utils";
 import {
   ExamV1Schema,
+  getSubtopicIdsForCategory,
+  isTopicCategory,
   normalizeExamVisibility,
   normalizeExamPolicyDefaults,
   type BankPublicV1,
+  type ExamCompositionItemV1,
+  type ExamCompositionLevel,
   type ExamVisibility,
   type ExamPolicyV1,
-  type ExamV1
+  type ExamV1,
+  type QuestionLevel
 } from "@app/shared";
 
 type AdminExamBody = {
   subject: "discrete-math";
-  composition: { topic: string; level: "basic" | "advanced"; n: number }[];
+  composition: ExamCompositionItemV1[];
   title?: string;
   seed?: string;
   policy: ExamPolicyV1;
@@ -28,7 +33,7 @@ type ExamTemplateBody = {
   name: string;
   template: {
     subject: "discrete-math";
-    composition: { topic: string; level: "basic" | "advanced"; n: number }[];
+    composition: ExamCompositionItemV1[];
     policy: ExamPolicyV1;
     codes?: string[];
     expiresAt?: string | null;
@@ -84,8 +89,11 @@ function selectQuestions(composition: AdminExamBody["composition"], bank: BankPu
   const chosen = new Set<string>();
   const results: string[] = [];
   for (const item of composition) {
+    const allowedTopics = isTopicCategory(item.topic) ? getSubtopicIdsForCategory(item.topic) : [item.topic];
+    const levelMatches = (level: ExamCompositionLevel, questionLevel: QuestionLevel) =>
+      level === "none" ? true : questionLevel === level;
     const pool = bank.questions.filter(
-      (q: any) => q.topic === item.topic && q.level === item.level && !chosen.has(q.uid)
+      (q) => allowedTopics.includes(q.topic) && levelMatches(item.level, q.level) && !chosen.has(q.uid)
     );
     const ordered = shuffle(pool, rng);
     if (ordered.length < item.n) {

@@ -8,10 +8,15 @@ import {
   ExamPolicyV1,
   ExamVisibility,
   SubmissionIdentityV1,
+  getSubtopicIdsForCategory,
   isLoggedInUser,
+  isTopicCategory,
   normalizeExamVisibility,
   normalizeExamPolicyDefaults,
   type AppUser,
+  type ExamCompositionItemV1,
+  type ExamCompositionLevel,
+  type QuestionLevel,
   type SessionV2,
   type SubmissionSummaryV1
 } from "@app/shared";
@@ -33,7 +38,7 @@ import {
 
 type AdminExamBody = {
   subject: "discrete-math";
-  composition: { topic: string; level: "basic" | "advanced"; n: number }[];
+  composition: ExamCompositionItemV1[];
   title?: string;
   seed?: string;
   policy: ExamPolicyV1;
@@ -105,8 +110,11 @@ function selectQuestions(composition: AdminExamBody["composition"], bank: BankPu
   const chosen = new Set<string>();
   const results: string[] = [];
   for (const item of composition) {
+    const allowedTopics = isTopicCategory(item.topic) ? getSubtopicIdsForCategory(item.topic) : [item.topic];
+    const levelMatches = (level: ExamCompositionLevel, questionLevel: QuestionLevel) =>
+      level === "none" ? true : questionLevel === level;
     const pool = bank.questions.filter(
-      (q) => q.topic === item.topic && q.level === item.level && !chosen.has(q.uid)
+      (q) => allowedTopics.includes(q.topic) && levelMatches(item.level, q.level) && !chosen.has(q.uid)
     );
     const ordered = shuffle(pool, rng);
     if (ordered.length < item.n) {
