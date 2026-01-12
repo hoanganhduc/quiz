@@ -126,17 +126,17 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          DOCKER_RUN="docker run --rm -u $(id -u):$(id -g) \
-            -v \"${{ github.workspace }}\":/workspace \
+          PREV=$(docker run --rm -u "$(id -u):$(id -g)" \
+            -v "${{ github.workspace }}":/workspace \
             -w /workspace \
             -v /tmp/ci-home:/tmp/ci-home \
             -e HOME=/tmp/ci-home \
             -e NPM_CONFIG_CACHE=/tmp/ci-home/.npm \
             -e CLOUDFLARE_API_TOKEN \
             -e CLOUDFLARE_ACCOUNT_ID \
-            ${{ env.DOCKER_IMAGE }}"
-          PREV=$(${DOCKER_RUN} sh -c "set -euo pipefail; \
-            npx wrangler --config packages/worker/wrangler.toml kv key get \"sources:last-built-hash\" --binding QUIZ_KV --preview false --remote 2>/dev/null || true")
+            ${{ env.DOCKER_IMAGE }} \
+            sh -c "set -euo pipefail; \
+              npx wrangler --config packages/worker/wrangler.toml kv key get \"sources:last-built-hash\" --binding QUIZ_KV --preview false --remote 2>/dev/null || true")
           PREV=$(printf "%s" "$PREV" | tr -d '\r\n')
           if [ "${{ github.event.inputs.force_regen }}" = "true" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
