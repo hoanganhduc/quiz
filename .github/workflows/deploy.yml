@@ -183,6 +183,7 @@ jobs:
             -v /tmp/ci-home:/tmp/ci-home \
             -e HOME=/tmp/ci-home \
             -e NPM_CONFIG_CACHE=/tmp/ci-home/.npm \
+            -e LATEX_DEBUG=1 \
             ${{ env.DOCKER_IMAGE }} \
             sh -c 'set -euo pipefail
               npm run gen --workspace @app/bank-gen -- --sources-config ../../sources.runtime.json --latex-assets-dir ../../packages/ui/dist/latex --latex-assets-base /${{ github.event.repository.name }}/latex/'

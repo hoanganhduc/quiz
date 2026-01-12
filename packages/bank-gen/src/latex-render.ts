@@ -152,6 +152,7 @@ function renderPdfToPng(pdfPath: string, outputPath: string, dpi: number, workDi
 }
 
 const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
+const LATEX_DEBUG = ["1", "true", "yes"].includes((process.env.LATEX_DEBUG ?? "").toLowerCase());
 
 function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
@@ -164,6 +165,20 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
     const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, texPath], {
       encoding: "utf8"
     });
+    if (LATEX_DEBUG) {
+      console.error(
+        [
+          `[latex-render] cmd=${LATEX_CMD}`,
+          `[latex-render] workDir=${workDir}`,
+          `[latex-render] tex=${texPath}`,
+          `[latex-render] pdf=${pdfPath}`,
+          `[latex-render] log=${logPath}`,
+          `[latex-render] status=${latex.status}`
+        ].join("\n")
+      );
+      if (latex.stdout) console.error(`[latex-render] stdout:\n${latex.stdout}`);
+      if (latex.stderr) console.error(`[latex-render] stderr:\n${latex.stderr}`);
+    }
     if (latex.status !== 0 || !existsSync(pdfPath)) {
       const log = existsSync(logPath) ? readFileSync(logPath, "utf8") : "";
       const logTail = log ? log.split("\n").slice(-80).join("\n") : "";
@@ -172,7 +187,11 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
     }
     renderPdfToPng(pdfPath, outputPath, dpi, workDir);
   } finally {
-    rmSync(workDir, { recursive: true, force: true });
+    if (LATEX_DEBUG) {
+      console.error(`[latex-render] debug enabled; preserving ${workDir}`);
+    } else {
+      rmSync(workDir, { recursive: true, force: true });
+    }
   }
 }
 
