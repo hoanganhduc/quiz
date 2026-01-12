@@ -30,6 +30,8 @@ export function corsForRequest(request: Request, allowedOrigin: string): CorsRes
     headers.set("Access-Control-Allow-Headers", reqHeaders);
   }
 
+
+
   const reqMethod = request.headers.get("Access-Control-Request-Method");
   headers.set("Access-Control-Allow-Methods", reqMethod ?? "GET,POST,PUT,DELETE,OPTIONS");
 
@@ -41,7 +43,10 @@ export function cookieSettingsForRequest(request: Request): {
   sameSite: "none" | "lax";
 } {
   const url = new URL(request.url);
-  const isHttps = url.protocol === "https:";
+  // Trust X-Forwarded-Proto for proxies (Cloudflare, etc.) or fallback to direct protocol
+  const proto = request.headers.get("x-forwarded-proto") ?? url.protocol;
+  const isHttps = proto.includes("https");
+
   if (isHttps) {
     return { secure: true, sameSite: "none" };
   }
