@@ -233,7 +233,7 @@ export const BankAnswersV1Schema = z.object({
 
 export const ExamCompositionItemSchema = z.object({
   topic: z.string(),
-  level: z.enum(["basic", "advanced"]),
+  level: z.enum(["basic", "advanced", "none"]),
   n: z.number().int()
 });
 
