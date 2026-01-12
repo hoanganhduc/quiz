@@ -113,10 +113,11 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
         const repo = (src as any).repo?.trim?.() ?? "";
         const branch = (src as any).branch?.trim?.() ?? "";
         const dir = (src as any).dir?.trim?.() ?? "";
-    const format = (src as any).format === "canvas" || (src as any).type === "canvas" ? "canvas" : "latex";
-      if (!repoOk(repo)) fail(`sources.${index}.repo`, "repo must be OWNER/REPO");
-      if (!branch) fail(`sources.${index}.branch`, "Required");
-      validateRelativeDir(dir, `sources.${index}.dir`);
+        const normalizedDir = dir || ".";
+        const format = (src as any).format === "canvas" || (src as any).type === "canvas" ? "canvas" : "latex";
+        if (!repoOk(repo)) fail(`sources.${index}.repo`, "repo must be OWNER/REPO");
+        if (!branch) fail(`sources.${index}.branch`, "Required");
+        validateRelativeDir(normalizedDir, `sources.${index}.dir`);
 
       const auth = (src as any).auth;
       if (auth) {
@@ -130,13 +131,13 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
           type: "github",
           repo,
           branch,
-          dir,
+          dir: normalizedDir,
           format,
           auth: { kind: "githubToken", secretRef: ref }
         } as GitHubSourceDefV1;
       }
 
-      return { id, type: "github", repo, branch, dir, format } as GitHubSourceDefV1;
+      return { id, type: "github", repo, branch, dir: normalizedDir, format } as GitHubSourceDefV1;
     }
 
     if (src.type === "gdrive") {
@@ -601,12 +602,13 @@ export function SourcesManagerPage() {
     try {
       let source: GitHubSourceDefV1 | ZipSourceDefV1 | GoogleDriveFolderSourceDefV1;
       if (sourceType === "github") {
+        const dirTrimmed = sourceDir.trim();
         source = {
           id,
           type: "github",
           repo: githubRepo.trim(),
           branch: githubBranch.trim(),
-          dir: sourceDir.trim(),
+          dir: dirTrimmed || ".",
           format: githubFormat,
           auth: authEnabled ? { kind: "githubToken", secretRef: secretRef.trim() } : undefined
         };
@@ -1189,16 +1191,18 @@ export function SourcesManagerPage() {
                 {sourceType !== "gdrive" && !(sourceType === "zip" && zipFormat === "canvas") ? (
                   <div className="space-y-1 sm:col-span-2">
                     <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="source-dir">
-                      dir{sourceType === "zip" ? " (optional)" : ""}
+                      dir{sourceType === "zip" ? " (optional)" : " (optional, default '.')"}
                     </label>
                     <Input
                       id="source-dir"
                       value={sourceDir}
                       onChange={(e) => setSourceDir(e.target.value)}
-                      placeholder={sourceType === "zip" ? "(optional)" : "e.g. discrete-math"}
+                      placeholder={sourceType === "zip" ? "(optional)" : "e.g. discrete-math or ."}
                       disabled={sourceSaving}
                     />
-                    <p className="text-xs text-neutral-500 dark:text-neutral-400">Relative only (no leading / and no '..').</p>
+                    <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                      Relative only (no leading / and no '..'). Leave blank to use the repo root.
+                    </p>
                   </div>
                 ) : null}
 
