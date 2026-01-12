@@ -458,17 +458,24 @@ export function AdminExamsPage() {
                         aria-label={`Select ${exam.examId}`}
                       />
                       <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-mono text-xs">{exam.examId}</span>
-                        <Badge tone={exam.visibility === "public" ? "info" : "muted"}>
-                          {exam.visibility === "public" ? "Public" : "Private"}
-                        </Badge>
-                        {exam.deletedAt ? <Badge tone="warn">Deleted</Badge> : null}
-                        {exam.hasSubmissions ? <Badge tone="info">Taken</Badge> : null}
-                      </div>
-                      <div className="text-xs text-textMuted">
-                        Created {formatDate(exam.createdAt)} · Expires {formatDate(exam.expiresAt)}
-                      </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a
+                            href={buildExamLink(exam)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-mono text-xs text-indigo-600 hover:underline"
+                          >
+                            {exam.examId}
+                          </a>
+                          <Badge tone={exam.visibility === "public" ? "info" : "muted"}>
+                            {exam.visibility === "public" ? "Public" : "Private"}
+                          </Badge>
+                          {exam.deletedAt ? <Badge tone="warn">Deleted</Badge> : null}
+                          {exam.hasSubmissions ? <Badge tone="info">Taken</Badge> : null}
+                        </div>
+                        <div className="text-xs text-textMuted">
+                          Created {formatDate(exam.createdAt)} · Expires {formatDate(exam.expiresAt)}
+                        </div>
                       </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">

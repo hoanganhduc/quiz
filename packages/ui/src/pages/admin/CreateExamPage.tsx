@@ -622,8 +622,8 @@ export function CreateExamPage() {
       codes: template.codes ?? [],
       codesEnabled: Boolean(
         (template.codes && template.codes.length > 0) ||
-          template.policy.requireSubmitCode ||
-          template.policy.requireViewCode
+        template.policy.requireSubmitCode ||
+        template.policy.requireViewCode
       ),
       expiresEnabled: Boolean(template.expiresAt),
       expiresAtLocal: template.expiresAt ? toLocalDateTimeInput(template.expiresAt) : "",
@@ -804,6 +804,16 @@ export function CreateExamPage() {
                 disabled={isSubmitting}
               >
                 Copy link
+              </Button>
+            ) : null}
+            {activeExamId ? (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => window.open(buildExamLink(normalizedRequestBody.subject, activeExamId), "_blank")}
+                disabled={isSubmitting}
+              >
+                Open
               </Button>
             ) : null}
             {activeExamId ? (
@@ -1094,10 +1104,10 @@ export function CreateExamPage() {
                         ) : null}
                         {bankSubjects.length > 0
                           ? bankSubjects.map((subject) => (
-                              <option key={subject} value={subject}>
-                                {subject}
-                              </option>
-                            ))
+                            <option key={subject} value={subject}>
+                              {subject}
+                            </option>
+                          ))
                           : null}
                       </Select>
                     </div>
@@ -1187,7 +1197,7 @@ export function CreateExamPage() {
                   apiBase={apiBase}
                   includeTokenInCurl={false}
                   sessionAuth
-                  onIncludeTokenInCurlChange={() => {}}
+                  onIncludeTokenInCurlChange={() => { }}
                   onCopyJson={(text) => handleCopy(text, "JSON copied")}
                   onCopyCurl={(text) => handleCopy(text, "curl copied")}
                   collapsible
@@ -1202,7 +1212,7 @@ export function CreateExamPage() {
                   apiBase={apiBase}
                   includeTokenInCurl={false}
                   sessionAuth
-                  onIncludeTokenInCurlChange={() => {}}
+                  onIncludeTokenInCurlChange={() => { }}
                   onCopyJson={(text) => handleCopy(text, "JSON copied")}
                   onCopyCurl={(text) => handleCopy(text, "curl copied")}
                   idPrefix="request-preview-desktop"
@@ -1220,62 +1230,62 @@ export function CreateExamPage() {
             </div>
           </div>
 
-        {previewOpen ? (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <div className="absolute inset-0 bg-black/40" onClick={() => setPreviewOpen(false)} />
-            <Card className="relative w-full max-w-5xl max-h-[90vh] overflow-auto space-y-4" padding="md">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-text">Exam preview</div>
-                  <div className="text-xs text-textMuted">
-                    Built from the latest public bank; per-student shuffle follows the current policy and seed.
-                  </div>
-                </div>
-                <Button type="button" variant="ghost" onClick={() => setPreviewOpen(false)}>
-                  Close
-                </Button>
-              </div>
-              {previewError ? <Alert tone="error">{previewError}</Alert> : null}
-              {previewLoading ? (
-                <div className="text-sm text-textMuted">Loading preview...</div>
-              ) : previewQuestions.length ? (
-                <div className="space-y-4">
-                  <div className="text-xs text-textMuted">Questions: {previewQuestions.length}</div>
-                  {previewQuestions.map((q, idx) => (
-                    <div key={q.uid}>
-                      {q.type === "mcq-single" ? (
-                        <McqQuestion
-                          index={idx}
-                          question={q}
-                          answer={typeof previewAnswers[q.uid] === "string" ? (previewAnswers[q.uid] as string) : ""}
-                          onChange={(uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val }))}
-                          showSolution={false}
-                        />
-                      ) : q.type === "fill-blank" ? (
-                        <FillBlankQuestion
-                          index={idx}
-                          question={q}
-                          answer={previewAnswers[q.uid]}
-                          onChange={(uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val }))}
-                          showSolution={false}
-                        />
-                      ) : null}
+          {previewOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <div className="absolute inset-0 bg-black/40" onClick={() => setPreviewOpen(false)} />
+              <Card className="relative w-full max-w-5xl max-h-[90vh] overflow-auto space-y-4" padding="md">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-text">Exam preview</div>
+                    <div className="text-xs text-textMuted">
+                      Built from the latest public bank; per-student shuffle follows the current policy and seed.
                     </div>
-                  ))}
+                  </div>
+                  <Button type="button" variant="ghost" onClick={() => setPreviewOpen(false)}>
+                    Close
+                  </Button>
                 </div>
-              ) : (
-                <div className="text-sm text-textMuted">No preview questions yet.</div>
-              )}
-            </Card>
-          </div>
-        ) : null}
+                {previewError ? <Alert tone="error">{previewError}</Alert> : null}
+                {previewLoading ? (
+                  <div className="text-sm text-textMuted">Loading preview...</div>
+                ) : previewQuestions.length ? (
+                  <div className="space-y-4">
+                    <div className="text-xs text-textMuted">Questions: {previewQuestions.length}</div>
+                    {previewQuestions.map((q, idx) => (
+                      <div key={q.uid}>
+                        {q.type === "mcq-single" ? (
+                          <McqQuestion
+                            index={idx}
+                            question={q}
+                            answer={typeof previewAnswers[q.uid] === "string" ? (previewAnswers[q.uid] as string) : ""}
+                            onChange={(uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val }))}
+                            showSolution={false}
+                          />
+                        ) : q.type === "fill-blank" ? (
+                          <FillBlankQuestion
+                            index={idx}
+                            question={q}
+                            answer={previewAnswers[q.uid]}
+                            onChange={(uid, val) => setPreviewAnswers((prev) => ({ ...prev, [uid]: val }))}
+                            showSolution={false}
+                          />
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-sm text-textMuted">No preview questions yet.</div>
+                )}
+              </Card>
+            </div>
+          ) : null}
 
-        {toast ? (
-          <div className="fixed right-4 top-4 z-50 flex flex-col gap-2">
-            <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} />
-          </div>
-        ) : null}
-      </PageShell>
+          {toast ? (
+            <div className="fixed right-4 top-4 z-50 flex flex-col gap-2">
+              <Toast message={toast.message} tone={toast.tone} onDismiss={() => setToast(null)} />
+            </div>
+          ) : null}
+        </PageShell>
       </div>
     </AdminAuthGate>
   );

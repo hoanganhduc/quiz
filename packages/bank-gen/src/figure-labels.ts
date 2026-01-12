@@ -56,8 +56,16 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 
 export function replaceFigureReferences(text: string, labelNumbers: Map<string, string>): string {
   if (!text) return text;
+
+  // Detect Vietnamese context (vietnam package or babel vietnamese)
+  const useVietnamPkg = /\\usepackage(\[.*\])?\{vietnam\}/.test(text);
+  const useBabelVietnamese = /\\usepackage\[.*vietnamese.*\]\{babel\}/.test(text);
+  const isVietnamese = useVietnamPkg || useBabelVietnamese;
+
+  const figureName = isVietnamese ? "Hình" : "Figure";
+
   return text.replace(/\\figurename\s*~\s*\\ref\{([^}]+)\}/g, (_match, label) => {
     const resolved = labelNumbers.get(label.trim());
-    return resolved ? `Figure ${resolved}` : `Figure ${label.trim()}`;
+    return resolved ? `${figureName} ${resolved}` : `${figureName} ${label.trim()}`;
   });
 }
