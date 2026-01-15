@@ -11,17 +11,13 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
   const labelMap = new Map<string, string>();
   const repoRoot = process.cwd();
 
-  // Use a single batch run to ensure continuous numbering
   const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
   const wrapperPath = join(workDir, "wrapper.tex");
 
-  // Normalize paths for LaTeX \input (forward slashes)
   const inputs = files
     .map((f) => `\\input{${f.split("\\").join("/")}}`)
     .join("\n");
 
-  // Create wrapper file including all fragments
-  // Create wrapper file including all fragments
   const wrapperContent = `
 \\documentclass[11pt]{article}
 \\usepackage{mathpazo}
@@ -39,14 +35,14 @@ ${inputs}
 `;
   writeFileSync(wrapperPath, wrapperContent);
 
-  // TEXINPUTS: Include repoRoot to resolve nested imports like \input{src/...}
   const delimiter = process.platform === "win32" ? ";" : ":";
-  const texInputs = `.${delimiter}${repoRoot}${delimiter}`;
+  // Use // suffix for recursive search in many TeX distributions
+  const texInputs = `.${delimiter}${repoRoot}${delimiter}${repoRoot}${process.platform === "win32" ? "//" : "//:"}${delimiter}`;
 
   try {
     const result = spawnSync(
       LATEX_CMD,
-      ["-interaction=nonstopmode", "-halt-on-error", "-output-directory", workDir, "wrapper.tex"],
+      ["-interaction=nonstopmode", "-output-directory", workDir, "wrapper.tex"],
       {
         cwd: workDir,
         encoding: "utf8",
@@ -54,30 +50,52 @@ ${inputs}
       }
     );
 
-    if (result.status !== 0) {
-      console.error(`[bank-gen] ${LATEX_CMD} returned non-zero status. Check logs if numbers are missing.`);
-      console.error(result.stdout);
-      // We don't abort immediately because valid labels might still be generated in aux
+    if (result.status !== 0 && result.status !== null) {
+      console.warn(`[bank-gen] ${LATEX_CMD} returned status ${result.status}. Label collection might be incomplete.`);
     }
 
     const auxPath = join(workDir, "wrapper.aux");
     if (existsSync(auxPath)) {
       const aux = readFileSync(auxPath, "utf8");
-      // \newlabel{label}{{number}{page}}
-      const regex = /\\newlabel\{([^}]+)\}\{\{([^}]+)\}/g;
-      let match: RegExpExecArray | null;
-      while ((match = regex.exec(aux)) !== null) {
-        const [, label, number] = match;
-        // The first group in the value is the counter (e.g., figure number)
-        if (!labelMap.has(label)) {
-          labelMap.set(label, number);
+
+      // Robust parsing of \newlabel{label}{{number}{page}...}
+      const labelStarts = aux.split("\\newlabel{");
+      for (let i = 1; i < labelStarts.length; i++) {
+        const part = labelStarts[i];
+        const labelEnd = part.indexOf("}");
+        if (labelEnd === -1) continue;
+        const label = part.slice(0, labelEnd).trim();
+
+        const valueStart = part.indexOf("{{", labelEnd);
+        if (valueStart === -1) continue;
+
+        // Find the matching closing brace for the first argument {{NUMBER}{PAGE}}
+        // which is usually the third character after {{ if it's a simple number
+        // but we look for the next }
+        const numberEnd = part.indexOf("}", valueStart + 2);
+        if (numberEnd === -1) continue;
+
+        let numberText = part.slice(valueStart + 2, numberEnd);
+        // Strip common LaTeX decorations
+        // e.g. \foreignlanguage {vietnam}{4} -> 4
+        // e.g. \protect \@arabic {4} -> 4
+        numberText = numberText.replace(/\\(?:arabic|@arabic|alph|Alph|roman|Roman|number|foreignlanguage\{[^}]+\}|protect)\s*\{?([^}]+)\}?/g, "$1");
+        // Remove any remaining braces
+        numberText = numberText.replace(/[\{\}]/g, "").trim();
+
+        if (label && numberText && !labelMap.has(label)) {
+          console.debug(`[bank-gen] Found label: ${label} -> ${numberText}`);
+          labelMap.set(label, numberText);
         }
       }
     }
+  } catch (err) {
+    console.error(`[bank-gen] Error during label collection: ${err}`);
   } finally {
     rmSync(workDir, { recursive: true, force: true });
   }
 
+  console.log(`[bank-gen] Collected ${labelMap.size} figure/table labels.`);
   return labelMap;
 }
 
@@ -90,8 +108,16 @@ export function replaceFigureReferences(
 
   const figureName = language === "vi" ? "Hình" : "Figure";
 
-  return text.replace(/\\figurename\s*~\s*\\ref\{([^}]+)\}/g, (_match, label) => {
-    const resolved = labelNumbers.get(label.trim());
-    return resolved ? `${figureName} ${resolved}` : `${figureName} ${label.trim()}`;
+  // Match \ref{...} with optional \figurename prefix
+  return text.replace(/(\\figurename\s*~\s*)?\\ref\{([^}]+)\}/g, (match, prefix, label) => {
+    const trimmedLabel = label.trim();
+    const resolved = labelNumbers.get(trimmedLabel);
+
+    let display = resolved || trimmedLabel;
+    if (prefix) {
+      display = `${figureName} ${display}`;
+    }
+
+    return `<a href="#fig-${trimmedLabel}" class="latex-ref">${display}</a>`;
   });
 }

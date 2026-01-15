@@ -8,6 +8,7 @@
   html {
     scroll-behavior: smooth;
   }
+
   body {
     @apply bg-bg text-text antialiased;
   }
@@ -19,65 +20,99 @@
     @apply bg-card border-border text-text;
     @apply dark:bg-muted dark:border-border;
   }
+
   .latex-center {
     text-align: center;
   }
+
   .latex-left {
     text-align: left;
   }
+
   .latex-right {
     text-align: right;
   }
+
   .latex-smallcaps {
     font-variant: small-caps;
     letter-spacing: 0.03em;
   }
+
   .latex-sans {
     font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   }
+
   .latex-underline {
     text-decoration: underline;
     text-decoration-thickness: 1px;
   }
+
   .latex-code {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 0.95em;
   }
+
   .latex-box {
     display: inline-block;
     border: 1px solid currentColor;
     padding: 0.1em 0.4em;
     border-radius: 0.2em;
   }
+
   .latex-box-block {
     display: block;
     width: 100%;
+    border: 1.5px solid var(--text);
     border-radius: 0.35em;
     padding: 0.5rem 0.75rem;
     background: var(--bg-muted);
     margin: 0.5rem 0;
   }
+
   .latex-list {
     margin: 0.35rem 0 0.35rem 1.25rem;
     list-style-position: outside;
   }
+
   .latex-list li {
     margin: 0.15rem 0;
   }
+
   .latex-figure {
-    margin: 0.5rem 0;
+    margin: 1rem 0;
+    text-align: center;
   }
+
+  .latex-figure figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.9em;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .latex-ref {
+    color: var(--info);
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .latex-ref:hover {
+    text-decoration: underline;
+  }
+
   .latex-table {
     margin: 0.5rem 0;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 0.95em;
     white-space: pre-wrap;
   }
+
   .latex-graphic {
     display: inline-block;
     max-width: 100%;
     height: auto;
   }
+
   .latex-omit {
     color: var(--text-muted);
     border: 1px dashed var(--border);
@@ -91,6 +126,7 @@
   mjx-container {
     line-height: 1.6;
   }
+
   mjx-container[display="true"] {
     margin: 0.5rem 0;
   }

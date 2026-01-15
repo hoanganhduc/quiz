@@ -10,6 +10,7 @@ type RenderOptions = {
   assetsBase: string;
   dpi?: number;
   labelNumbers?: Map<string, string>;
+  language?: "en" | "vi";
 };
 
 const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure)\}[\s\S]*?\\end\{\1\}/g;
@@ -209,9 +210,9 @@ function renderBlockToImage(block: string, opts: RenderOptions): string {
   // Try to find a label to sync figure number
   let initialFigureCounter: number | undefined;
   if (opts.labelNumbers) {
-    const labelMatch = /\\label\{([^}]+)\}/.exec(normalized);
+    const labelMatch = /\\label\s*\{([^}]+)\}/.exec(normalized);
     if (labelMatch) {
-      const label = labelMatch[1];
+      const label = labelMatch[1].trim();
       const numberStr = opts.labelNumbers.get(label);
       if (numberStr) {
         const num = parseInt(numberStr, 10);
@@ -238,10 +239,65 @@ function stripCommentLines(text: string): string {
   return text.replace(/^\s*%.*$/gm, "");
 }
 
+function extractCommandContent(text: string, command: string): { content: string; fullMatch: string } | null {
+  const token = `\\${command}{`;
+  const start = text.indexOf(token);
+  if (start === -1) return null;
+
+  let pos = start + token.length;
+  let depth = 1;
+  while (pos < text.length && depth > 0) {
+    if (text[pos] === "{") depth += 1;
+    else if (text[pos] === "}") depth -= 1;
+    pos += 1;
+  }
+
+  if (depth === 0) {
+    return {
+      content: text.slice(start + token.length, pos - 1),
+      fullMatch: text.slice(start, pos)
+    };
+  }
+  return null;
+}
+
 function replaceBlocks(text: string, opts: RenderOptions): string {
   if (!text) return text;
   const cleaned = stripCommentLines(text);
-  return cleaned.replace(BLOCK_REGEX, (match) => `\\includegraphics{${renderBlockToImage(match, opts)}}`);
+  return cleaned.replace(BLOCK_REGEX, (match) => {
+    if (match.startsWith("\\begin{figure}")) {
+      let contentForImage = match;
+      let label = "";
+      let captionText = "";
+
+      const labelRes = extractCommandContent(match, "label");
+      if (labelRes) {
+        label = labelRes.content.trim();
+        // Keep label in contentForImage so renderBlockToImage can sync counter
+      }
+
+      const captionRes = extractCommandContent(match, "caption");
+      if (captionRes) {
+        captionText = captionRes.content.trim();
+        // Remove caption from image to avoid double caption
+        contentForImage = contentForImage.replace(captionRes.fullMatch, "");
+      }
+
+      const imgUrl = renderBlockToImage(contentForImage, opts);
+      const figureId = label ? ` id="fig-${label}"` : "";
+
+      let figcaption = "";
+      if (captionText || label) {
+        const prefix = opts.language === "en" ? "Figure" : "Hình";
+        const num = (label && opts.labelNumbers?.get(label)) || "?";
+        figcaption = `<figcaption>${prefix} ${num}: ${captionText}</figcaption>`;
+      }
+
+      return `<figure${figureId}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
+    }
+
+    return `\\includegraphics{${renderBlockToImage(match, opts)}}`;
+  });
 }
 
 function replaceMacros(text: string, opts: RenderOptions): string {
@@ -250,7 +306,7 @@ function replaceMacros(text: string, opts: RenderOptions): string {
   return cleaned.replace(MACRO_REGEX, (match, content) => {
     // Process content recursively
     const inner = renderLatexText(content, opts);
-    return `<div class="dongkhung-box" style="border: 1px solid black; padding: 6px; width: 100%; box-sizing: border-box;">${inner}</div>`;
+    return `\\dongkhung{${inner}}`;
   });
 }
 
