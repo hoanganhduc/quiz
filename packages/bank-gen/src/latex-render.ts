@@ -13,6 +13,7 @@ type RenderOptions = {
 };
 
 const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure)\}[\s\S]*?\\end\{\1\}/g;
+const MACRO_REGEX = /\\dongkhung\{((?:[^{}]|{[^{}]*})*)\}/g;
 
 function normalizeAssetsBase(value: string): string {
   if (!value) return value;
@@ -243,20 +244,44 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
   return cleaned.replace(BLOCK_REGEX, (match) => `\\includegraphics{${renderBlockToImage(match, opts)}}`);
 }
 
+function replaceMacros(text: string, opts: RenderOptions): string {
+  if (!text) return text;
+  const cleaned = stripCommentLines(text);
+  return cleaned.replace(MACRO_REGEX, (match, content) => {
+    // Process content recursively
+    const inner = renderLatexText(content, opts);
+    return `<div class="dongkhung-box" style="border: 1px solid black; padding: 6px; width: 100%; box-sizing: border-box;">${inner}</div>`;
+  });
+}
+
+function replaceTypography(text: string): string {
+  if (!text) return text;
+  return text
+    // Space before citation [N] if not preceded by space
+    .replace(/([^\s\[])(\[\d+\])/g, "$1 $2")
+    // Em-dash
+    .replace(/---/g, "—")
+    // Smart quotes -> Double quotes
+    .replace(/``/g, '"')
+    .replace(/''/g, '"');
+}
+
 export function renderLatexText(text: string, opts: RenderOptions): string {
-  return replaceBlocks(text, opts);
+  const withBlocks = replaceBlocks(text, opts);
+  const withMacros = replaceMacros(withBlocks, opts);
+  return replaceTypography(withMacros);
 }
 
 function renderQuestionPublic(q: QuestionPublicV1, opts: RenderOptions): QuestionPublicV1 {
   if (q.type === "mcq-single") {
     return {
       ...q,
-      prompt: replaceBlocks(q.prompt, opts),
-      choices: q.choices.map((c) => ({ ...c, text: replaceBlocks(c.text, opts) }))
+      prompt: renderLatexText(q.prompt, opts),
+      choices: q.choices.map((c) => ({ ...c, text: renderLatexText(c.text, opts) }))
     };
   }
   if (q.type === "fill-blank") {
-    return { ...q, prompt: replaceBlocks(q.prompt, opts) };
+    return { ...q, prompt: renderLatexText(q.prompt, opts) };
   }
   return q;
 }
@@ -265,16 +290,16 @@ function renderQuestionAnswers(q: QuestionAnswersV1, opts: RenderOptions): Quest
   if (q.type === "mcq-single") {
     return {
       ...q,
-      prompt: replaceBlocks(q.prompt, opts),
-      choices: q.choices.map((c) => ({ ...c, text: replaceBlocks(c.text, opts) })),
-      solution: q.solution ? replaceBlocks(q.solution, opts) : q.solution
+      prompt: renderLatexText(q.prompt, opts),
+      choices: q.choices.map((c) => ({ ...c, text: renderLatexText(c.text, opts) })),
+      solution: q.solution ? renderLatexText(q.solution, opts) : q.solution
     };
   }
   if (q.type === "fill-blank") {
     return {
       ...q,
-      prompt: replaceBlocks(q.prompt, opts),
-      solution: q.solution ? replaceBlocks(q.solution, opts) : q.solution
+      prompt: renderLatexText(q.prompt, opts),
+      solution: q.solution ? renderLatexText(q.solution, opts) : q.solution
     };
   }
   return q;

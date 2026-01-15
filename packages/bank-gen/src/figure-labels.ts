@@ -33,7 +33,6 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 \\usepackage{tkz-base}
 \\usepackage{tkz-euclide}
 \\usepackage{tkz-tab}
-\\newcommand{\\dongkhung}[1]{\\par\\noindent\\fbox{\\begin{minipage}{\\linewidth-2\\fboxsep}\\vspace{0.15cm}#1\\vspace{0.15cm}\\end{minipage}}\\par}
 \\begin{document}
 ${inputs}
 \\end{document}
@@ -57,6 +56,7 @@ ${inputs}
 
     if (result.status !== 0) {
       console.error(`[bank-gen] ${LATEX_CMD} returned non-zero status. Check logs if numbers are missing.`);
+      console.error(result.stdout);
       // We don't abort immediately because valid labels might still be generated in aux
     }
 
