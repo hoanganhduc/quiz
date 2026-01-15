@@ -4,16 +4,17 @@ import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
 import type { BankAnswersV1, BankPublicV1, QuestionAnswersV1, QuestionPublicV1 } from "@app/shared";
+import type { LabelMap } from "./figure-labels.js";
 
 type RenderOptions = {
   assetsDir: string;
   assetsBase: string;
   dpi?: number;
-  labelNumbers?: Map<string, string>;
+  labelData?: LabelMap;
   language?: "en" | "vi";
 };
 
-const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
+const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
 const MACRO_REGEX = /\\dongkhung\{((?:[^{}]|{[^{}]*})*)\}/g;
 
 function normalizeAssetsBase(value: string): string {
@@ -22,7 +23,9 @@ function normalizeAssetsBase(value: string): string {
 }
 
 function hashContent(content: string): string {
-  return createHash("sha256").update(content).digest("hex").slice(0, 16);
+  // Use the same normalization as collectSequentialLabels for consistency
+  const normalized = content.replace(/\r\n?/g, "\n").trim();
+  return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
 }
 
 function normalizeBlockForRender(block: string): string {
@@ -207,19 +210,19 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number, initial
 function renderBlockToImage(block: string, opts: RenderOptions): string {
   const normalized = normalizeBlockForRender(block);
 
-  // Try to find a label to sync figure number
+  // Try to find a label or hash to sync figure number
   let initialFigureCounter: number | undefined;
-  if (opts.labelNumbers) {
+  if (opts.labelData) {
     const labelMatch = /\\label\s*\{([^}]+)\}/.exec(normalized);
-    if (labelMatch) {
-      const label = labelMatch[1].trim();
-      const numberStr = opts.labelNumbers.get(label);
-      if (numberStr) {
-        const num = parseInt(numberStr, 10);
-        if (!isNaN(num)) {
-          // If figure is 5, we set counter to 4 so next increment is 5.
-          initialFigureCounter = num - 1;
-        }
+    const label = labelMatch ? labelMatch[1].trim() : "";
+    const hash = hashContent(block);
+
+    const numberStr = (label && opts.labelData.labels.get(label)) || opts.labelData.hashes.get(hash);
+
+    if (numberStr) {
+      const num = parseInt(numberStr, 10);
+      if (!isNaN(num)) {
+        initialFigureCounter = num - 1;
       }
     }
   }
@@ -278,7 +281,7 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
   if (!text) return text;
   const cleaned = stripCommentLines(text);
   return cleaned.replace(BLOCK_REGEX, (match) => {
-    if (match.startsWith("\\begin{figure}")) {
+    if (match.startsWith("\\begin{figure}") || match.startsWith("\\begin{figwindow}")) {
       let contentForImage = match;
       let label = "";
       let captionText = "";
@@ -295,19 +298,22 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       }
 
       const imgUrl = renderBlockToImage(contentForImage, opts);
-      const figureId = label ? ` id="fig-${label}"` : "";
+      const hash = hashContent(match);
+      const num = (label && opts.labelData?.labels.get(label)) || opts.labelData?.hashes.get(hash);
 
-      let figcaption = "";
-      if (captionText || label) {
-        const prefix = opts.language === "en" ? "Figure" : "Hình";
-        const num = (label && opts.labelNumbers?.get(label));
-        if (label && num === undefined) {
-          console.warn(`[bank-gen] Warning: Figure label '${label}' not found in label map.`);
-        }
-        figcaption = `<figcaption>${prefix} ${num || "?"}: ${captionText}</figcaption>`;
+      const figureId = label || hash ? ` id="fig-${label || hash}"` : "";
+
+      const prefix = opts.language === "en" ? "Figure" : "Hình";
+      if (!num) {
+        console.warn(`[bank-gen] Warning: Figure number not found for block (label: ${label}, hash: ${hash}).`);
       }
+      const figcaption = `<figcaption>${prefix} ${num || "?"}: ${captionText}</figcaption>`;
 
       return `<figure${figureId}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
+    }
+
+    if (match.startsWith("\\begin{table}") || match.startsWith("\\begin{tabwindow}")) {
+      // Similar logic for tables if needed...
     }
 
     return `\\includegraphics{${renderBlockToImage(match, opts)}}`;

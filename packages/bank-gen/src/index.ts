@@ -23,7 +23,7 @@ import { importCanvasZipBytes, type AnswerKey as CanvasAnswerKey } from "@app/sh
 import { z } from "zod";
 import { cleanupTempDir, downloadSourcesToTemp, loadSourcesConfigFile } from "./sources.js";
 import { renderLatexAssets } from "./latex-render.js";
-import { collectFigureLabelNumbers, replaceFigureReferences } from "./figure-labels.js";
+import { collectSequentialLabels, replaceFigureReferences, type LabelMap } from "./figure-labels.js";
 
 const COURSE_CODE = "MAT3500";
 const SUBJECT = "discrete-math";
@@ -587,7 +587,7 @@ async function run(): Promise<void> {
   program.option("--latex-assets-base <url>", "Public base URL for rendered LaTeX assets");
   program.option("--language <lang>", "Language for exam generation (en or vi)", "vi");
 
-  program.action(async (opts: { sourcesConfig?: string; latexAssetsDir?: string; latexAssetsBase?: string; language: string }) => {
+  program.action(async (opts: { sourcesConfig?: string; latexAssetsDir?: string; latexAssetsBase?: string; language: string; labelData?: LabelMap }) => {
     const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
     const language = (opts.language === "en" ? "en" : "vi") as "en" | "vi";
 
@@ -610,11 +610,23 @@ async function run(): Promise<void> {
       let answersBank: BankAnswersV1;
       let questions: ParseResult[] = [];
 
-      let figureLabelNumbers = new Map<string, string>();
       if (files.length > 0) {
         const built = await buildBanksFromFiles(files);
-        figureLabelNumbers = collectFigureLabelNumbers(files);
-        const resolver = (value: string): string => replaceFigureReferences(value, figureLabelNumbers, language);
+        // We use the sorted questions from buildBanksFromFiles to ensure sequential numbering in the bank
+        const allQuestionsTexts = built.questions.map((q) => {
+          let text = q.publicQuestion.prompt;
+          if (q.publicQuestion.type === "mcq-single") {
+            text += " " + q.publicQuestion.choices.map((c) => c.text).join(" ");
+          }
+          if (q.answerQuestion.solution) {
+            text += " " + q.answerQuestion.solution;
+          }
+          return text;
+        });
+
+        const labelData = collectSequentialLabels(allQuestionsTexts);
+        const resolver = (value: string): string => replaceFigureReferences(value, labelData.labels, language);
+
         const normalized = built.questions.map((q) => applyFigureReferencesToQuestion(q, resolver));
 
         publicBank = {
@@ -626,6 +638,9 @@ async function run(): Promise<void> {
           questions: normalized.map((q) => q.answerQuestion)
         };
         questions = normalized;
+
+        // Store labelData for late rendering
+        (opts as any).labelData = labelData;
       } else {
         const generatedAt = new Date().toISOString();
         publicBank = { version: "v1", subject: SUBJECT, generatedAt, questions: [] };
@@ -664,7 +679,7 @@ async function run(): Promise<void> {
         const rendered = renderLatexAssets(publicBank, answersBank, {
           assetsDir: resolve(opts.latexAssetsDir),
           assetsBase: opts.latexAssetsBase,
-          labelNumbers: figureLabelNumbers,
+          labelData: opts.labelData,
           language
         });
         publicBank = rendered.publicBank;

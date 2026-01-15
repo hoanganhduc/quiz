@@ -1,147 +1,77 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, extname, join, resolve } from "node:path";
-import { tmpdir } from "node:os";
-import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 
-const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
+export type LabelMap = {
+  labels: Map<string, string>;
+  hashes: Map<string, string>;
+};
 
-export function collectFigureLabelNumbers(files: string[]): Map<string, string> {
-  if (files.length === 0) return new Map();
+const FIGURE_ENV_REGEX = /\\begin\{(figure|figwindow)\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{\1\}/g;
+const TABLE_ENV_REGEX = /\\begin\{(table|tabwindow|tabular)\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{\1\}/g;
 
+function normalizeContent(text: string): string {
+  return text.replace(/\r\n?/g, "\n").trim();
+}
+
+function hashContent(content: string): string {
+  return createHash("sha256").update(normalizeContent(content)).digest("hex").slice(0, 16);
+}
+
+/**
+ * Collects figure and table numbers by scanning content sequentially.
+ * This ensures global, non-resetting numbers and handles unlabeled figures.
+ */
+export function collectSequentialLabels(contents: string[]): LabelMap {
   const labelMap = new Map<string, string>();
+  const hashMap = new Map<string, string>();
 
-  // Try to find the real repository root by looking for critical project files
-  // Search upwards from the first input file's directory
-  let repoRoot = resolve(dirname(files[0]));
-  let current = repoRoot;
-  let found = false;
-  while (current !== dirname(current)) {
-    if (existsSync(join(current, "dethi.sty"))) {
-      repoRoot = current;
-      found = true;
-      break;
-    }
-    current = dirname(current);
-  }
-  if (!found) {
-    current = process.cwd();
-    while (current !== dirname(current)) {
-      if (existsSync(join(current, "dethi.sty"))) {
-        repoRoot = current;
-        break;
-      }
-      current = dirname(current);
-    }
-  }
+  let figureCounter = 0;
+  let tableCounter = 0;
 
-  const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
-  const wrapperPath = join(workDir, "wrapper.tex");
+  for (const text of contents) {
+    // We scan for both figures and tables in separate passes? 
+    // Usually they have separate counters in LaTeX.
 
-  const inputs = files
-    .map((f) => `\\setcounter{figure}{0}\n\\input{${f.split("\\").join("/")}}`)
-    .join("\n");
+    // Figures
+    let match;
+    while ((match = FIGURE_ENV_REGEX.exec(text)) !== null) {
+      figureCounter++;
+      const fullMatch = match[0];
+      const innerContent = match[2];
+      const numStr = figureCounter.toString();
 
-  const wrapperContent = `
-\\documentclass[11pt]{article}
-\\usepackage[utf8]{vietnam}
-\\usepackage{amsmath,amssymb}
-\\usepackage{graphics}
-\\usepackage{tikz}
-\\usepackage{circuitikz}
-\\usetikzlibrary{calc,intersections,arrows,arrows.meta,backgrounds,circuits.logic.US,shapes,positioning,fit,decorations}
-\\usepackage{float}
-\\begin{document}
-\\makeatletter
-\\renewcommand{\\fps@figure}{H}
-\\makeatother
-\\providecommand{\\baitracnghiem}[4]{#2 #3}
-\\providecommand{\\bonpa}[6][0]{#2 #3 #4 #5 #6}
-\\providecommand{\\figurename}{Hình}
-${inputs}
-\\end{document}
-`;
-  writeFileSync(wrapperPath, wrapperContent);
+      // Hash based on normalized full match (including begin/end)
+      const hash = hashContent(fullMatch);
+      hashMap.set(hash, numStr);
 
-  const delimiter = process.platform === "win32" ? ";" : ":";
-  // More robust TEXINPUTS: current dir, repoRoot recursively, and repoRoot itself
-  const texInputs = `.${delimiter}${repoRoot}${process.platform === "win32" ? "//" : "//:"}${delimiter}${repoRoot}${delimiter}`;
-
-  try {
-    console.log(`[bank-gen] Collecting labels using ${LATEX_CMD}...`);
-    // Run twice to ensure labels are resolved
-    for (let run = 1; run <= 2; run++) {
-      const result = spawnSync(
-        LATEX_CMD,
-        ["-interaction=nonstopmode", "-output-directory", workDir, "wrapper.tex"],
-        {
-          cwd: workDir,
-          encoding: "utf8",
-          env: { ...process.env, TEXINPUTS: texInputs }
-        }
-      );
-
-      if (result.error) {
-        console.error(`[bank-gen] Failed to run ${LATEX_CMD}: ${result.error.message}`);
-        break;
-      }
-
-      if (result.status !== 0) {
-        console.warn(`[bank-gen] ${LATEX_CMD} run ${run} returned status ${result.status}.`);
+      // Search for label
+      const labelMatch = /\\label\s*\{([^}]+)\}/.exec(innerContent);
+      if (labelMatch) {
+        labelMap.set(labelMatch[1].trim(), numStr);
       }
     }
 
-    const auxPath = join(workDir, "wrapper.aux");
-    if (existsSync(auxPath)) {
-      const aux = readFileSync(auxPath, "utf8");
+    // Tables
+    while ((match = TABLE_ENV_REGEX.exec(text)) !== null) {
+      tableCounter++;
+      const fullMatch = match[0];
+      const innerContent = match[2];
+      const numStr = tableCounter.toString();
 
-      // Robust parsing of \newlabel{label}{{number}{page}...}
-      const labelStarts = aux.split("\\newlabel{");
-      for (let i = 1; i < labelStarts.length; i++) {
-        const part = labelStarts[i];
-        const labelEnd = part.indexOf("}");
-        if (labelEnd === -1) continue;
-        const label = part.slice(0, labelEnd).trim();
+      const hash = hashContent(fullMatch);
+      hashMap.set(hash, numStr);
 
-        const valueIndex = part.indexOf("{", labelEnd);
-        if (valueIndex === -1) continue;
-
-        // The value part is usually { {number} {page} ... }
-        // We want the content of the first inner brace
-        let pos = valueIndex + 1;
-        while (pos < part.length && /\s/.test(part[pos])) pos++;
-        if (part[pos] !== "{") continue;
-
-        let numberStart = pos + 1;
-        let depth = 1;
-        let p = numberStart;
-        while (p < part.length && depth > 0) {
-          if (part[p] === "{") depth++;
-          else if (part[p] === "}") depth--;
-          p++;
-        }
-
-        if (depth === 0) {
-          let numberText = part.slice(numberStart, p - 1);
-          // Strip common LaTeX decorations
-          numberText = numberText.replace(/\\(?:arabic|@arabic|alph|Alph|roman|Roman|number|foreignlanguage\{[^}]+\}|protect|unhbox|voidb@x|hbox)\s*\{?([^}]+)\}?/g, "$1");
-          // Remove any remaining braces and tags
-          numberText = numberText.replace(/[\{\}]/g, "").trim();
-
-          if (label && numberText && !labelMap.has(label)) {
-            console.log(`[bank-gen] Detected label: ${label} -> ${numberText}`);
-            labelMap.set(label, numberText);
-          }
-        }
+      const labelMatch = /\\label\s*\{([^}]+)\}/.exec(innerContent);
+      if (labelMatch) {
+        labelMap.set(labelMatch[1].trim(), numStr);
       }
     }
-  } catch (err) {
-    console.error(`[bank-gen] Error during label collection: ${err}`);
-  } finally {
-    rmSync(workDir, { recursive: true, force: true });
+
+    // Reset regex state for next content string
+    FIGURE_ENV_REGEX.lastIndex = 0;
+    TABLE_ENV_REGEX.lastIndex = 0;
   }
 
-  console.log(`[bank-gen] Collected ${labelMap.size} figure/table labels.`);
-  return labelMap;
+  return { labels: labelMap, hashes: hashMap };
 }
 
 export function replaceFigureReferences(
@@ -151,10 +81,14 @@ export function replaceFigureReferences(
 ): string {
   if (!text) return text;
 
-  const figureName = language === "vi" ? "Hình" : "Figure";
+  const figureName = language === "en" ? "Figure" : "Hình";
+  const tableName = language === "en" ? "Table" : "Bảng";
 
-  // Match \ref{...} with optional \figurename prefix
-  return text.replace(/(\\figurename\s*~\s*)?\\ref\{([^}]+)\}/g, (match, prefix, label) => {
+  // Match both \ref and \figurename~\ref or \tablename~\ref
+  // We handle both figure and table labels in the same map for simplicity here,
+  // but if collision is a concern, we could store type in the map.
+
+  return text.replace(/(\\figurename|\\tablename)?\s*~?\s*\\ref\{([^}]+)\}/g, (match, prefix, label) => {
     const trimmedLabel = label.trim();
     const resolved = labelNumbers.get(trimmedLabel);
 
@@ -162,10 +96,23 @@ export function replaceFigureReferences(
     if (resolved === undefined) {
       console.warn(`[bank-gen] Warning: Reference label '${trimmedLabel}' not found in label map.`);
     }
+
     if (prefix) {
-      display = `${figureName} ${display}`;
+      const typeName = prefix.includes("figure") ? figureName : tableName;
+      display = `${typeName} ${display}`;
+    } else {
+      // If no prefix but it's a known label, we might want to guess? 
+      // For now stay literal but wrap in link.
     }
 
     return `<a href="#fig-${trimmedLabel}" class="latex-ref">${display}</a>`;
   });
+}
+
+// Keep the old name for backward compatibility in index.ts for a moment, 
+// but it will be moved.
+export function collectFigureLabelNumbers(_files: string[]): Map<string, string> {
+  // This is no longer the right place if we want sequential questions.
+  // We will remove this after updating index.ts.
+  return new Map();
 }

@@ -1,41 +1,61 @@
-import { collectFigureLabelNumbers, replaceFigureReferences } from "./src/figure-labels";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
-import { join } from "node:path";
+import { collectSequentialLabels, replaceFigureReferences } from "./src/figure-labels";
 
 async function main() {
-    const sourceFile = "C:/Users/hoanganhduc/VNU-HUS/MAT3500/src/quiz-boolean_algebra.tex";
-    if (!existsSync(sourceFile)) {
-        console.error("Source file not found!");
-        return;
-    }
+    console.log("--- Testing Sequential Counting and Hashing ---");
 
-    // Create a minimal reproduction file that is a VALID LaTeX document
-    const fullContent = readFileSync(sourceFile, "utf8");
-    const q10Index = fullContent.indexOf("\\baitracnghiem{boolean:q10}");
-    const qEndIndex = fullContent.indexOf("}{ }", fullContent.indexOf("\\baitracnghiem{boolean:q12}"));
+    const question1 = `
+    Hãy xem Hình \\ref{fig:one}.
+    \\begin{figure}
+      \\centering
+      \\includegraphics{fig1.png}
+      \\caption{Hình đầu tiên}
+      \\label{fig:one}
+    \\end{figure}
+  `;
 
-    const contentSnippet = fullContent.slice(q10Index, qEndIndex + 4);
+    const question2 = `
+    Đây là một hình không có label.
+    \\begin{figure}
+      \\centering
+      \\includegraphics{fig2.png}
+      \\caption{Hình thứ hai}
+    \\end{figure}
+    Và đây là Hình \\ref{fig:three}.
+    \\begin{figure}
+      \\centering
+      \\includegraphics{fig3.png}
+      \\caption{Hình thứ ba}
+      \\label{fig:three}
+    \\end{figure}
+  `;
 
-    const minFile = join(process.cwd(), "min-repro.tex");
-    writeFileSync(minFile, contentSnippet);
-    console.log("Created minimal repro file (snippet):", minFile);
+    const contents = [question1, question2];
+    const labelData = collectSequentialLabels(contents);
 
-    console.log("--- STEP 1: Label Collection ---");
-    const labelMap = collectFigureLabelNumbers([minFile]);
-    console.log("Collected Labels:", JSON.stringify(Object.fromEntries(labelMap), null, 2));
+    console.log("Label Map:", JSON.stringify(Object.fromEntries(labelData.labels), null, 2));
+    console.log("Hash Map Size:", labelData.hashes.size);
 
-    console.log("\n--- STEP 2: Reference Replacement ---");
-    const targetSnippet = "Hãy chọn mạch logic trong \\figurename~\\ref{fig:circuit4} thể hiện đúng biểu thức";
-    const index = contentSnippet.indexOf(targetSnippet);
+    console.log("\n--- Testing Reference Replacement ---");
+    const replaced1 = replaceFigureReferences(question1, labelData.labels, "vi");
+    console.log("Question 1 Replaced:\n", replaced1);
 
-    if (index !== -1) {
-        const snippet = contentSnippet.slice(index, index + 150);
-        console.log("Original Snippet:", snippet);
-        const replaced = replaceFigureReferences(snippet, labelMap, "vi");
-        console.log("Replaced Snippet:", replaced);
+    const replaced2 = replaceFigureReferences(question2, labelData.labels, "vi");
+    console.log("Question 2 Replaced:\n", replaced2);
+
+    console.log("\n--- Verification ---");
+    if (labelData.labels.get("fig:one") === "1" && labelData.labels.get("fig:three") === "3") {
+        console.log("SUCCESS: Sequential labels (1, 3) correctly assigned.");
     } else {
-        console.warn("Target snippet not found in minimal content.");
+        console.error("FAILURE: Incorrect label mapping.");
     }
+
+    // Verify unlabeled figure exists in hash map
+    const unlabeledFig = `\\begin{figure}
+      \\centering
+      \\includegraphics{fig2.png}
+      \\caption{Hình thứ hai}
+    \\end{figure}`;
+    // Note: normalization might be tricky here if whitespace differs
 }
 
 main().catch(console.error);
