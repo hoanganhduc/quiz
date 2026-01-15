@@ -12,13 +12,14 @@ import {
   updateLinkedProvider
 } from "../users/store";
 import { ensureBootstrapAdmin, providersFromUser } from "./bootstrap";
+import { isLocalUrl } from "../utils";
 
 type GithubEmail = { email: string; primary?: boolean };
 type GithubUser = { id: number; name?: string; login: string };
 type GithubMode = "login" | "link";
 
 function isAllowedRedirect(redirect: string, uiOrigin: string): boolean {
-  return redirect.startsWith(uiOrigin) || redirect.startsWith("http://localhost:5173");
+  return redirect.startsWith(uiOrigin) || isLocalUrl(redirect);
 }
 
 async function fetchGithubToken(env: Env, code: string, state: string): Promise<string | null> {

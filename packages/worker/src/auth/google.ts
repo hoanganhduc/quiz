@@ -14,6 +14,7 @@ import {
   updateLinkedProvider
 } from "../users/store";
 import { ensureBootstrapAdmin, providersFromUser } from "./bootstrap";
+import { isLocalUrl } from "../utils";
 
 const VALID_ISS = new Set(["https://accounts.google.com", "accounts.google.com"]);
 
@@ -34,7 +35,7 @@ class GoogleAuthError extends Error {
 }
 
 function isAllowedRedirect(redirect: string, uiOrigin: string): boolean {
-  return redirect.startsWith(uiOrigin) || redirect.startsWith("http://localhost:5173");
+  return redirect.startsWith(uiOrigin) || isLocalUrl(redirect);
 }
 
 async function verifyGoogleIdToken(env: Env, idToken: string): Promise<GoogleIdPayload | null> {
@@ -225,8 +226,8 @@ export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
       ({ user, displayName } = await upsertGoogleUser(c.env, payload, mode, appUserId));
     } catch (err) {
       if (err instanceof GoogleAuthError) {
-      const status = err.status as 400 | 401 | 404 | 409 | 500;
-      return c.text(err.message, status);
+        const status = err.status as 400 | 401 | 404 | 409 | 500;
+        return c.text(err.message, status);
       }
       throw err;
     }

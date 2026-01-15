@@ -59,3 +59,28 @@ export function sampleN<T>(arr: T[], n: number, rng: () => number): T[] {
   const shuffled = shuffle(arr, rng);
   return shuffled.slice(0, n);
 }
+
+export function isLocalUrl(urlStr: string): boolean {
+  try {
+    const url = new URL(urlStr);
+    const host = url.hostname;
+    // Localhost
+    if (host === "localhost" || host === "127.0.0.1") return true;
+    // Private IP ranges
+    // 10.0.0.0 - 10.255.255.255
+    if (host.startsWith("10.")) return true;
+    // 172.16.0.0 - 172.31.255.255
+    if (host.startsWith("172.")) {
+      const parts = host.split(".");
+      if (parts.length >= 2) {
+        const second = parseInt(parts[1], 10);
+        if (second >= 16 && second <= 31) return true;
+      }
+    }
+    // 192.168.0.0 - 192.168.255.255
+    if (host.startsWith("192.168.")) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}

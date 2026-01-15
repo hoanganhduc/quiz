@@ -1,3 +1,5 @@
+import { isLocalUrl } from "./utils";
+
 export type CorsResult = {
   allowed: boolean;
   headers: Headers;
@@ -18,7 +20,8 @@ export function corsForRequest(request: Request, allowedOrigin: string): CorsRes
     // keep allowedOrigin as-is
   }
 
-  if (origin !== allowedOrigin && origin !== allowedBase) {
+  if (origin !== allowedOrigin && origin !== allowedBase && !isLocalUrl(origin)) {
+    headers.set("X-Forbidden-Reason", `Origin mismatch: expected ${allowedOrigin} but got ${origin}`);
     return { allowed: false, headers };
   }
 
