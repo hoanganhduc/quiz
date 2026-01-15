@@ -10,49 +10,67 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 
   const labelMap = new Map<string, string>();
 
-  // Try to find the real repository root by looking for .git or package.json
-  let repoRoot = process.cwd();
+  // Try to find the real repository root by looking for critical project files
+  // Search upwards from the first input file's directory
+  let repoRoot = resolve(dirname(files[0]));
   let current = repoRoot;
+  let found = false;
   while (current !== dirname(current)) {
-    if (existsSync(join(current, ".git")) || existsSync(join(current, "package.json"))) {
+    if (existsSync(join(current, "dethi.sty"))) {
       repoRoot = current;
+      found = true;
       break;
     }
     current = dirname(current);
+  }
+  if (!found) {
+    current = process.cwd();
+    while (current !== dirname(current)) {
+      if (existsSync(join(current, "dethi.sty"))) {
+        repoRoot = current;
+        break;
+      }
+      current = dirname(current);
+    }
   }
 
   const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
   const wrapperPath = join(workDir, "wrapper.tex");
 
   const inputs = files
-    .map((f) => `\\input{${f.split("\\").join("/")}}`)
+    .map((f) => `\\setcounter{figure}{0}\n\\input{${f.split("\\").join("/")}}`)
     .join("\n");
 
   const wrapperContent = `
 \\documentclass[11pt]{article}
-\\usepackage{mathpazo}
-\\usepackage[baitap]{dethi}
 \\usepackage[utf8]{vietnam}
 \\usepackage{amsmath,amssymb}
+\\usepackage{graphics}
 \\usepackage{tikz}
-\\usetikzlibrary{calc,intersections,arrows,backgrounds,circuits.logic.US}
-\\usepackage{tkz-base}
-\\usepackage{tkz-euclide}
-\\usepackage{tkz-tab}
+\\usepackage{circuitikz}
+\\usetikzlibrary{calc,intersections,arrows,arrows.meta,backgrounds,circuits.logic.US,shapes,positioning,fit,decorations}
+\\usepackage{float}
 \\begin{document}
+\\makeatletter
+\\renewcommand{\\fps@figure}{H}
+\\makeatother
+\\providecommand{\\baitracnghiem}[4]{#2 #3}
+\\providecommand{\\bonpa}[6][0]{#2 #3 #4 #5 #6}
+\\providecommand{\\figurename}{Hình}
 ${inputs}
 \\end{document}
 `;
   writeFileSync(wrapperPath, wrapperContent);
 
   const delimiter = process.platform === "win32" ? ";" : ":";
-  // Use // suffix for recursive search in many TeX distributions
-  const texInputs = `.${delimiter}${repoRoot}${delimiter}${repoRoot}${process.platform === "win32" ? "//" : "//:"}${delimiter}`;
+  // More robust TEXINPUTS: current dir, repoRoot recursively, and repoRoot itself
+  const texInputs = `.${delimiter}${repoRoot}${process.platform === "win32" ? "//" : "//:"}${delimiter}${repoRoot}${delimiter}`;
 
   try {
+    console.log(`[bank-gen] Collecting labels using ${LATEX_CMD}...`);
     // Run twice to ensure labels are resolved
-    for (let run = 0; run < 2; run++) {
-      spawnSync(
+    for (let run = 1; run <= 2; run++) {
+      const result = spawnSync(
         LATEX_CMD,
         ["-interaction=nonstopmode", "-output-directory", workDir, "wrapper.tex"],
         {
@@ -61,6 +79,15 @@ ${inputs}
           env: { ...process.env, TEXINPUTS: texInputs }
         }
       );
+
+      if (result.error) {
+        console.error(`[bank-gen] Failed to run ${LATEX_CMD}: ${result.error.message}`);
+        break;
+      }
+
+      if (result.status !== 0) {
+        console.warn(`[bank-gen] ${LATEX_CMD} run ${run} returned status ${result.status}.`);
+      }
     }
 
     const auxPath = join(workDir, "wrapper.aux");
@@ -101,7 +128,7 @@ ${inputs}
           numberText = numberText.replace(/[\{\}]/g, "").trim();
 
           if (label && numberText && !labelMap.has(label)) {
-            console.debug(`[bank-gen] Found label: ${label} -> ${numberText}`);
+            console.log(`[bank-gen] Detected label: ${label} -> ${numberText}`);
             labelMap.set(label, numberText);
           }
         }
@@ -132,6 +159,9 @@ export function replaceFigureReferences(
     const resolved = labelNumbers.get(trimmedLabel);
 
     let display = resolved || trimmedLabel;
+    if (resolved === undefined) {
+      console.warn(`[bank-gen] Warning: Reference label '${trimmedLabel}' not found in label map.`);
+    }
     if (prefix) {
       display = `${figureName} ${display}`;
     }

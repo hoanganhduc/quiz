@@ -300,8 +300,11 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       let figcaption = "";
       if (captionText || label) {
         const prefix = opts.language === "en" ? "Figure" : "Hình";
-        const num = (label && opts.labelNumbers?.get(label)) || "?";
-        figcaption = `<figcaption>${prefix} ${num}: ${captionText}</figcaption>`;
+        const num = (label && opts.labelNumbers?.get(label));
+        if (label && num === undefined) {
+          console.warn(`[bank-gen] Warning: Figure label '${label}' not found in label map.`);
+        }
+        figcaption = `<figcaption>${prefix} ${num || "?"}: ${captionText}</figcaption>`;
       }
 
       return `<figure${figureId}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;

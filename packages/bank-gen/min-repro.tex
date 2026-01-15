@@ -1,0 +1,506 @@
+\baitracnghiem{boolean:q10}{%10
+    Cho bảng chân trị của hàm Boolean $F(x, y, z)$ như sau:
+    
+    \begin{center}
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    $x$ & $y$ & $z$ & $F(x, y, z)$ \\
+    \hline
+    $0$ & $0$ & $0$ & $0$ \\
+    $0$ & $0$ & $1$ & $0$ \\
+    $0$ & $1$ & $0$ & $1$ \\
+    $0$ & $1$ & $1$ & $0$ \\
+    $1$ & $0$ & $0$ & $1$ \\
+    $1$ & $0$ & $1$ & $0$ \\
+    $1$ & $1$ & $0$ & $1$ \\
+    $1$ & $1$ & $1$ & $0$ \\
+    \hline
+    \end{tabular}
+    \end{center}
+            
+    Hãy chọn mạch logic trong \figurename~\ref{fig:circuit2} thể hiện đúng hàm $F(x, y, z)$.
+    
+    \begin{figure}[htb]
+        \centering
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[or gate, gate style] (or1) at (0,0) {}; % OR gate
+                \node[not gate, gate style] (not1) at (0,-1.5) {}; % NOT gate
+                \node[and gate, gate style] (and1) at (3,0) {}; % AND gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0.5) (x) {$x$};
+                \node[node style] at (-2,-0.5) (y) {$z$};
+                \node[node style] at (-2,-1.5) (z) {$y$};
+                \node[node style] at (5,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (or1.east) -- ++(1,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (and1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (2.5,-3) {Mạch A};
+            \end{tikzpicture}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[and gate, gate style] (and1) at (0,0) {}; % AND gate
+                \node[not gate, gate style] (not1) at (3,0) {}; % NOT gate
+                \node[or gate, gate style] (or1) at (6,0) {}; % OR gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0.5) (x) {$x$};
+                \node[node style] at (-2,-0.5) (y) {$y$};
+                \node[node style] at (-2,-1.5) (z) {$z$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (z) -- ++(6.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (and1.east) -- (not1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (or1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch B};
+            \end{tikzpicture}
+        \end{minipage}
+        
+        \vspace{0.5cm}
+        
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[and gate, gate style] (and1) at (0,0) {}; % AND gate
+                \node[not gate, gate style] (not1) at (0,-1.5) {}; % NOT gate
+                \node[or gate, gate style] (or1) at (3,0) {}; % OR gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0.5) (x) {$x$};
+                \node[node style] at (-2,-0.5) (y) {$y$};
+                \node[node style] at (-2,-1.5) (z) {$z$};
+                \node[node style] at (5,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (and1.east) -- ++(1,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (or1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (2.5,-3) {Mạch C};
+            \end{tikzpicture}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[not gate, gate style] (not1) at (0,-1.5) {}; % NOT gate
+                \node[or gate, gate style] (or1) at (0,0.5) {}; % OR gate
+                \node[and gate, gate style] (and1) at (3,-0.5) {}; % AND gate
+
+                % Input and output nodes
+                \node[node style] at (-2,1) (x) {$x$};
+                \node[node style] at (-2,0) (y) {$y$};
+                \node[node style] at (-2,-1.5) (z) {$z$};
+                \node[node style] at (5,-0.5) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (or1.east) -- ++(1,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (and1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (2.5,-3) {Mạch D};
+            \end{tikzpicture}
+        \end{minipage}
+        \caption{Các mạch logic}
+        \label{fig:circuit2}
+    \end{figure}
+}{
+    \bonpa{4}
+        {Mạch A}
+        {Mạch B}
+        {Mạch C}
+        {Mạch D}
+}{ }
+
+\baitracnghiem{boolean:q11}{%11
+    Cho bảng chân trị của hàm Boolean $F(x, y, z)$ như sau:
+    
+    \begin{center}
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    $x$ & $y$ & $z$ & $F(x, y, z)$ \\
+    \hline
+    $0$ & $0$ & $0$ & $0$ \\
+    $0$ & $0$ & $1$ & $0$ \\
+    $0$ & $1$ & $0$ & $0$ \\
+    $0$ & $1$ & $1$ & $0$ \\
+    $1$ & $0$ & $0$ & $1$ \\
+    $1$ & $0$ & $1$ & $0$ \\
+    $1$ & $1$ & $0$ & $1$ \\
+    $1$ & $1$ & $1$ & $1$ \\
+    \hline
+    \end{tabular}
+    \end{center}
+            
+    Hãy chọn mạch logic trong \figurename~\ref{fig:circuit3} thể hiện đúng hàm $F(x, y, z)$.
+
+    \begin{figure}[htb]
+        \centering
+        \begin{minipage}[b]{0.45\textwidth}
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[not gate, gate style] (not1) at (0,-2) {}; % NOT gate
+                \node[and gate, gate style] (or1) at (3,-0.5) {}; % OR gate
+                \node[and gate, gate style] (and1) at (6,0) {}; % AND gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0.5) (x) {$x$};
+                \node[node style] at (-2,-0.5) (y) {$y$};
+                \node[node style] at (-2,-2) (z) {$z$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(6.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (y) -- ++(3.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (z) -- (not1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (or1.east) -- ++(1,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (and1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch A};
+            \end{tikzpicture}      
+            \label{fig:circuit_a}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[not gate, gate style] (not1) at (0,0) {}; % NOT gate
+                \node[and gate, gate style] (and1) at (3,0) {}; % AND gate
+                \node[or gate, gate style] (or1) at (6,0) {}; % OR gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0) (x) {$x$};
+                \node[node style] at (-2,-1) (y) {$y$};
+                \node[node style] at (-2,-2) (z) {$z$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- (not1.west);
+                    \draw[arrow style] (y) -- ++(3.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (z) -- ++(6.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (and1.east) -- ++(1,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (or1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch B};
+            \end{tikzpicture}
+            \label{fig:circuit_b}
+        \end{minipage}
+        
+        \vspace{0.5cm}
+        
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[not gate, gate style] (not1) at (0,-1) {}; % NOT gate
+                \node[or gate, gate style] (or1) at (3,-0.5) {}; % OR gate
+                \node[and gate, gate style] (and1) at (6,0) {}; % AND gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0.5) (x) {$x$};
+                \node[node style] at (-2,0) (y) {$y$};
+                \node[node style] at (-2,-1) (z) {$z$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(6.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (y) -- ++(3.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (or1.east) -- ++(1,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (and1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch C};
+            \end{tikzpicture}
+            \label{fig:circuit_c}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[and gate, gate style] (and1) at (0,0) {}; % AND gate
+                \node[not gate, gate style] (not1) at (0,-2) {}; % NOT gate
+                \node[or gate, gate style] (or1) at (3,-1) {}; % OR gate
+
+                % Input and output nodes
+                \node[node style] at (-2,0.5) (x) {$x$};
+                \node[node style] at (-2,-0.5) (y) {$y$};
+                \node[node style] at (-2,-2) (z) {$z$};
+                \node[node style] at (5,-1) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (and1.east) -- ++(1,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (or1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (3,-3) {Mạch D};
+            \end{tikzpicture}
+            \label{fig:circuit_d}
+        \end{minipage}
+        \caption{Các mạch logic}
+        \label{fig:circuit3}
+    \end{figure}
+}{
+    \bonpa{3}
+        {Mạch A}
+        {Mạch B}
+        {Mạch C}
+        {Mạch D}
+}{ }
+
+\baitracnghiem{boolean:q12}{%12
+    Cho biểu thức đại số Boole $F(x, y, z, w) = (x + y) \cdot (\overline{z} + w)$. 
+            
+    Hãy chọn mạch logic trong \figurename~\ref{fig:circuit4} thể hiện đúng biểu thức $F(x, y, z, w)$.
+
+    \begin{figure}[htb]
+        \centering
+        \begin{minipage}[b]{0.45\textwidth}
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[or gate, gate style] (or1) at (0,0.5) {}; % OR gate for x+y
+                \node[not gate, gate style] (not1) at (0,-1) {}; % NOT gate for z
+                \node[or gate, gate style] (or2) at (3,-0.5) {}; % OR gate for !z+w
+                \node[and gate, gate style] (and1) at (6,0) {}; % AND gate
+
+                % Input and output nodes
+                \node[node style] at (-2,1) (x) {$x$};
+                \node[node style] at (-2,0) (y) {$y$};
+                \node[node style] at (-2,-1) (z) {$z$};
+                \node[node style] at (-2,-2) (w) {$w$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (w) -- ++(3.5,0) |- ([yshift=-5pt]or2.west);
+                    \draw[arrow style] (not1.east) -- ++(0.5,0) |- ([yshift=5pt]or2.west);
+                    \draw[arrow style] (or1.east) -- ++(3.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (or2.east) -- ++(1,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (and1.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch A};
+            \end{tikzpicture}      
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[and gate, gate style] (and1) at (0,0.5) {}; % AND gate for x,y (incorrect)
+                \node[not gate, gate style] (not1) at (0,-1) {}; % NOT gate for z
+                \node[or gate, gate style] (or1) at (3,-0.5) {}; % OR gate for !z+w
+                \node[or gate, gate style] (or2) at (6,0) {}; % OR gate (incorrect)
+
+                % Input and output nodes
+                \node[node style] at (-2,1) (x) {$x$};
+                \node[node style] at (-2,0) (y) {$y$};
+                \node[node style] at (-2,-1) (z) {$z$};
+                \node[node style] at (-2,-2) (w) {$w$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (w) -- ++(3.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (not1.east) -- ++(0.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (and1.east) -- ++(3.5,0) |- ([yshift=5pt]or2.west);
+                    \draw[arrow style] (or1.east) -- ++(1,0) |- ([yshift=-5pt]or2.west);
+                    \draw[arrow style] (or2.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch B};
+            \end{tikzpicture}
+        \end{minipage}
+        
+        \vspace{0.5cm}
+        
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[or gate, gate style] (or1) at (0,0.5) {}; % OR gate for x+y
+                \node[not gate, gate style] (not1) at (0,-1) {}; % NOT gate for z
+                \node[and gate, gate style] (and1) at (3,-0.5) {}; % AND gate for !z,w (incorrect)
+                \node[and gate, gate style] (and2) at (6,0) {}; % AND gate
+
+                % Input and output nodes
+                \node[node style] at (-2,1) (x) {$x$};
+                \node[node style] at (-2,0) (y) {$y$};
+                \node[node style] at (-2,-1) (z) {$z$};
+                \node[node style] at (-2,-2) (w) {$w$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- (not1.west);
+                    \draw[arrow style] (w) -- ++(3.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (not1.east) -- ++(0.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (or1.east) -- ++(3.5,0) |- ([yshift=5pt]and2.west);
+                    \draw[arrow style] (and1.east) -- ++(1,0) |- ([yshift=-5pt]and2.west);
+                    \draw[arrow style] (and2.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch C};
+            \end{tikzpicture}
+        \end{minipage}
+        \hfill
+        \begin{minipage}[b]{0.45\textwidth}
+            \centering
+            \begin{tikzpicture}[
+                circuit logic US,
+                scale=0.8,
+                gate style/.style={very thick, fill=white, scale=1.5, transform shape},
+                node style/.style={font=\bfseries},
+                arrow style/.style={->,>=Stealth, very thick}
+                ]
+                % Gates
+                \node[or gate, gate style] (or1) at (0,1) {}; % OR gate for x+y
+                \node[and gate, gate style] (and1) at (0,-1) {}; % AND gate for z,w (incorrect)
+                \node[not gate, gate style] (not1) at (3,1) {}; % NOT gate for !(x+y) (incorrect)
+                \node[not gate, gate style] (not2) at (3,-1) {}; % NOT gate for !(z&w) (incorrect)
+                \node[or gate, gate style] (or2) at (6,0) {}; % OR gate (incorrect)
+
+                % Input and output nodes
+                \node[node style] at (-2,1.5) (x) {$x$};
+                \node[node style] at (-2,0.5) (y) {$y$};
+                \node[node style] at (-2,-0.5) (z) {$z$};
+                \node[node style] at (-2,-1.5) (w) {$w$};
+                \node[node style] at (8,0) (F) {$F$};
+
+                \begin{scope}[on background layer]
+                    \draw[arrow style] (x) -- ++(0.5,0) |- ([yshift=5pt]or1.west);
+                    \draw[arrow style] (y) -- ++(0.5,0) |- ([yshift=-5pt]or1.west);
+                    \draw[arrow style] (z) -- ++(0.5,0) |- ([yshift=5pt]and1.west);
+                    \draw[arrow style] (w) -- ++(0.5,0) |- ([yshift=-5pt]and1.west);
+                    \draw[arrow style] (or1.east) -- (not1.west);
+                    \draw[arrow style] (and1.east) -- (not2.west);
+                    \draw[arrow style] (not1.east) -- ++(1,0) |- ([yshift=5pt]or2.west);
+                    \draw[arrow style] (not2.east) -- ++(1,0) |- ([yshift=-5pt]or2.west);
+                    \draw[arrow style] (or2.east) -- (F);
+                \end{scope}
+                
+                \node[text width=4cm, align=center] at (4,-3) {Mạch D};
+            \end{tikzpicture}
+        \end{minipage}
+        \caption{Các mạch logic}
+        \label{fig:circuit4}
+    \end{figure}
+}{
+    \bonpa{1}
+        {Mạch A}
+        {Mạch B}
+        {Mạch C}
+        {Mạch D}
+}{ }
