@@ -76,6 +76,7 @@ export type ExamPolicyV1 = {
   versionCount?: number;
   shuffleQuestions?: boolean;
   shuffleChoices?: boolean;
+  language?: "en" | "vi";
 };
 
 export type ExamVersionInfoV1 = {
@@ -238,6 +239,7 @@ export const ExamCompositionItemSchema = z.object({
 });
 
 export const ExamPolicySchema = z.object({
+  language: z.enum(["en", "vi"]).optional().default("vi"),
   authMode: z.enum(["required", "optional", "none"]),
   requireViewCode: z.boolean(),
   requireSubmitCode: z.boolean(),

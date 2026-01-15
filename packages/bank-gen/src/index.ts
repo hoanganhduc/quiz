@@ -585,9 +585,11 @@ async function run(): Promise<void> {
   program.option("--sources-config <path>", "Path to sources config JSON (raw or exported)");
   program.option("--latex-assets-dir <path>", "Output directory for rendered LaTeX assets (PNG)");
   program.option("--latex-assets-base <url>", "Public base URL for rendered LaTeX assets");
+  program.option("--language <lang>", "Language for exam generation (en or vi)", "vi");
 
-  program.action(async (opts: { sourcesConfig?: string; latexAssetsDir?: string; latexAssetsBase?: string }) => {
+  program.action(async (opts: { sourcesConfig?: string; latexAssetsDir?: string; latexAssetsBase?: string; language: string }) => {
     const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+    const language = (opts.language === "en" ? "en" : "vi") as "en" | "vi";
 
     let files: string[] = [];
     let canvasZips: string[] = [];
@@ -612,7 +614,7 @@ async function run(): Promise<void> {
       if (files.length > 0) {
         const built = await buildBanksFromFiles(files);
         figureLabelNumbers = collectFigureLabelNumbers(files);
-        const resolver = (value: string): string => replaceFigureReferences(value, figureLabelNumbers);
+        const resolver = (value: string): string => replaceFigureReferences(value, figureLabelNumbers, language);
         const normalized = built.questions.map((q) => applyFigureReferencesToQuestion(q, resolver));
 
         publicBank = {

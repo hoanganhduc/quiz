@@ -58,6 +58,23 @@ function VersionsCard({
       </div>
 
       <div className="space-y-2">
+        <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="language-select">
+          Language
+        </label>
+        <Select
+          id="language-select"
+          value={policy.language ?? "vi"}
+          onChange={(e) => {
+            const nextLang = e.target.value as "en" | "vi";
+            onChange({ ...policy, language: nextLang });
+          }}
+        >
+          <option value="vi">Vietnamese (Tiếng Việt)</option>
+          <option value="en">English (Original)</option>
+        </Select>
+      </div>
+
+      <div className="space-y-2">
         <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="versioning-mode">
           Versioning mode
         </label>

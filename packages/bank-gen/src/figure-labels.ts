@@ -23,13 +23,8 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
   // Create wrapper file including all fragments
   // Create wrapper file including all fragments
   const wrapperContent = `
-\\documentclass{article}
+\\documentclass[11pt]{article}
 \\usepackage{mathpazo}
-\\voffset=-3cm
-\\textheight 25truecm
-\\textwidth 19.5truecm
-\\parskip 3pt
-\\headsep=12pt
 \\usepackage[baitap]{dethi}
 \\usepackage[utf8]{vietnam}
 \\usepackage{amsmath,amssymb}
@@ -81,21 +76,14 @@ ${inputs}
   return labelMap;
 }
 
-export function replaceFigureReferences(text: string, labelNumbers: Map<string, string>): string {
+export function replaceFigureReferences(
+  text: string,
+  labelNumbers: Map<string, string>,
+  language: "en" | "vi" = "vi"
+): string {
   if (!text) return text;
 
-  // Detect Vietnamese context:
-  // 1. Explicit package usage
-  // 2. Usage of 'dethi' package (implies Vietnamese context for this project)
-  // 3. Usage of macros like '\baitracnghiem' (from dethi)
-  const useVietnamPkg = /\\usepackage(\[.*\])?\{vietnam\}/.test(text);
-  const useBabelVietnamese = /\\usepackage\[.*vietnamese.*\]\{babel\}/.test(text);
-  const useDethi = /\\usepackage\{dethi\}/.test(text);
-  const useMacro = text.includes("\\baitracnghiem");
-
-  const isVietnamese = useVietnamPkg || useBabelVietnamese || useDethi || useMacro;
-
-  const figureName = isVietnamese ? "Hình" : "Figure";
+  const figureName = language === "vi" ? "Hình" : "Figure";
 
   return text.replace(/\\figurename\s*~\s*\\ref\{([^}]+)\}/g, (_match, label) => {
     const resolved = labelNumbers.get(label.trim());
