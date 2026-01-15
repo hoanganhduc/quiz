@@ -512,8 +512,10 @@ export async function buildBanksFromFiles(filePaths: string[]): Promise<{
     allResults.push(...questions);
   }
 
-  // Stable order by uid to make output deterministic
-  allResults.sort((a, b) => a.publicQuestion.uid.localeCompare(b.publicQuestion.uid));
+  // Stable order by uid using natural numeric sorting (Q1, Q2, ..., Q10)
+  allResults.sort((a, b) =>
+    a.publicQuestion.uid.localeCompare(b.publicQuestion.uid, undefined, { numeric: true, sensitivity: 'base' })
+  );
 
   const generatedAt = new Date().toISOString();
   const publicBank: BankPublicV1 = {
@@ -667,7 +669,9 @@ async function run(): Promise<void> {
         }
 
         const merged = [...questions, ...canvasResults];
-        merged.sort((a, b) => a.publicQuestion.uid.localeCompare(b.publicQuestion.uid));
+        merged.sort((a, b) =>
+          a.publicQuestion.uid.localeCompare(b.publicQuestion.uid, undefined, { numeric: true, sensitivity: 'base' })
+        );
 
         const generatedAt = new Date().toISOString();
         publicBank = { ...publicBank, generatedAt, questions: merged.map((q) => q.publicQuestion) };

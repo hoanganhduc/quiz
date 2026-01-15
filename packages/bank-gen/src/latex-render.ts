@@ -285,10 +285,15 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       let contentForImage = match;
       let label = "";
       let captionText = "";
+      const allLabels: string[] = [];
 
-      const labelRes = extractCommandContent(match, "label");
-      if (labelRes) {
-        label = labelRes.content.trim();
+      // Extract all labels
+      let lMatch;
+      const LABEL_REG = /\\label\s*\{([^}]+)\}/g;
+      while ((lMatch = LABEL_REG.exec(match)) !== null) {
+        const l = lMatch[1].trim();
+        allLabels.push(l);
+        if (!label) label = l;
       }
 
       const captionRes = extractCommandContent(match, "caption");
@@ -301,7 +306,7 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       const hash = hashContent(match);
       const num = (label && opts.labelData?.labels.get(label)) || opts.labelData?.hashes.get(hash);
 
-      const figureId = label || hash ? ` id="fig-${label || hash}"` : "";
+      const figureId = label || hash ? `id="fig-${label || hash}"` : "";
 
       const prefix = opts.language === "en" ? "Figure" : "Hình";
       if (!num) {
@@ -309,11 +314,17 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       }
       const figcaption = `<figcaption>${prefix} ${num || "?"}: ${captionText}</figcaption>`;
 
-      return `<figure${figureId}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
+      // Create anchors for all labels so they all jump to this figure
+      const anchors = allLabels
+        .filter((l) => l !== label) // Skip the primary id
+        .map((l) => `<div id="fig-${l}" class="latex-anchor"></div>`)
+        .join("\n");
+
+      return `${anchors}\n<figure ${figureId}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
     }
 
     if (match.startsWith("\\begin{table}") || match.startsWith("\\begin{tabwindow}")) {
-      // Similar logic for tables if needed...
+      // Tables could follow a similar pattern if needed.
     }
 
     return `\\includegraphics{${renderBlockToImage(match, opts)}}`;

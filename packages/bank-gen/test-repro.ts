@@ -1,61 +1,68 @@
 import { collectSequentialLabels, replaceFigureReferences } from "./src/figure-labels";
 
 async function main() {
-    console.log("--- Testing Sequential Counting and Hashing ---");
+  console.log("--- Testing Multi-Label Resolution and Sorting ---");
 
-    const question1 = `
-    Hãy xem Hình \\ref{fig:one}.
-    \\begin{figure}
-      \\centering
-      \\includegraphics{fig1.png}
-      \\caption{Hình đầu tiên}
-      \\label{fig:one}
-    \\end{figure}
+  // Simulate questions with numeric IDs
+  const q9 = `
+    \\baitracnghiem{q9}{
+      Xem Hình \\ref{fig:one}.
+      \\begin{figure}
+        \\centering
+        \\includegraphics{f1.png}
+        \\caption{Figure One}
+        \\label{fig:one}
+      \\end{figure}
+    }{}{}{}
   `;
 
-    const question2 = `
-    Đây là một hình không có label.
-    \\begin{figure}
-      \\centering
-      \\includegraphics{fig2.png}
-      \\caption{Hình thứ hai}
-    \\end{figure}
-    Và đây là Hình \\ref{fig:three}.
-    \\begin{figure}
-      \\centering
-      \\includegraphics{fig3.png}
-      \\caption{Hình thứ ba}
-      \\label{fig:three}
-    \\end{figure}
+  // Q10 should come AFTER Q9 in natural sorting
+  const q10 = `
+    \\baitracnghiem{q10}{
+      Xem Hình \\ref{fig:sub} và Hình \\ref{fig:main}.
+      \\begin{figure}
+        \\centering
+        \\begin{minipage}{0.5\\textwidth}
+          \\includegraphics{f2.png}
+          \\label{fig:sub}
+        \\end{minipage}
+        \\caption{Figure Multi}
+        \\label{fig:main}
+      \\end{figure}
+    }{}{}{}
   `;
 
-    const contents = [question1, question2];
-    const labelData = collectSequentialLabels(contents);
+  const q2 = `
+    \\baitracnghiem{q2}{
+       Không có hình.
+    }{}{}{}
+  `;
 
-    console.log("Label Map:", JSON.stringify(Object.fromEntries(labelData.labels), null, 2));
-    console.log("Hash Map Size:", labelData.hashes.size);
+  // We sort them naturally before scanning, just like in index.ts
+  const contents = [q9, q10, q2].sort((a, b) => {
+    const idA = /\{([^}]+)\}/.exec(a)?.[1] || "";
+    const idB = /\{([^}]+)\}/.exec(b)?.[1] || "";
+    return idA.localeCompare(idB, undefined, { numeric: true, sensitivity: 'base' });
+  });
 
-    console.log("\n--- Testing Reference Replacement ---");
-    const replaced1 = replaceFigureReferences(question1, labelData.labels, "vi");
-    console.log("Question 1 Replaced:\n", replaced1);
+  console.log("Sorted Order:", contents.map(c => /\{([^}]+)\}/.exec(c)?.[1]));
 
-    const replaced2 = replaceFigureReferences(question2, labelData.labels, "vi");
-    console.log("Question 2 Replaced:\n", replaced2);
+  const labelData = collectSequentialLabels(contents);
 
-    console.log("\n--- Verification ---");
-    if (labelData.labels.get("fig:one") === "1" && labelData.labels.get("fig:three") === "3") {
-        console.log("SUCCESS: Sequential labels (1, 3) correctly assigned.");
-    } else {
-        console.error("FAILURE: Incorrect label mapping.");
-    }
+  console.log("Label Map:", JSON.stringify(Object.fromEntries(labelData.labels), null, 2));
 
-    // Verify unlabeled figure exists in hash map
-    const unlabeledFig = `\\begin{figure}
-      \\centering
-      \\includegraphics{fig2.png}
-      \\caption{Hình thứ hai}
-    \\end{figure}`;
-    // Note: normalization might be tricky here if whitespace differs
+  console.log("\n--- Reference Verification ---");
+  const ref1 = replaceFigureReferences("Hình \\ref{fig:one}", labelData.labels, "vi");
+  const ref2 = replaceFigureReferences("Hình \\ref{fig:sub} và \\ref{fig:main}", labelData.labels, "vi");
+
+  console.log("Ref 1:", ref1);
+  console.log("Ref 2:", ref2);
+
+  if (labelData.labels.get("fig:one") === "1" && labelData.labels.get("fig:main") === "2" && labelData.labels.get("fig:sub") === "2") {
+    console.log("\nSUCCESS: Sequential numbering (1, 2) and multi-labels (sub=2, main=2) both verified.");
+  } else {
+    console.error("\nFAILURE: Logic error in numbering or labeling.");
+  }
 }
 
 main().catch(console.error);
