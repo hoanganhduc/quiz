@@ -238,27 +238,30 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   useEffect(() => {
     if (!bank) return;
 
+    let timer: number | null = null;
     const resolveNumbers = () => {
-      // Find all figures and establish their order
-      const figures = Array.from(document.querySelectorAll('figure[id^="fig-"]'));
+      // Find all figures in order
+      const figures = Array.from(document.querySelectorAll('[data-latex-type="figure"]'));
       const labelToNum = new Map<string, number>();
 
       figures.forEach((fig, i) => {
         const num = i + 1;
-        const id = fig.getAttribute("id")?.replace("fig-", "");
-        if (id) labelToNum.set(id, num);
 
-        // Also check for auxiliary anchors (multi-label support)
+        // Primary label
+        const primaryLabel = fig.getAttribute("data-label");
+        if (primaryLabel) labelToNum.set(primaryLabel, num);
+
+        // Map auxiliary anchors to the same number
         // These are siblings of the figure
         let prev = fig.previousElementSibling;
-        while (prev && prev.classList.contains("latex-anchor")) {
-          const aid = prev.getAttribute("id")?.replace("fig-", "");
+        while (prev && prev.getAttribute("data-latex-type") === "anchor") {
+          const aid = prev.getAttribute("data-label");
           if (aid) labelToNum.set(aid, num);
           prev = prev.previousElementSibling;
         }
       });
 
-      // Update all placeholders in the DOM
+      // Update all placeholders
       const spans = Array.from(document.querySelectorAll(".latex-fig-num"));
       spans.forEach((span) => {
         const label = span.getAttribute("data-label");
@@ -267,30 +270,40 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
           if (n !== undefined) {
             span.textContent = n.toString();
           } else {
-            // If not found in this exam, might be a dangling ref
             span.textContent = "?";
           }
         }
       });
     };
 
-    // Run initially
+    const debouncedResolve = () => {
+      if (timer) window.clearTimeout(timer);
+      timer = window.setTimeout(resolveNumbers, 100);
+    };
+
     resolveNumbers();
 
-    // Observe changes to handle incremental loading or re-renders
     const observer = new MutationObserver((mutations) => {
       let shouldUpdate = false;
       for (const m of mutations) {
         if (m.type === "childList" || m.type === "characterData") {
+          // Ignore our own updates to textContent of spans
+          const target = m.target as HTMLElement;
+          if (target.classList?.contains("latex-fig-num") || target.parentElement?.classList?.contains("latex-fig-num")) {
+            continue;
+          }
           shouldUpdate = true;
           break;
         }
       }
-      if (shouldUpdate) resolveNumbers();
+      if (shouldUpdate) debouncedResolve();
     });
 
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    return () => {
+      observer.disconnect();
+      if (timer) window.clearTimeout(timer);
+    };
   }, [bank]);
 
   useEffect(() => {

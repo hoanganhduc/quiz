@@ -300,15 +300,32 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       if (captionRes) {
         captionText = captionRes.content.trim();
         contentForImage = contentForImage.replace(captionRes.fullMatch, "");
+
+        // Match label AFTER caption start
+        const textAfterCaption = match.slice(match.indexOf(captionRes.fullMatch) + captionRes.fullMatch.length);
+        const nextLabelMatch = LABEL_REG.exec(textAfterCaption);
+        if (nextLabelMatch) {
+          label = nextLabelMatch[1].trim();
+        }
+        LABEL_REG.lastIndex = 0; // Reset
+      }
+
+      // If no label found after caption, pick the first one (or last as fallback for complex items)
+      if (!label && allLabels.length > 0) {
+        label = allLabels[allLabels.length - 1]; // Usually the group label is last
       }
 
       const imgUrl = renderBlockToImage(contentForImage, opts);
       const hash = hashContent(match);
 
       const placeholderId = label || hash;
-      const figureNumberPlaceholder = `[[FIG_NUM_${placeholderId}]]`;
+      const figureNumberPlaceholder = `<span class="latex-fig-num" data-label="${placeholderId}">[[FIG_NUM_${placeholderId}]]</span>`;
 
-      const figureId = placeholderId ? `id="fig-${placeholderId}"` : "";
+      const figureAttrs = [
+        placeholderId ? `id="fig-${placeholderId}"` : "",
+        `data-latex-type="figure"`,
+        `data-label="${placeholderId}"`
+      ].filter(Boolean).join(" ");
 
       const prefix = opts.language === "en" ? "Figure" : "Hình";
       const figcaption = `<figcaption>${prefix} ${figureNumberPlaceholder}: ${captionText}</figcaption>`;
@@ -316,10 +333,10 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       // Create anchors for all labels so they all jump to this figure
       const anchors = allLabels
         .filter((l) => l !== label) // Skip the primary id
-        .map((l) => `<div id="fig-${l}" class="latex-anchor"></div>`)
+        .map((l) => `<div id="fig-${l}" class="latex-anchor" data-latex-type="anchor" data-label="${l}"></div>`)
         .join("\n");
 
-      return `${anchors}\n<figure ${figureId}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
+      return `${anchors}\n<figure ${figureAttrs}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
     }
 
     if (match.startsWith("\\begin{table}") || match.startsWith("\\begin{tabwindow}")) {

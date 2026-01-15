@@ -142,7 +142,7 @@ function transformLatexText(input: string): string {
   const imgTokens: string[] = [];
 
   // Protect HTML tags first so bank-gen injected HTML is preserved
-  let text = input.replace(/<\/?[a-z][a-z0-9]*[^>]*>/gi, (match) => {
+  let text = input.replace(/<[^>]+>/g, (match) => {
     const token = `__HTML_TAG_${htmlTagTokens.length}__`;
     htmlTagTokens.push(match);
     return token;
@@ -163,6 +163,7 @@ function transformLatexText(input: string): string {
   });
 
   text = escapeHtml(text);
+
   text = text.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, '<div class="latex-figure latex-omit">[TikZ diagram omitted]</div>');
   text = text.replace(/\\begin\{tikz\}[\s\S]*?\\end\{tikz\}/g, '<div class="latex-figure latex-omit">[TikZ diagram omitted]</div>');
   text = text.replace(/\\begin\{center\}/g, '<div class="latex-center">');
@@ -207,11 +208,6 @@ function transformLatexText(input: string): string {
   });
   htmlTagTokens.forEach((tag, index) => {
     text = text.split(`__HTML_TAG_${index}__`).join(tag);
-  });
-
-  // Wrap figure number placeholders for dynamic resolution
-  text = text.replace(/\[\[FIG_NUM_([^\]]+)\]\]/g, (_match, label) => {
-    return `<span class="latex-fig-num" data-label="${label}">[[FIG_NUM_${label}]]</span>`;
   });
 
   return text;

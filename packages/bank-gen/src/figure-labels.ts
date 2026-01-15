@@ -83,14 +83,14 @@ export function replaceFigureReferences(
   const tableName = language === "en" ? "Table" : "Bảng";
 
   // Robust regex for \ref and its common prefixes
-  // We now output a placeholder [[FIG_NUM_label]] which the UI will resolve.
+  // We now output a placeholder wrapped in a span which the UI will resolve.
   return text.replace(/(\\figurename|\\tablename)?\s*~?\s*\\ref\{([^}]+)\}/g, (match, prefix, label) => {
     const trimmedLabel = label.trim();
-    const placeholder = `[[FIG_NUM_${trimmedLabel}]]`;
+    const placeholder = `<span class="latex-fig-num" data-label="${trimmedLabel}">[[FIG_NUM_${trimmedLabel}]]</span>`;
 
     let display = placeholder;
     if (prefix) {
-      const typeName = prefix.includes("figure") ? figureName : tableName;
+      const typeName = prefix.includes("figure") || prefix.includes("figurename") ? figureName : tableName;
       display = `${typeName} ${display}`;
     }
 
