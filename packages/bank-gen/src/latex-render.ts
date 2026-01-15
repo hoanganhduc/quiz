@@ -49,7 +49,7 @@ function normalizeBlockForRender(block: string): string {
 
 function buildTexDocument(body: string): string {
   return [
-    "\\documentclass[preview,varwidth=17cm]{standalone}",
+    "\\documentclass[preview,varwidth=17cm,border=3pt]{standalone}",
     "\\usepackage[utf8]{inputenc}",
     "\\usepackage{amsmath,amssymb}",
     "\\usepackage{mathpazo}",
