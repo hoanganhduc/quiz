@@ -49,13 +49,14 @@ function normalizeBlockForRender(block: string): string {
 
 function buildTexDocument(body: string): string {
   return [
-    "\\documentclass[preview]{standalone}",
+    "\\documentclass[preview,varwidth=17cm]{standalone}",
     "\\usepackage[utf8]{inputenc}",
     "\\usepackage{amsmath,amssymb}",
     "\\usepackage{mathpazo}",
     "\\usepackage{adjustbox}",
     "\\usepackage{array,booktabs,longtable}",
     "\\usepackage{graphicx}",
+    "\\usepackage{varwidth}",
     "\\usepackage{tikz}",
     "\\usetikzlibrary{calc,intersections,arrows,backgrounds,circuits.logic.US}",
     "\\usepackage{tkz-base}",
