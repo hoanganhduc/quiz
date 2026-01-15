@@ -304,15 +304,14 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
 
       const imgUrl = renderBlockToImage(contentForImage, opts);
       const hash = hashContent(match);
-      const num = (label && opts.labelData?.labels.get(label)) || opts.labelData?.hashes.get(hash);
 
-      const figureId = label || hash ? `id="fig-${label || hash}"` : "";
+      const placeholderId = label || hash;
+      const figureNumberPlaceholder = `[[FIG_NUM_${placeholderId}]]`;
+
+      const figureId = placeholderId ? `id="fig-${placeholderId}"` : "";
 
       const prefix = opts.language === "en" ? "Figure" : "Hình";
-      if (!num) {
-        console.warn(`[bank-gen] Warning: Figure number not found for block (label: ${label}, hash: ${hash}).`);
-      }
-      const figcaption = `<figcaption>${prefix} ${num || "?"}: ${captionText}</figcaption>`;
+      const figcaption = `<figcaption>${prefix} ${figureNumberPlaceholder}: ${captionText}</figcaption>`;
 
       // Create anchors for all labels so they all jump to this figure
       const anchors = allLabels

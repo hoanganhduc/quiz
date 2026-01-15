@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MathJax } from "better-react-mathjax";
 import clsx from "clsx";
 
@@ -209,6 +209,11 @@ function transformLatexText(input: string): string {
     text = text.split(`__HTML_TAG_${index}__`).join(tag);
   });
 
+  // Wrap figure number placeholders for dynamic resolution
+  text = text.replace(/\[\[FIG_NUM_([^\]]+)\]\]/g, (_match, label) => {
+    return `<span class="latex-fig-num" data-label="${label}">[[FIG_NUM_${label}]]</span>`;
+  });
+
   return text;
 }
 
@@ -270,17 +275,42 @@ function formatLatexToHtml(input: string): string {
 }
 
 export function LatexContent({ content, inline = false, className }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const html = useMemo(() => formatLatexToHtml(content ?? ""), [content]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleClick = (e: MouseEvent) => {
+      const target = (e.target as HTMLElement).closest("a");
+      if (target && target.classList.contains("latex-ref")) {
+        e.preventDefault();
+        const href = target.getAttribute("href");
+        if (href?.startsWith("#")) {
+          const id = href.slice(1);
+          const element = document.getElementById(id);
+          if (element) {
+            element.scrollIntoView({ behavior: "smooth", block: "start" });
+          }
+        }
+      }
+    };
+
+    container.addEventListener("click", handleClick);
+    return () => container.removeEventListener("click", handleClick);
+  }, [html]);
+
   if (inline) {
     return (
       <MathJax renderMode="post" inline dynamic>
-        <span className={clsx(className)} dangerouslySetInnerHTML={{ __html: html }} />
+        <span ref={containerRef} className={clsx(className)} dangerouslySetInnerHTML={{ __html: html }} />
       </MathJax>
     );
   }
   return (
     <MathJax renderMode="post" dynamic>
-      <div className={clsx(className)} dangerouslySetInnerHTML={{ __html: html }} />
+      <div ref={containerRef} className={clsx(className)} dangerouslySetInnerHTML={{ __html: html }} />
     </MathJax>
   );
 }

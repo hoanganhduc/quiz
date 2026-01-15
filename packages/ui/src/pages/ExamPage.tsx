@@ -115,28 +115,28 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
   const examTitle = config?.title ? config.title : `Exam ${config?.examId ?? examId}`;
   const examLink = config
     ? (() => {
-        const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
-        const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
-        const base = trimmed === "/" ? "" : trimmed;
-        return `${window.location.origin}${base}/#/exam/${encodeURIComponent(config.subject)}/${encodeURIComponent(
-          config.examId
-        )}`;
-      })()
+      const rawBase = import.meta.env.VITE_BASE_URL ?? "/";
+      const trimmed = rawBase.endsWith("/") ? rawBase.slice(0, -1) : rawBase;
+      const base = trimmed === "/" ? "" : trimmed;
+      return `${window.location.origin}${base}/#/exam/${encodeURIComponent(config.subject)}/${encodeURIComponent(
+        config.examId
+      )}`;
+    })()
     : "";
 
   const totalQuestions = bank?.questions.length ?? 0;
   const answeredCount = bank
     ? bank.questions.filter((q) => {
-        const v = answers[q.uid];
-        if (q.type === "fill-blank") {
-          return Array.isArray(v)
-            ? v.some((x) => x.trim() !== "")
-            : typeof v === "string"
-              ? v.trim() !== ""
-              : false;
-        }
-        return typeof v === "string" && v !== "";
-      }).length
+      const v = answers[q.uid];
+      if (q.type === "fill-blank") {
+        return Array.isArray(v)
+          ? v.some((x) => x.trim() !== "")
+          : typeof v === "string"
+            ? v.trim() !== ""
+            : false;
+      }
+      return typeof v === "string" && v !== "";
+    }).length
     : 0;
   const remainingCount = Math.max(0, totalQuestions - answeredCount);
   const completionPct = totalQuestions === 0 ? 0 : (answeredCount / totalQuestions) * 100;
@@ -234,6 +234,64 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     }, 400);
     return () => clearTimeout(timer);
   }, [answers, examId, versionId, bank]);
+
+  useEffect(() => {
+    if (!bank) return;
+
+    const resolveNumbers = () => {
+      // Find all figures and establish their order
+      const figures = Array.from(document.querySelectorAll('figure[id^="fig-"]'));
+      const labelToNum = new Map<string, number>();
+
+      figures.forEach((fig, i) => {
+        const num = i + 1;
+        const id = fig.getAttribute("id")?.replace("fig-", "");
+        if (id) labelToNum.set(id, num);
+
+        // Also check for auxiliary anchors (multi-label support)
+        // These are siblings of the figure
+        let prev = fig.previousElementSibling;
+        while (prev && prev.classList.contains("latex-anchor")) {
+          const aid = prev.getAttribute("id")?.replace("fig-", "");
+          if (aid) labelToNum.set(aid, num);
+          prev = prev.previousElementSibling;
+        }
+      });
+
+      // Update all placeholders in the DOM
+      const spans = Array.from(document.querySelectorAll(".latex-fig-num"));
+      spans.forEach((span) => {
+        const label = span.getAttribute("data-label");
+        if (label) {
+          const n = labelToNum.get(label);
+          if (n !== undefined) {
+            span.textContent = n.toString();
+          } else {
+            // If not found in this exam, might be a dangling ref
+            span.textContent = "?";
+          }
+        }
+      });
+    };
+
+    // Run initially
+    resolveNumbers();
+
+    // Observe changes to handle incremental loading or re-renders
+    const observer = new MutationObserver((mutations) => {
+      let shouldUpdate = false;
+      for (const m of mutations) {
+        if (m.type === "childList" || m.type === "characterData") {
+          shouldUpdate = true;
+          break;
+        }
+      }
+      if (shouldUpdate) resolveNumbers();
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [bank]);
 
   useEffect(() => {
     if (!confirmOpen && !clearConfirmOpen && !clearAnswersOpen) return;

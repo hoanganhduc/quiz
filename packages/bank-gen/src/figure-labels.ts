@@ -18,8 +18,8 @@ function hashContent(content: string): string {
 }
 
 /**
- * Collects figure and table numbers by scanning content sequentially.
- * Supports multiple labels per environment.
+ * Collects figure and table labels by scanning content sequentially.
+ * This is still used to find all labels, but the UI will handle the actual numbering.
  */
 export function collectSequentialLabels(contents: string[]): LabelMap {
   const labelMap = new Map<string, string>();
@@ -74,7 +74,7 @@ export function collectSequentialLabels(contents: string[]): LabelMap {
 
 export function replaceFigureReferences(
   text: string,
-  labelNumbers: Map<string, string>,
+  _labelNumbers: Map<string, string>,
   language: "en" | "vi" = "vi"
 ): string {
   if (!text) return text;
@@ -83,15 +83,12 @@ export function replaceFigureReferences(
   const tableName = language === "en" ? "Table" : "Bảng";
 
   // Robust regex for \ref and its common prefixes
+  // We now output a placeholder [[FIG_NUM_label]] which the UI will resolve.
   return text.replace(/(\\figurename|\\tablename)?\s*~?\s*\\ref\{([^}]+)\}/g, (match, prefix, label) => {
     const trimmedLabel = label.trim();
-    const resolved = labelNumbers.get(trimmedLabel);
+    const placeholder = `[[FIG_NUM_${trimmedLabel}]]`;
 
-    let display = resolved || trimmedLabel;
-    if (resolved === undefined) {
-      console.warn(`[bank-gen] Warning: Reference label '${trimmedLabel}' not found in label map.`);
-    }
-
+    let display = placeholder;
     if (prefix) {
       const typeName = prefix.includes("figure") ? figureName : tableName;
       display = `${typeName} ${display}`;
