@@ -9,6 +9,7 @@ type RenderOptions = {
   assetsDir: string;
   assetsBase: string;
   dpi?: number;
+  labelNumbers?: Map<string, string>;
 };
 
 const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure)\}[\s\S]*?\\end\{\1\}/g;
@@ -47,8 +48,8 @@ function normalizeBlockForRender(block: string): string {
   return normalized;
 }
 
-function buildTexDocument(body: string): string {
-  return [
+function buildTexDocument(body: string, initialFigureCounter?: number): string {
+  const parts = [
     "\\documentclass[preview,varwidth=21cm,border=3pt]{standalone}",
     "\\usepackage[utf8]{inputenc}",
     "\\usepackage{amsmath,amssymb}",
@@ -66,12 +67,15 @@ function buildTexDocument(body: string): string {
     "\\usepackage[utf8]{vietnam}",
     "\\usepackage{xcolor}",
     "\\pagestyle{empty}",
-    "\\newcommand{\\dongkhung}[1]{\\par\\noindent\\fbox{\\begin{minipage}{\\linewidth-2\\fboxsep}\\vspace{0.15cm}#1\\vspace{0.15cm}\\end{minipage}}\\par}",
-    "\\begin{document}",
-    body,
-    "\\end{document}",
-    ""
-  ].join("\n");
+    "\\newcommand{\\dongkhung}[1]{\\par\\noindent\\fbox{\\begin{minipage}{\\linewidth-2\\fboxsep}\\vspace{0.15cm}#1\\vspace{0.15cm}\\end{minipage}}\\par}"
+  ];
+
+  if (initialFigureCounter !== undefined) {
+    parts.push(`\\setcounter{figure}{${initialFigureCounter}}`);
+  }
+
+  parts.push("\\begin{document}", body, "\\end{document}", "");
+  return parts.join("\n");
 }
 
 type RenderTool = {
@@ -156,14 +160,14 @@ function renderPdfToPng(pdfPath: string, outputPath: string, dpi: number, workDi
 const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
 const LATEX_DEBUG = ["1", "true", "yes"].includes((process.env.LATEX_DEBUG ?? "").toLowerCase());
 
-function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
+function runLatexToPng(texBody: string, outputPath: string, dpi: number, initialFigureCounter?: number): void {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
   const texPath = join(workDir, "snippet.tex");
   const pdfPath = join(workDir, "snippet.pdf");
   const logPath = join(workDir, "snippet.log");
 
   try {
-    writeFileSync(texPath, buildTexDocument(texBody), "utf8");
+    writeFileSync(texPath, buildTexDocument(texBody, initialFigureCounter), "utf8");
     const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "snippet.tex"], {
       cwd: workDir,
       encoding: "utf8"
@@ -200,11 +204,29 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number): void {
 
 function renderBlockToImage(block: string, opts: RenderOptions): string {
   const normalized = normalizeBlockForRender(block);
-  const hash = hashContent(normalized);
+
+  // Try to find a label to sync figure number
+  let initialFigureCounter: number | undefined;
+  if (opts.labelNumbers) {
+    const labelMatch = /\\label\{([^}]+)\}/.exec(normalized);
+    if (labelMatch) {
+      const label = labelMatch[1];
+      const numberStr = opts.labelNumbers.get(label);
+      if (numberStr) {
+        const num = parseInt(numberStr, 10);
+        if (!isNaN(num)) {
+          // If figure is 5, we set counter to 4 so next increment is 5.
+          initialFigureCounter = num - 1;
+        }
+      }
+    }
+  }
+
+  const hash = hashContent(normalized + (initialFigureCounter ?? ""));
   const filename = `latex-${hash}.png`;
   const outputPath = resolve(opts.assetsDir, filename);
   if (!existsSync(outputPath)) {
-    runLatexToPng(normalized, outputPath, opts.dpi ?? 220);
+    runLatexToPng(normalized, outputPath, opts.dpi ?? 220, initialFigureCounter);
   }
   const base = normalizeAssetsBase(opts.assetsBase);
   return `${base}${filename}`;

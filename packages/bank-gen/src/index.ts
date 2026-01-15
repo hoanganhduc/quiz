@@ -663,7 +663,8 @@ async function run(): Promise<void> {
       if (opts.latexAssetsDir && opts.latexAssetsBase) {
         const rendered = renderLatexAssets(publicBank, answersBank, {
           assetsDir: resolve(opts.latexAssetsDir),
-          assetsBase: opts.latexAssetsBase
+          assetsBase: opts.latexAssetsBase,
+          labelNumbers: figureLabelNumbers
         });
         publicBank = rendered.publicBank;
         answersBank = rendered.answersBank;

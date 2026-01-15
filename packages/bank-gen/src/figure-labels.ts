@@ -29,6 +29,10 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
 \\usepackage[utf8]{vietnam}
 \\usepackage{amsmath,amssymb}
 \\usepackage{tikz}
+\\usetikzlibrary{calc,intersections,arrows,backgrounds,circuits.logic.US}
+\\usepackage{tkz-base}
+\\usepackage{tkz-euclide}
+\\usepackage{tkz-tab}
 \\begin{document}
 ${inputs}
 \\end{document}
