@@ -244,7 +244,7 @@ function formatLatexToHtml(input: string): string {
     }
 
     if (depth === 0) {
-      const inner = text.slice(braceStart + 1, pos - 1);
+      const inner = text.slice(braceStart + 1, pos - 1).trim();
       const html = `<div class="latex-box latex-box-block">${formatLatexToHtml(inner)}</div>`;
       const token = `${tokenPrefix}${blocks.length}__`;
       blocks.push(html);

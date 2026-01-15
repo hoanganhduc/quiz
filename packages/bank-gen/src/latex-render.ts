@@ -240,11 +240,17 @@ function stripCommentLines(text: string): string {
 }
 
 function extractCommandContent(text: string, command: string): { content: string; fullMatch: string } | null {
-  const token = `\\${command}{`;
+  const token = `\\${command}`;
   const start = text.indexOf(token);
   if (start === -1) return null;
 
-  let pos = start + token.length;
+  let braceStart = text.indexOf("{", start + token.length);
+  // Verify only whitespace between command and {
+  if (braceStart === -1 || text.slice(start + token.length, braceStart).trim() !== "") {
+    return null;
+  }
+
+  let pos = braceStart + 1;
   let depth = 1;
   while (pos < text.length && depth > 0) {
     if (text[pos] === "{") depth += 1;
@@ -254,7 +260,7 @@ function extractCommandContent(text: string, command: string): { content: string
 
   if (depth === 0) {
     return {
-      content: text.slice(start + token.length, pos - 1),
+      content: text.slice(braceStart + 1, pos - 1),
       fullMatch: text.slice(start, pos)
     };
   }
@@ -273,13 +279,11 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
       const labelRes = extractCommandContent(match, "label");
       if (labelRes) {
         label = labelRes.content.trim();
-        // Keep label in contentForImage so renderBlockToImage can sync counter
       }
 
       const captionRes = extractCommandContent(match, "caption");
       if (captionRes) {
         captionText = captionRes.content.trim();
-        // Remove caption from image to avoid double caption
         contentForImage = contentForImage.replace(captionRes.fullMatch, "");
       }
 
