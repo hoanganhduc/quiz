@@ -13,7 +13,7 @@ type RenderOptions = {
   language?: "en" | "vi";
 };
 
-const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure)\}[\s\S]*?\\end\{\1\}/g;
+const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
 const MACRO_REGEX = /\\dongkhung\{((?:[^{}]|{[^{}]*})*)\}/g;
 
 function normalizeAssetsBase(value: string): string {
@@ -244,11 +244,18 @@ function extractCommandContent(text: string, command: string): { content: string
   const start = text.indexOf(token);
   if (start === -1) return null;
 
-  let braceStart = text.indexOf("{", start + token.length);
-  // Verify only whitespace between command and {
-  if (braceStart === -1 || text.slice(start + token.length, braceStart).trim() !== "") {
-    return null;
+  // Search for { after the command, skipping whitespace
+  let braceStart = -1;
+  for (let i = start + token.length; i < text.length; i++) {
+    const char = text[i];
+    if (char === "{") {
+      braceStart = i;
+      break;
+    }
+    if (!/\s/.test(char)) break; // Found non-whitespace before {
   }
+
+  if (braceStart === -1) return null;
 
   let pos = braceStart + 1;
   let depth = 1;

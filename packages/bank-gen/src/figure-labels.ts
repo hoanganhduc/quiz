@@ -9,7 +9,17 @@ export function collectFigureLabelNumbers(files: string[]): Map<string, string> 
   if (files.length === 0) return new Map();
 
   const labelMap = new Map<string, string>();
-  const repoRoot = process.cwd();
+
+  // Try to find the real repository root by looking for .git or package.json
+  let repoRoot = process.cwd();
+  let current = repoRoot;
+  while (current !== dirname(current)) {
+    if (existsSync(join(current, ".git")) || existsSync(join(current, "package.json"))) {
+      repoRoot = current;
+      break;
+    }
+    current = dirname(current);
+  }
 
   const workDir = mkdtempSync(join(tmpdir(), "figure-labels-"));
   const wrapperPath = join(workDir, "wrapper.tex");
@@ -40,18 +50,17 @@ ${inputs}
   const texInputs = `.${delimiter}${repoRoot}${delimiter}${repoRoot}${process.platform === "win32" ? "//" : "//:"}${delimiter}`;
 
   try {
-    const result = spawnSync(
-      LATEX_CMD,
-      ["-interaction=nonstopmode", "-output-directory", workDir, "wrapper.tex"],
-      {
-        cwd: workDir,
-        encoding: "utf8",
-        env: { ...process.env, TEXINPUTS: texInputs }
-      }
-    );
-
-    if (result.status !== 0 && result.status !== null) {
-      console.warn(`[bank-gen] ${LATEX_CMD} returned status ${result.status}. Label collection might be incomplete.`);
+    // Run twice to ensure labels are resolved
+    for (let run = 0; run < 2; run++) {
+      spawnSync(
+        LATEX_CMD,
+        ["-interaction=nonstopmode", "-output-directory", workDir, "wrapper.tex"],
+        {
+          cwd: workDir,
+          encoding: "utf8",
+          env: { ...process.env, TEXINPUTS: texInputs }
+        }
+      );
     }
 
     const auxPath = join(workDir, "wrapper.aux");
@@ -66,26 +75,35 @@ ${inputs}
         if (labelEnd === -1) continue;
         const label = part.slice(0, labelEnd).trim();
 
-        const valueStart = part.indexOf("{{", labelEnd);
-        if (valueStart === -1) continue;
+        const valueIndex = part.indexOf("{", labelEnd);
+        if (valueIndex === -1) continue;
 
-        // Find the matching closing brace for the first argument {{NUMBER}{PAGE}}
-        // which is usually the third character after {{ if it's a simple number
-        // but we look for the next }
-        const numberEnd = part.indexOf("}", valueStart + 2);
-        if (numberEnd === -1) continue;
+        // The value part is usually { {number} {page} ... }
+        // We want the content of the first inner brace
+        let pos = valueIndex + 1;
+        while (pos < part.length && /\s/.test(part[pos])) pos++;
+        if (part[pos] !== "{") continue;
 
-        let numberText = part.slice(valueStart + 2, numberEnd);
-        // Strip common LaTeX decorations
-        // e.g. \foreignlanguage {vietnam}{4} -> 4
-        // e.g. \protect \@arabic {4} -> 4
-        numberText = numberText.replace(/\\(?:arabic|@arabic|alph|Alph|roman|Roman|number|foreignlanguage\{[^}]+\}|protect)\s*\{?([^}]+)\}?/g, "$1");
-        // Remove any remaining braces
-        numberText = numberText.replace(/[\{\}]/g, "").trim();
+        let numberStart = pos + 1;
+        let depth = 1;
+        let p = numberStart;
+        while (p < part.length && depth > 0) {
+          if (part[p] === "{") depth++;
+          else if (part[p] === "}") depth--;
+          p++;
+        }
 
-        if (label && numberText && !labelMap.has(label)) {
-          console.debug(`[bank-gen] Found label: ${label} -> ${numberText}`);
-          labelMap.set(label, numberText);
+        if (depth === 0) {
+          let numberText = part.slice(numberStart, p - 1);
+          // Strip common LaTeX decorations
+          numberText = numberText.replace(/\\(?:arabic|@arabic|alph|Alph|roman|Roman|number|foreignlanguage\{[^}]+\}|protect|unhbox|voidb@x|hbox)\s*\{?([^}]+)\}?/g, "$1");
+          // Remove any remaining braces and tags
+          numberText = numberText.replace(/[\{\}]/g, "").trim();
+
+          if (label && numberText && !labelMap.has(label)) {
+            console.debug(`[bank-gen] Found label: ${label} -> ${numberText}`);
+            labelMap.set(label, numberText);
+          }
         }
       }
     }
