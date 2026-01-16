@@ -3,7 +3,7 @@ import { Button } from "../ui/Button";
 import { Card } from "../ui/Card";
 import { Alert } from "../ui/Alert";
 import { Badge } from "../ui/Badge";
-import { githubLoginUrl, googleLoginUrl } from "../../api";
+import { githubLoginUrl, googleLoginUrl, getSession } from "../../api";
 
 type StatusTone = "info" | "warn" | "error" | "success";
 
@@ -28,20 +28,17 @@ export function AdminAuthGate({ children }: Props) {
   const apiBase = import.meta.env.VITE_API_BASE;
 
   const loadSession = async () => {
-    if (!apiBase) {
-      setStatus({ tone: "error", text: "API base not configured" });
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/auth/me`, { credentials: "include" });
-      if (!res.ok) throw new Error(await res.text());
-      const data = (await res.json()) as { session: SessionLike | null };
-      setSession(data.session);
+      const sess = await getSession();
+      setSession(sess);
     } catch (err: any) {
-      setStatus({ tone: "error", text: err?.message ?? "Failed to load session" });
-      setSession(null);
+      if (err?.message?.includes("401") || err?.message?.includes("Unauthorized")) {
+        setSession(null);
+      } else {
+        setStatus({ tone: "error", text: err?.message ?? "Failed to load session" });
+        setSession(null);
+      }
     } finally {
       setLoading(false);
     }

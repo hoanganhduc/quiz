@@ -100,7 +100,7 @@ function isDeleted(deletedAt?: string): boolean {
 
 function isOpenExam(exam: ExamV1): boolean {
   const policy = normalizeExamPolicyDefaults(exam.policy);
-  if (policy.authMode !== "none") return false;
+  if (policy.authMode === "required") return false;
   if (policy.requireViewCode || policy.requireSubmitCode) return false;
   return true;
 }
