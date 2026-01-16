@@ -33,6 +33,8 @@ export function HistoryPage({ session, setSession }: Props) {
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const hasSelectedDeleted = submissions.some(s => selected.has(s.submissionId) && s.deletedAt);
+
   const loggedIn =
     session && (session.provider === "github" || session.provider === "google");
 
@@ -182,13 +184,15 @@ export function HistoryPage({ session, setSession }: Props) {
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => handleBatchAction("delete")} disabled={loading || selected.size === 0}>
-              Soft Delete
+              Delete
             </Button>
-            <Button variant="secondary" size="sm" onClick={() => handleBatchAction("restore")} disabled={loading || selected.size === 0}>
-              Restore
-            </Button>
+            {hasSelectedDeleted && (
+              <Button variant="secondary" size="sm" onClick={() => handleBatchAction("restore")} disabled={loading}>
+                Restore
+              </Button>
+            )}
             <Button variant="danger" size="sm" onClick={() => handleBatchAction("hard-delete")} disabled={loading || selected.size === 0}>
-              Hard Delete
+              Delete Permanently
             </Button>
           </div>
         </div>

@@ -21,6 +21,8 @@ export function AdminSubmissionsPage() {
     const [error, setError] = useState<string | null>(null);
     const [selected, setSelected] = useState<Set<string>>(new Set());
 
+    const hasSelectedDeleted = submissions.some(s => selected.has(s.submissionId) && s.deletedAt);
+
     const loadSubmissions = async (next?: string) => {
         setLoading(true);
         setError(null);
@@ -98,13 +100,15 @@ export function AdminSubmissionsPage() {
             <div className="flex flex-wrap gap-2 items-center bg-muted/50 p-3 rounded-lg border border-border">
                 <span className="text-sm font-medium mr-2">{selected.size} selected</span>
                 <Button variant="secondary" size="sm" onClick={() => handleBatchAction("delete")} disabled={loading || selected.size === 0}>
-                    Soft Delete
+                    Delete
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => handleBatchAction("restore")} disabled={loading || selected.size === 0}>
-                    Restore
-                </Button>
+                {hasSelectedDeleted && (
+                    <Button variant="secondary" size="sm" onClick={() => handleBatchAction("restore")} disabled={loading}>
+                        Restore
+                    </Button>
+                )}
                 <Button variant="danger" size="sm" onClick={() => handleBatchAction("hard-delete")} disabled={loading || selected.size === 0}>
-                    Hard Delete
+                    Delete Permanently
                 </Button>
             </div>
 
