@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import clsx from "clsx";
+import { Footer } from "./Footer";
 
 type MaxWidth = "3xl" | "4xl" | "6xl";
 
@@ -17,8 +18,11 @@ type Props = {
 
 export function PageShell({ children, maxWidth = "6xl", className }: Props) {
   return (
-    <div className="bg-bg min-h-screen">
-      <div className={clsx("mx-auto w-full px-3 sm:px-4 py-6 sm:py-8", maxWidthClass[maxWidth], className)}>{children}</div>
+    <div className="bg-bg min-h-screen flex flex-col">
+      <main className={clsx("mx-auto w-full px-3 sm:px-4 py-6 sm:py-8 flex-1", maxWidthClass[maxWidth], className)}>
+        {children}
+      </main>
+      <Footer />
     </div>
   );
 }
