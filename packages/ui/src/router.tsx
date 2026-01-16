@@ -20,6 +20,7 @@ import { TopBar } from "./components/layout/TopBar";
 import { PageShell } from "./components/layout/PageShell";
 import { StepIndicator } from "./components/ui/StepIndicator";
 import { formatDateTime, initDefaultTimeFormat, initDefaultTimezone, onTimeFormatChange, onTimezoneChange } from "./utils/time";
+import { ExamListItem } from "./components/ExamListItem";
 
 const showAdminLink = new URLSearchParams(window.location.search).get("admin") === "1";
 
@@ -65,10 +66,6 @@ function Home() {
     navigate(`/exam/${encodeURIComponent(parsed.subject)}/${encodeURIComponent(parsed.examId)}`);
   };
 
-  const formatDate = (value: string | null) => {
-    if (!value) return "—";
-    return formatDateTime(value);
-  };
 
   useEffect(() => {
     setOpenLoading(true);
@@ -162,22 +159,24 @@ function Home() {
         ) : openExams.length ? (
           <div className="space-y-2 text-sm">
             {openExams.map((exam) => (
-              <div key={exam.examId} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
-                <div className="min-w-0">
-                  <div className="font-medium text-text">Exam {exam.examId}</div>
-                  <div className="text-xs text-textMuted">
-                    Created {formatDate(exam.createdAt)} · Expires {formatDate(exam.expiresAt)}
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => navigate(`/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`)}
-                >
-                  Open
-                </Button>
-              </div>
+              <ExamListItem
+                key={exam.examId}
+                exam={exam}
+                actions={[
+                  {
+                    label: "Open",
+                    onClick: () =>
+                      navigate(
+                        `/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`
+                      )
+                  }
+                ]}
+                onLinkClick={() =>
+                  navigate(
+                    `/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`
+                  )
+                }
+              />
             ))}
           </div>
         ) : (
@@ -185,14 +184,16 @@ function Home() {
         )}
       </Card>
 
-      {showAdminLink ? (
-        <div className="text-xs text-textMuted">
-          <Link to="/admin" className="hover:underline">
-            Admin
-          </Link>
-        </div>
-      ) : null}
-    </PageShell>
+      {
+        showAdminLink ? (
+          <div className="text-xs text-textMuted">
+            <Link to="/admin" className="hover:underline">
+              Admin
+            </Link>
+          </div>
+        ) : null
+      }
+    </PageShell >
   );
 }
 

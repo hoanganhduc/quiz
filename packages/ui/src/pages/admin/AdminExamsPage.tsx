@@ -449,68 +449,37 @@ export function AdminExamsPage() {
             ) : filteredExams.length ? (
               <div className="space-y-2 text-sm">
                 {filteredExams.map((exam) => (
-                  <div key={exam.examId} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2">
-                    <div className="flex min-w-0 items-start gap-3">
-                      <input
-                        type="checkbox"
-                        className="mt-1 h-4 w-4"
-                        checked={selectedExamIds.includes(exam.examId)}
-                        onChange={() => toggleExamSelected(exam.examId)}
-                        aria-label={`Select ${exam.examId}`}
-                      />
-                      <div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <a
-                            href={buildExamLink(exam)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-mono text-xs text-indigo-600 hover:underline"
-                          >
-                            {exam.examId}
-                          </a>
-                          <Badge tone={exam.visibility === "public" ? "info" : "muted"}>
-                            {exam.visibility === "public" ? "Public" : "Private"}
-                          </Badge>
-                          {exam.deletedAt ? <Badge tone="warn">Deleted</Badge> : null}
-                          {exam.hasSubmissions ? <Badge tone="info">Taken</Badge> : null}
-                        </div>
-                        <div className="text-xs text-textMuted">
-                          Created {formatDate(exam.createdAt)} · Expires {formatDate(exam.expiresAt)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button type="button" size="sm" variant="secondary" onClick={() => handleCloneExam(exam.examId)}>
-                        Duplicate
-                      </Button>
-                      <Button type="button" size="sm" variant="secondary" onClick={() => handleCopyExamLink(exam)}>
-                        Copy link
-                      </Button>
-                      <Button type="button" size="sm" variant="secondary" onClick={() => handleCopyShortLink(exam)}>
-                        Copy short link
-                      </Button>
-                      <Button type="button" size="sm" variant="secondary" onClick={() => handleOpenExam(exam)}>
-                        Open
-                      </Button>
-                      <Button type="button" size="sm" variant="secondary" onClick={() => navigate(`/admin/exams/new?edit=${exam.examId}`)}>
-                        Edit
-                      </Button>
-                      <Button type="button" size="sm" variant="secondary" onClick={() => handleExportExam(exam.examId)}>
-                        Export
-                      </Button>
-                      {exam.deletedAt ? (
-                        <Button type="button" size="sm" variant="secondary" onClick={() => handleRestoreExam(exam.examId)}>
-                          Restore
-                        </Button>
-                      ) : null}
-                      <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteExam(exam.examId, "soft")}>
-                        Delete
-                      </Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => handleDeleteExam(exam.examId, "hard")}>
-                        Delete permanently
-                      </Button>
-                    </div>
-                  </div>
+                  <ExamListItem
+                    key={exam.examId}
+                    exam={exam}
+                    checked={selectedExamIds.includes(exam.examId)}
+                    onCheck={() => toggleExamSelected(exam.examId)}
+                    onLinkClick={() => window.open(buildExamLink(exam), "_blank")}
+                    actions={[
+                      { label: "Duplicate", onClick: () => handleCloneExam(exam.examId) },
+                      { label: "Copy link", onClick: () => handleCopyExamLink(exam) },
+                      { label: "Copy short link", onClick: () => handleCopyShortLink(exam) },
+                      { label: "Open", onClick: () => handleOpenExam(exam) },
+                      {
+                        label: "Edit",
+                        onClick: () => navigate(`/admin/exams/new?edit=${exam.examId}`)
+                      },
+                      { label: "Export", onClick: () => handleExportExam(exam.examId) },
+                      ...(exam.deletedAt
+                        ? [{ label: "Restore", onClick: () => handleRestoreExam(exam.examId) }]
+                        : []),
+                      {
+                        label: "Delete",
+                        variant: "ghost",
+                        onClick: () => handleDeleteExam(exam.examId, "soft")
+                      },
+                      {
+                        label: "Delete permanently",
+                        variant: "ghost",
+                        onClick: () => handleDeleteExam(exam.examId, "hard")
+                      }
+                    ]}
+                  />
                 ))}
               </div>
             ) : (
