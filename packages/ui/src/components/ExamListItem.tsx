@@ -49,13 +49,16 @@ export function ExamListItem({ exam, actions, onCheck, checked, onLinkClick }: E
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-0.5">
                         {onLinkClick ? (
-                            <button
-                                type="button"
-                                onClick={onLinkClick}
-                                className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline text-left truncate max-w-[15rem] sm:max-w-md"
+                            <a
+                                href="#"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    onLinkClick();
+                                }}
+                                className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline text-left truncate max-w-[15rem] sm:max-w-md cursor-pointer"
                             >
                                 {displayName}
-                            </button>
+                            </a>
                         ) : (
                             <span className="text-sm font-medium text-text truncate max-w-[15rem] sm:max-w-md cursor-default">
                                 {displayName}

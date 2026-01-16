@@ -76,7 +76,11 @@ export function AdminExamsPage() {
   const filteredExams = useMemo(() => {
     const q = examQuery.trim().toLowerCase();
     if (!q) return examList;
-    return examList.filter((item) => item.examId.toLowerCase().includes(q));
+    return examList.filter((item) => {
+      const idMatch = item.examId.toLowerCase().includes(q);
+      const titleMatch = item.title?.toLowerCase().includes(q);
+      return idMatch || titleMatch;
+    });
   }, [examList, examQuery]);
 
   const allSelected = filteredExams.length > 0 && filteredExams.every((item) => selectedExamIds.includes(item.examId));
@@ -407,7 +411,7 @@ export function AdminExamsPage() {
                 <Input
                   value={examQuery}
                   onChange={(e) => setExamQuery(e.target.value)}
-                  placeholder="Search exam ID..."
+                  placeholder="Search exams..."
                 />
                 <Select value={includeDeleted ? "all" : "active"} onChange={(e) => setIncludeDeleted(e.target.value === "all")}>
                   <option value="active">Active only</option>
