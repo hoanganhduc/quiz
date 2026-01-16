@@ -386,7 +386,9 @@ function replaceMacros(text: string, opts: RenderOptions): string {
 
 function replaceTypography(text: string): string {
   if (!text) return text;
-  return text
+
+  // 1. Core typographic replacements
+  let result = text
     // Space before citation [N] if not preceded by space
     .replace(/([^\s\[])(\[\d+\])/g, "$1 $2")
     // Em-dash
@@ -398,23 +400,48 @@ function replaceTypography(text: string): string {
     .replace(/\\(Floor|floor)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌊$2⌋")
     .replace(/\\(Ceil|ceil)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌈$2⌉")
     // \emph{...} -> <i>...</i>
-    .replace(/\\emph\{((?:[^{}]|\{[^{}]*\})*)\}/g, "<i>$1</i>")
-    // \mathsc, \mathsf - Extract from start of math block
-    .replace(/\$(\\mathsc|\\mathsf)\{([^{}]+)\}/g, (_m, cmd, content) => {
-      let style = "";
-      if (cmd === "\\mathsc") style = "font-variant: small-caps;";
-      else if (cmd === "\\mathsf") style = "font-family: sans-serif;";
-      return `<span style="${style}">${content}</span>$`;
-    })
-    // Handle cases where it's not at the start or no $ wrapping
-    .replace(/(\\mathsc|\\mathsf)\{([^{}]+)\}/g, (_m, cmd, content) => {
-      let style = "";
-      if (cmd === "\\mathsc") style = "font-variant: small-caps;";
-      else if (cmd === "\\mathsf") style = "font-family: sans-serif;";
-      return `<span style="${style}">${content}</span>`;
-    })
-    // Clean up double $ produced if \mathsc was the only content in math mode: $\mathsc{...}$ -> <span...>...</span>$$
-    .replace(/\$\$/g, "");
+    .replace(/\\emph\{((?:[^{}]|\{[^{}]*\})*)\}/g, "<i>$1</i>");
+
+  // 2. Holistic Math Block Fragmentation (\mathsc, \mathsf)
+  // We match $ ... $ blocks and fragment them if they contain our styled commands
+  result = result.replace(/\$([\s\S]+?)\$/g, (match, content) => {
+    if (!/\\(mathsc|mathsf)/.test(content)) return match;
+
+    // Split by these commands (including capturing groups so they are included in the split array)
+    const parts = content.split(/(\\mathsc\{[^{}]+\}|\\mathsf\{[^{}]+\})/g);
+    const converted = parts
+      .map((part: string) => {
+        if (!part) return "";
+
+        if (part.startsWith("\\mathsc{")) {
+          const inner = part.slice(8, -1);
+          return `<span style="font-variant: small-caps;">${inner}</span>`;
+        }
+        if (part.startsWith("\\mathsf{")) {
+          const inner = part.slice(8, -1);
+          return `<span style="font-family: sans-serif;">${inner}</span>`;
+        }
+
+        // For non-command fragments:
+        // 1. If it's just whitespace or basic punctuation/separators, keep as plain text
+        if (/^[()\[\],.;:!?\s/\-|]+$/.test(part)) return part;
+
+        // 2. Otherwise, treat as math content and re-wrap in $
+        return `$${part.trim()}$`;
+      })
+      .join("");
+
+    return converted;
+  });
+
+  // 3. Fallback for \mathsc and \mathsf outside of math blocks
+  result = result.replace(/(\\mathsc|\\mathsf)\{([^{}]+)\}/g, (_m, cmd, content) => {
+    const style = cmd === "\\mathsc" ? "font-variant: small-caps;" : "font-family: sans-serif;";
+    return `<span style="${style}">${content}</span>`;
+  });
+
+  // 4. Final cleanup
+  return result.replace(/\$\$/g, "");
 }
 
 export function renderLatexText(text: string, opts: RenderOptions): string {
