@@ -113,7 +113,7 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
               className={clsx(
                 "w-full text-left rounded-lg border px-3 py-3 flex gap-3 items-start focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2",
                 active
-                  ? "border-info bg-info/10 dark:bg-info/25"
+                  ? "border-info bg-info/10 dark:bg-info/15"
                   : "border-border bg-muted/60 hover:border-info/50 dark:bg-slate-900/70",
                 "min-h-[44px]"
               )}
