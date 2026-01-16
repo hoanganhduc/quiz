@@ -18,7 +18,7 @@ export function registerSubmissionRoutes(app: Hono<{ Bindings: Env }>) {
     const limit = limitParam ? Number(limitParam) : 20;
 
     const result = await listUserSubmissionIndex(c.env, session.appUserId, limit, cursor);
-    return c.json({ items: result.items, cursor: result.cursor });
+    return c.json({ submissions: result.items, nextCursor: result.cursor });
   });
 
   app.get("/me/submissions/:submissionId", async (c) => {

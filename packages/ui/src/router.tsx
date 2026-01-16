@@ -13,6 +13,7 @@ import { SourcesManagerPage } from "./pages/admin/SourcesManagerPage";
 import { ExtraToolsPage } from "./pages/admin/ExtraToolsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { HistoryPage } from "./pages/HistoryPage";
+import { SubmissionDetailPage } from "./pages/SubmissionDetailPage";
 import { ShortLinkRedirect } from "./pages/ShortLinkRedirect";
 import { Button } from "./components/ui/Button";
 import { Input } from "./components/ui/Input";
@@ -269,6 +270,7 @@ export function AppRouter({ session, setSession }: Props) {
           <Route path="/exam/:examId" element={<ExamPage session={session} setSession={setSession} />} />
           <Route path="/s/:code" element={<ShortLinkRedirect />} />
           <Route path="/history" element={<HistoryPage session={session} setSession={setSession} />} />
+          <Route path="/history/:submissionId" element={<SubmissionDetailPage />} />
           <Route path="/account" element={<AccountPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/admin" element={<AdminHome />} />

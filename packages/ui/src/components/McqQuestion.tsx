@@ -104,6 +104,10 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
       >
         {choices.map((choice) => {
           const active = answeredChoice === choice.key;
+          const isCorrect = "answerKey" in question && question.answerKey === choice.key;
+          const showAsCorrect = showSolution && isCorrect;
+          const showAsIncorrect = showSolution && active && !isCorrect;
+
           return (
             <button
               key={choice.key}
@@ -111,17 +115,35 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
               type="button"
               onClick={() => onSelect(choice.key)}
               className={clsx(
-                "w-full text-left rounded-lg border px-3 py-3 flex gap-3 items-start focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2",
-                active
-                  ? "border-info bg-selectionBg text-selectionText"
-                  : "border-border bg-muted/60 hover:border-info/50 dark:bg-slate-900/70",
+                "w-full text-left rounded-lg border px-3 py-3 flex gap-3 items-start focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2 transition-colors",
+                showAsCorrect
+                  ? "border-green-500 bg-green-50 text-green-900 dark:bg-green-900/20 dark:text-green-100 dark:border-green-600"
+                  : showAsIncorrect
+                    ? "border-red-500 bg-red-50 text-red-900 dark:bg-red-900/20 dark:text-red-100 dark:border-red-600"
+                    : active
+                      ? "border-info bg-selectionBg text-selectionText"
+                      : "border-border bg-muted/60 hover:border-info/50 dark:bg-slate-900/70",
                 "min-h-[44px]"
               )}
             >
-              <span className={clsx("font-semibold text-sm w-6 text-center", active ? "text-selectionText" : "text-text")}>{choice.key}.</span>
+              <span className={clsx("font-semibold text-sm w-6 text-center", (showAsCorrect || showAsIncorrect || active) ? "text-inherit" : "text-text")}>{choice.key}.</span>
               <span className="text-sm leading-relaxed flex-1">
                 <LatexContent inline content={choice.text} />
               </span>
+              {showAsCorrect && (
+                <span className="text-green-600 dark:text-green-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              )}
+              {showAsIncorrect && (
+                <span className="text-red-600 dark:text-red-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              )}
             </button>
           );
         })}
