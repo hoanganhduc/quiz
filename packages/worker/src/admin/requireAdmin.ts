@@ -24,7 +24,7 @@ export const requireAdmin: MiddlewareHandler<{ Bindings: Env }> = async (c, next
 
   const session = await readSession(c.env, c.req.raw);
   if (!session) {
-    return c.text("Unauthorized", 401);
+    return c.text("Unauthorized (Missing Session)", 401);
   }
 
   const user = await getUser(c.env, session.appUserId);

@@ -241,6 +241,7 @@ export type PublicExamSummary = {
   examId: string;
   subject: string;
   title?: string;
+  shortLinkCode?: string;
   createdAt: string;
   expiresAt: string | null;
 };

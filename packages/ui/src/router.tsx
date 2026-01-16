@@ -27,8 +27,9 @@ const showAdminLink = new URLSearchParams(window.location.search).get("admin") =
 function Home() {
   const [examId, setExamId] = useState("");
   const [openExams, setOpenExams] = useState<PublicExamSummary[]>([]);
-  const [openLoading, setOpenLoading] = useState(false);
-  const [openError, setOpenError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const navigate = useNavigate();
 
   const parseExamLink = (raw: string): { subject: string; examId: string } | null => {
@@ -67,23 +68,45 @@ function Home() {
   };
 
 
+  const loadExams = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await listPublicExams();
+      setOpenExams(res.items ?? []);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load open exams.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    setOpenLoading(true);
-    listPublicExams()
-      .then((res) => {
-        setOpenExams(res.items ?? []);
-        setOpenError(null);
-      })
-      .catch((err: any) => {
-        setOpenError(err?.message ?? "Failed to load open exams.");
-      })
-      .finally(() => {
-        setOpenLoading(false);
-      });
+    void loadExams();
   }, []);
 
   return (
-    <PageShell maxWidth="4xl" className="space-y-4">
+    <PageShell maxWidth="4xl" className="space-y-8 w-full">
+      <div>
+        <h1 className="text-3xl font-bold text-text mb-2">Welcome to Quiz Platform</h1>
+        <p className="text-textMuted max-w-2xl">
+          Access your assigned exams or practice with public available tests.
+        </p>
+      </div>
+
+      {notice && (
+        <div className={`p-4 rounded-lg flex items-center justify-between ${notice.tone === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"
+          }`}>
+          <span>{notice.text}</span>
+          <button
+            onClick={() => setNotice(null)}
+            className="ml-4 text-sm font-medium hover:underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <Card className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold text-text">Start an exam</h2>
@@ -153,8 +176,8 @@ function Home() {
           <h2 className="text-lg font-semibold text-text">Open exams</h2>
           <p className="text-sm text-textMuted">Public exams that don’t require sign-in or access codes.</p>
         </div>
-        {openError ? <div className="text-sm text-error">{openError}</div> : null}
-        {openLoading ? (
+        {error ? <div className="text-sm text-error">{error}</div> : null}
+        {loading ? (
           <div className="text-sm text-textMuted">Loading open exams...</div>
         ) : openExams.length ? (
           <div className="space-y-2 text-sm">
@@ -169,13 +192,36 @@ function Home() {
                       navigate(
                         `/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`
                       )
-                  }
+                  },
+                  {
+                    label: "Copy link",
+                    variant: "secondary",
+                    onClick: async () => {
+                      const url = `${window.location.origin}/#/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`;
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        setNotice({ tone: "success", text: "Link copied to clipboard" });
+                        setTimeout(() => setNotice(null), 3000);
+                      } catch {
+                        setNotice({ tone: "error", text: "Failed to copy link" });
+                      }
+                    }
+                  },
+                  ...(exam.shortLinkCode ? [{
+                    label: "Copy short link",
+                    variant: "secondary" as const,
+                    onClick: async () => {
+                      const url = `${window.location.origin}/#/s/${exam.shortLinkCode}`;
+                      try {
+                        await navigator.clipboard.writeText(url);
+                        setNotice({ tone: "success", text: "Short link copied to clipboard" });
+                        setTimeout(() => setNotice(null), 3000);
+                      } catch {
+                        setNotice({ tone: "error", text: "Failed to copy short link" });
+                      }
+                    }
+                  }] : [])
                 ]}
-                onLinkClick={() =>
-                  navigate(
-                    `/exam/${encodeURIComponent(exam.subject)}/${encodeURIComponent(exam.examId)}`
-                  )
-                }
               />
             ))}
           </div>

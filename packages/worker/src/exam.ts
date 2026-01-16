@@ -545,12 +545,16 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       if (isDeleted(exam.deletedAt) || isExpired(exam.expiresAt)) continue;
       if (normalizeExamVisibility(exam.visibility) !== "public") continue;
       if (!isOpenExam(exam)) continue;
+
+      const shortCode = await c.env.QUIZ_KV.get(`shortExam:${exam.examId}`);
+
       items.push({
         examId: exam.examId,
         subject: exam.subject,
         title: exam.title,
         createdAt: exam.createdAt,
-        expiresAt: exam.expiresAt ?? null
+        expiresAt: exam.expiresAt ?? null,
+        shortLinkCode: shortCode ?? undefined
       });
     }
     return c.json({ items });

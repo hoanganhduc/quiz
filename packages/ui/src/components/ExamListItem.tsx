@@ -48,12 +48,19 @@ export function ExamListItem({ exam, actions, onCheck, checked, onLinkClick }: E
                 )}
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-0.5">
-                        <button
-                            onClick={onLinkClick}
-                            className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline text-left truncate max-w-[15rem] sm:max-w-md"
-                        >
-                            {displayName}
-                        </button>
+                        {onLinkClick ? (
+                            <button
+                                type="button"
+                                onClick={onLinkClick}
+                                className="text-sm font-semibold text-indigo-600 hover:text-indigo-500 hover:underline text-left truncate max-w-[15rem] sm:max-w-md"
+                            >
+                                {displayName}
+                            </button>
+                        ) : (
+                            <span className="text-sm font-medium text-text truncate max-w-[15rem] sm:max-w-md">
+                                {displayName}
+                            </span>
+                        )}
                         {exam.visibility && (
                             <Badge tone={exam.visibility === "public" ? "info" : "muted"}>
                                 {exam.visibility === "public" ? "Public" : "Private"}
