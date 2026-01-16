@@ -394,8 +394,25 @@ function replaceTypography(text: string): string {
     // Smart quotes -> Double quotes
     .replace(/``/g, '"')
     .replace(/''/g, '"')
-    // \mathsc{Text} -> Small Caps
-    .replace(/(?:\$)?\\mathsc\{([^{}]+)\}(?:\$)?/g, '<span style="font-variant: small-caps;">$1</span>');
+    // Math brackets
+    .replace(/\\(Floor|floor)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌊$2⌋")
+    .replace(/\\(Ceil|ceil)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌈$2⌉")
+    // \mathsc, \mathsf - Extract from start of math block
+    .replace(/\$(\\mathsc|\\mathsf)\{([^{}]+)\}/g, (_m, cmd, content) => {
+      let style = "";
+      if (cmd === "\\mathsc") style = "font-variant: small-caps;";
+      else if (cmd === "\\mathsf") style = "font-family: sans-serif;";
+      return `<span style="${style}">${content}</span>$`;
+    })
+    // Handle cases where it's not at the start or no $ wrapping
+    .replace(/(\\mathsc|\\mathsf)\{([^{}]+)\}/g, (_m, cmd, content) => {
+      let style = "";
+      if (cmd === "\\mathsc") style = "font-variant: small-caps;";
+      else if (cmd === "\\mathsf") style = "font-family: sans-serif;";
+      return `<span style="${style}">${content}</span>`;
+    })
+    // Clean up double $ produced if \mathsc was the only content in math mode: $\mathsc{...}$ -> <span...>...</span>$$
+    .replace(/\$\$/g, "");
 }
 
 export function renderLatexText(text: string, opts: RenderOptions): string {
