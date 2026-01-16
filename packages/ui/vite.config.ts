@@ -10,7 +10,7 @@ const basePath = process.env.VITE_BASE_URL || (repoSlug ? `/${repoSlug}/` : "/")
 export default defineConfig({
   base: basePath,
   plugins: [react()],
-  // Prefer TypeScript sources when both .ts/.tsx and emitted .js exist side-by-side.
+  // Prefer TypeScript sources when both .ts/.tsx and emitted .js exist side_by-side.
   resolve: {
     extensions: [".tsx", ".ts", ".jsx", ".js"]
   },
@@ -21,6 +21,16 @@ export default defineConfig({
       host: hmrHost,
       port: hmrPort,
       protocol: hmrProtocol
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8787",
+        changeOrigin: false,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+        headers: {
+          "X-Forwarded-Prefix": "/api"
+        }
+      }
     }
   }
 });

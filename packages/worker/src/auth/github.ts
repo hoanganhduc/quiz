@@ -60,6 +60,15 @@ async function fetchGithubUser(token: string): Promise<{ user: GithubUser; email
   return { user, email: primary };
 }
 
+function buildCallbackUrl(req: Request): string {
+  const url = new URL(req.url);
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || url.host;
+  const proto = req.headers.get("x-forwarded-proto") || (url.protocol.startsWith("https") ? "https" : "http");
+  const prefix = req.headers.get("x-forwarded-prefix") || "";
+
+  return `${proto}://${host}${prefix}/auth/callback/github`;
+}
+
 export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
   app.get("/auth/github/start", async (c) => {
     const redirect = c.req.query("redirect");
@@ -85,8 +94,10 @@ export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
     const kvKey = `oauth:github:${state}`;
     await c.env.QUIZ_KV.put(kvKey, JSON.stringify({ redirect, mode, appUserId }), { expirationTtl: 600 });
 
+    const callbackUrl = buildCallbackUrl(c.req.raw);
     const url = new URL("https://github.com/login/oauth/authorize");
     url.searchParams.set("client_id", c.env.GITHUB_CLIENT_ID);
+    url.searchParams.set("redirect_uri", callbackUrl);
     url.searchParams.set("state", state);
     url.searchParams.set("scope", "read:user user:email");
 

@@ -113,10 +113,11 @@ async function upsertGoogleUser(
 
 function buildCallbackUrl(req: Request): string {
   const url = new URL(req.url);
-  url.pathname = "/auth/callback/google";
-  url.search = "";
-  url.hash = "";
-  return url.toString();
+  const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || url.host;
+  const proto = req.headers.get("x-forwarded-proto") || (url.protocol.startsWith("https") ? "https" : "http");
+  const prefix = req.headers.get("x-forwarded-prefix") || "";
+
+  return `${proto}://${host}${prefix}/auth/callback/google`;
 }
 
 async function exchangeGoogleCode(env: Env, code: string, redirectUri: string): Promise<{ id_token?: string } | null> {
