@@ -143,8 +143,15 @@ async function exchangeGoogleCode(env: Env, code: string, redirectUri: string): 
   }
 }
 
+function logAuthStep(step: string, c: any, extra: any = {}) {
+  const ua = c.req.header("user-agent") ?? "unknown";
+  const origin = c.req.header("origin") ?? "unknown";
+  console.log(`[AUTH:GOOGLE:${step}] UA: ${ua} | Origin: ${origin}`, JSON.stringify(extra));
+}
+
 export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
   app.get("/auth/google/start", async (c) => {
+    logAuthStep("START", c, { mode: c.req.query("mode"), redirect: c.req.query("redirect") });
     const redirect = c.req.query("redirect");
     const modeParam = c.req.query("mode") ?? "login";
     const mode = (modeParam === "login" || modeParam === "link" ? modeParam : null) as GoogleMode | null;
@@ -177,12 +184,14 @@ export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
     url.searchParams.set("state", state);
     url.searchParams.set("prompt", "select_account");
 
+    logAuthStep("REDIRECTING", c, { callbackUrl, state });
     return c.redirect(url.toString());
   });
 
   app.get("/auth/callback/google", async (c) => {
     const code = c.req.query("code");
     const state = c.req.query("state");
+    logAuthStep("CALLBACK_RECEIVED", c, { hasCode: !!code, hasState: !!state, state });
     if (!code || !state) {
       return c.text("Missing code or state", 400);
     }
@@ -256,6 +265,7 @@ export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
       redirectUrl.hash = `session=${token}`;
     }
 
+    logAuthStep("SESSION_ISSUED", c, { appUserId: user.appUserId, hasTokenInHash: isLocalUrl(redirect) });
     const res = c.redirect(redirectUrl.toString());
     res.headers.set("Set-Cookie", cookie);
     return res;
