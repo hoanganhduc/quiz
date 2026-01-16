@@ -587,15 +587,15 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
               ) : (
                 <Badge tone="info">Questions loaded</Badge>
               )}
-              <Button variant="secondary" size="sm" onClick={handleSaveForLater} disabled={!bank || !versionId}>
-                Save answers
-              </Button>
               <Button variant="ghost" size="sm" onClick={openClearAnswersConfirm} disabled={!bank || !!submission}>
                 Clear all answers
               </Button>
               {bank ? (
                 <>
                   <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
+                  <Button variant="secondary" size="sm" onClick={handleSaveForLater} disabled={!bank || !versionId}>
+                    Save &amp; submit later
+                  </Button>
                   <Button variant="primary" size="sm" onClick={openSubmitConfirm} disabled={submitDisabled}>
                     Submit answers
                   </Button>
