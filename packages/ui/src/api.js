@@ -13,14 +13,27 @@ export function clearSessionToken() {
     localStorage.removeItem(SESSION_KEY);
 }
 // Check if there's a session token in the URL fragment (passed by backend for local IP redirects)
-const searchParams = new URLSearchParams(window.location.hash.slice(1));
-const sessionFromUrl = searchParams.get("session");
-if (sessionFromUrl) {
-    saveSessionToken(sessionFromUrl);
-    // Clean up URL fragment
-    searchParams.delete("session");
-    const nextHash = searchParams.toString();
-    window.location.hash = nextHash ? `#${nextHash}` : "#/";
+// The fragment might look like #session=TOKEN or #/route?session=TOKEN
+const hash = window.location.hash;
+if (hash.includes("session=")) {
+    const parts = hash.split("session=");
+    if (parts.length > 1) {
+        const tokenPart = parts[1].split("&")[0];
+        if (tokenPart) {
+            saveSessionToken(tokenPart);
+            // Clean up the session bit from the hash while preserving the route
+            let nextHash = hash.replace(new RegExp(`[?&]session=${tokenPart}`), "");
+            // If it was just #session=TOKEN, replace it
+            nextHash = nextHash.replace(new RegExp(`#session=${tokenPart}`), "#/");
+            // Update hash without triggering a full page reload if possible
+            if (window.history.pushState) {
+                window.history.pushState(null, "", window.location.pathname + window.location.search + nextHash);
+            }
+            else {
+                window.location.hash = nextHash;
+            }
+        }
+    }
 }
 async function apiFetch(path, init) {
     const token = getSessionToken();

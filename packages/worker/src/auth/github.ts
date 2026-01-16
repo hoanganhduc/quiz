@@ -226,21 +226,19 @@ export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
     const token = await signSession(c.env, sessionPayload);
 
     const redirectUrl = new URL(redirect);
-    // Append token to fragment for local redirects to bypass cookie issues on mobile
-    if (isLocalUrl(redirect)) {
-      const hash = redirectUrl.hash;
-      if (hash) {
-        // If hash already has params, append with &, else with ?
-        const separator = hash.includes("?") ? "&" : "?";
-        redirectUrl.hash = `${hash}${separator}session=${token}`;
-      } else {
-        redirectUrl.hash = `session=${token}`;
-      }
+    // Always append token to fragment to bypass cookie issues on mobile
+    const hash = redirectUrl.hash;
+    if (hash) {
+      const separator = hash.includes("?") ? "&" : "?";
+      redirectUrl.hash = `${hash}${separator}session=${token}`;
+    } else {
+      redirectUrl.hash = `session=${token}`;
     }
 
-    logAuthStep("SESSION_ISSUED", c, { appUserId: user.appUserId, hasTokenInHash: isLocalUrl(redirect) });
+    logAuthStep("SESSION_ISSUED", c, { appUserId: user.appUserId, hasTokenInHash: true });
     const res = c.redirect(redirectUrl.toString());
     res.headers.set("Set-Cookie", cookie);
     return res;
+
   });
 }
