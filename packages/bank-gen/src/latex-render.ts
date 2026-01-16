@@ -79,9 +79,9 @@ function buildTexDocument(body: string, initialFigureCounter?: number): string {
     "\\pagestyle{empty}",
     "\\newcommand{\\dongkhung}[1]{\\par\\noindent\\fbox{\\begin{minipage}{\\linewidth-2\\fboxsep}\\vspace{0.15cm}#1\\vspace{0.15cm}\\end{minipage}}\\par}",
     // Algorithm environments from dethi.sty
-    "\\def\\begin@lgo{\\begin{minipage}{1in}\\begin{tabbing}\\quad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\kill}",
-    "\\def\\end@lgo{\\end{tabbing}\\end{minipage}}",
-    "\\newenvironment{algorithm}{\\begin{tabular}{|l|}\\hline\\begin@lgo}{\\end@lgo\\\\\\hline\\end{tabular}}",
+    "\\def\\beginAlgoTabbing{\\begin{minipage}{1in}\\begin{tabbing}\\quad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\qquad\\=\\kill}",
+    "\\def\\endAlgoTabbing{\\end{tabbing}\\end{minipage}}",
+    "\\newenvironment{algorithm}{\\begin{tabular}{|l|}\\hline\\beginAlgoTabbing}{\\endAlgoTabbing\\\\\\hline\\end{tabular}}",
     "\\newenvironment{algo}{\\begin{center}\\small\\begin{algorithm}}{\\end{algorithm}\\end{center}}",
     "\\def\\Comment#1{{\\textsf{\\textsl{$\\langle\\!\\langle$#1\\/$\\rangle\\!\\rangle$}}}}",
     // Additional macros from dethi.sty for algorithm formatting
