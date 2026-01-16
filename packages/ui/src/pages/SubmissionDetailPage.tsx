@@ -116,6 +116,8 @@ export function SubmissionDetailPage() {
                         uid: pq.uid,
                         prompt: pq.prompt,
                         choices: pq.choices,
+                        answerKey: pq.answerKey,
+                        solution: pq.solution,
                         type: pq.choices ? "mcq-single" : "fill-blank",
                         // Mock other fields for UI
                         id: pq.uid.split(":").pop() || pq.uid,

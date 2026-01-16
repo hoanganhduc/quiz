@@ -37,6 +37,9 @@ export function AdminHome() {
             <Button type="button" icon={<IconUser className="h-4 w-4" />} variant="secondary" onClick={() => navigate("/admin/users")}>
               Admin users
             </Button>
+            <Button type="button" icon={<IconShield className="h-4 w-4" />} variant="secondary" onClick={() => navigate("/admin/submissions")}>
+              Manage Submissions
+            </Button>
           </div>
         </Card>
 

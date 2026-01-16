@@ -10,6 +10,7 @@ import { CreateExamPage } from "./pages/admin/CreateExamPage";
 import { AccountPage } from "./pages/AccountPage";
 import { AdminUsersPage } from "./pages/admin/AdminUsersPage";
 import { SourcesManagerPage } from "./pages/admin/SourcesManagerPage";
+import { AdminSubmissionsPage } from "./pages/admin/AdminSubmissionsPage";
 import { ExtraToolsPage } from "./pages/admin/ExtraToolsPage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { HistoryPage } from "./pages/HistoryPage";
@@ -277,6 +278,7 @@ export function AppRouter({ session, setSession }: Props) {
           <Route path="/admin/exams" element={<AdminExamsPage />} />
           <Route path="/admin/exams/new" element={<CreateExamPage />} />
           <Route path="/admin/users" element={<AdminUsersPage />} />
+          <Route path="/admin/submissions" element={<AdminSubmissionsPage />} />
           <Route path="/admin/sources" element={<SourcesManagerPage />} />
           <Route path="/admin/tools" element={<ExtraToolsPage />} />
         </Routes>

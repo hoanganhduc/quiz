@@ -102,3 +102,11 @@ export async function putSubmission(env: Env, submission: SubmissionV1): Promise
   await env.QUIZ_KV.put(key, JSON.stringify(parsed.data));
   return { ok: true, value: undefined };
 }
+
+export async function getSubmission(
+  env: Env,
+  examId: string,
+  submissionId: string
+): Promise<KVResult<SubmissionV1>> {
+  return parseFromKV(env, submissionKey(examId, submissionId), SubmissionV1Schema, "Submission");
+}

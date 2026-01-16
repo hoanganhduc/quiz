@@ -15,6 +15,7 @@ import { registerAdminR2Routes } from "./admin/r2";
 import { registerAdminExamRoutes } from "./admin/exams";
 import { registerAdminCiRoutes } from "./admin/ci";
 import { registerAdminBanksRoutes } from "./admin/banks";
+import { registerAdminSubmissionRoutes } from "./admin/submissions";
 import { registerSettingsRoutes } from "./settings";
 import { registerAdminSettingsRoutes } from "./admin/settings";
 
@@ -55,6 +56,7 @@ registerAdminToolsRoutes(app);
 registerAdminExamRoutes(app);
 registerAdminCiRoutes(app);
 registerAdminBanksRoutes(app);
+registerAdminSubmissionRoutes(app);
 registerAdminR2Routes(app);
 registerFilesRoutes(app);
 registerSettingsRoutes(app);

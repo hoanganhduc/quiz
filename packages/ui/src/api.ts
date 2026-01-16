@@ -211,11 +211,36 @@ export type SubmissionSummary = {
   submittedAt: string;
   score: { correct: number; total: number };
   version?: { versionId: string; versionIndex?: number };
+  deletedAt?: string;
 };
 
-export async function getUserSubmissions(cursor?: string): Promise<{ submissions: SubmissionSummary[]; nextCursor?: string }> {
-  const path = cursor ? `/me/submissions?cursor=${encodeURIComponent(cursor)}` : "/me/submissions";
-  return apiFetch(path);
+export async function getUserSubmissions(cursor?: string, includeDeleted = false): Promise<{ submissions: SubmissionSummary[]; nextCursor?: string }> {
+  const q = new URLSearchParams();
+  if (cursor) q.set("cursor", cursor);
+  if (includeDeleted) q.set("includeDeleted", "1");
+  const query = q.toString();
+  return apiFetch(`/me/submissions${query ? "?" + query : ""}`);
+}
+
+export async function batchDeleteMySubmissions(submissionIds: string[]): Promise<{ count: number, failed: string[] }> {
+  return apiFetch(`/me/submissions/batch-delete`, {
+    method: "POST",
+    body: JSON.stringify({ submissionIds })
+  });
+}
+
+export async function batchRestoreMySubmissions(submissionIds: string[]): Promise<{ count: number, failed: string[] }> {
+  return apiFetch(`/me/submissions/batch-restore`, {
+    method: "POST",
+    body: JSON.stringify({ submissionIds })
+  });
+}
+
+export async function batchHardDeleteMySubmissions(submissionIds: string[]): Promise<{ count: number, failed: string[] }> {
+  return apiFetch(`/me/submissions/batch-hard-delete`, {
+    method: "POST",
+    body: JSON.stringify({ submissionIds })
+  });
 }
 
 export type SubmissionDetail = {
@@ -234,11 +259,41 @@ export type SubmissionDetail = {
     choices?: { key: ChoiceKey; text: string }[];
   }[];
   version?: { versionId: string; versionIndex?: number };
+  deletedAt?: string;
 };
 
 export async function getSubmissionDetail(submissionId: string): Promise<SubmissionDetail> {
   const data = await apiFetch<{ submission: SubmissionDetail }>(`/me/submissions/${submissionId}`);
   return data.submission;
+}
+
+export async function listAdminSubmissions(cursor?: string, limit?: number): Promise<{ submissions: SubmissionDetail[], nextCursor?: string }> {
+  const q = new URLSearchParams();
+  if (cursor) q.set("cursor", cursor);
+  if (limit) q.set("limit", String(limit));
+  const query = q.toString();
+  return apiFetch(`/admin/submissions${query ? "?" + query : ""}`);
+}
+
+export async function batchDeleteSubmissions(submissionIds: string[]): Promise<{ count: number, failed: string[] }> {
+  return apiFetch(`/admin/submissions/batch-delete`, {
+    method: "POST",
+    body: JSON.stringify({ submissionIds })
+  });
+}
+
+export async function batchRestoreSubmissions(submissionIds: string[]): Promise<{ count: number, failed: string[] }> {
+  return apiFetch(`/admin/submissions/batch-restore`, {
+    method: "POST",
+    body: JSON.stringify({ submissionIds })
+  });
+}
+
+export async function batchHardDeleteSubmissions(submissionIds: string[]): Promise<{ count: number, failed: string[] }> {
+  return apiFetch(`/admin/submissions/batch-hard-delete`, {
+    method: "POST",
+    body: JSON.stringify({ submissionIds })
+  });
 }
 
 export type PublicExamSummary = {

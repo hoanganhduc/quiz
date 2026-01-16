@@ -143,6 +143,7 @@ export type SubmissionV1 = {
   score: { correct: number; total: number };
   perQuestion: SubmissionPerQuestionV1[];
   version?: ExamVersionInfoV1;
+  deletedAt?: string;
 };
 
 export type SubmissionSummaryV1 = {
@@ -151,6 +152,7 @@ export type SubmissionSummaryV1 = {
   submittedAt: string;
   score: { correct: number; total: number };
   version?: ExamVersionInfoV1;
+  deletedAt?: string;
 };
 
 export type AppUser = {
@@ -316,7 +318,8 @@ export const SubmissionV1Schema = z.object({
       versionId: z.string(),
       versionIndex: z.number().int().optional()
     })
-    .optional()
+    .optional(),
+  deletedAt: z.string().datetime().optional()
 });
 
 export const SubmissionSummaryV1Schema = z.object({
@@ -332,7 +335,8 @@ export const SubmissionSummaryV1Schema = z.object({
       versionId: z.string(),
       versionIndex: z.number().int().optional()
     })
-    .optional()
+    .optional(),
+  deletedAt: z.string().datetime().optional()
 });
 
 export const ExamVersionInfoV1Schema = z.object({
