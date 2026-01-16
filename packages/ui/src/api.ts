@@ -133,6 +133,7 @@ export type ExamConfigResponse = {
   expiresAt: string | null;
   auth: Session["provider"] | null;
   visibility: "public" | "private";
+  notice?: string | null;
 };
 
 export async function getExamConfig(examId: string): Promise<ExamConfigResponse> {

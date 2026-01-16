@@ -1040,6 +1040,23 @@ export function CreateExamPage() {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="exam-notice">
+                    Custom Notice / Extra Info
+                  </label>
+                  <textarea
+                    id="exam-notice"
+                    className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
+                    rows={4}
+                    value={draft.notice}
+                    onChange={(e) => setDraft({ ...draft, notice: e.target.value })}
+                    placeholder="Adding extra info about the exam and so on..."
+                  />
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">
+                    Appears at the beginning of the exam. Supports LaTeX ($...$ or $$...$$).
+                  </p>
+                </div>
+
+                <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium text-neutral-700 dark:text-neutral-200">Expires at</p>

@@ -27,6 +27,7 @@ type AdminExamBody = {
   codes?: string[];
   expiresAt?: string | null;
   visibility?: ExamVisibility;
+  notice?: string;
 };
 
 type ExamTemplateBody = {
@@ -245,11 +246,13 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
     const nextVisibility =
       body.visibility !== undefined ? normalizeExamVisibility(body.visibility) : existing.value.visibility;
     const nextTitle = body.title !== undefined ? body.title.trim() || undefined : existing.value.title;
+    const nextNotice = body.notice !== undefined ? body.notice.trim() || undefined : existing.value.notice;
     const updated: ExamV1 = {
       ...existing.value,
       subject: body.subject,
       seed,
       title: nextTitle,
+      notice: nextNotice,
       composition: body.composition,
       questionUids,
       policy: normalizedPolicy,

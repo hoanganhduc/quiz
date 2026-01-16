@@ -113,12 +113,12 @@ export function McqQuestion({ index, question, answer, onChange, showSolution, s
               className={clsx(
                 "w-full text-left rounded-lg border px-3 py-3 flex gap-3 items-start focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2",
                 active
-                  ? "border-info bg-info/10 dark:bg-info/15"
+                  ? "border-info bg-selectionBg text-selectionText"
                   : "border-border bg-muted/60 hover:border-info/50 dark:bg-slate-900/70",
                 "min-h-[44px]"
               )}
             >
-              <span className="font-semibold text-sm w-6 text-center">{choice.key}.</span>
+              <span className={clsx("font-semibold text-sm w-6 text-center", active ? "text-selectionText" : "text-text")}>{choice.key}.</span>
               <span className="text-sm leading-relaxed flex-1">
                 <LatexContent inline content={choice.text} />
               </span>

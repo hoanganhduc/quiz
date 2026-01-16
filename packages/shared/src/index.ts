@@ -111,6 +111,7 @@ export type ExamV1 = {
   codesHashed: string[];
   expiresAt?: string;
   visibility?: ExamVisibility;
+  notice?: string;
 };
 
 export type SubmissionIdentityV1 = {
@@ -264,7 +265,8 @@ export const ExamV1Schema = z.object({
   policy: ExamPolicySchema,
   codesHashed: z.array(z.string()),
   expiresAt: z.string().datetime().optional(),
-  visibility: z.enum(["public", "private"]).optional()
+  visibility: z.enum(["public", "private"]).optional(),
+  notice: z.string().optional()
 });
 
 export const SubmissionIdentitySchema = z.object({

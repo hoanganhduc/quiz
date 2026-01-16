@@ -45,6 +45,7 @@ type AdminExamBody = {
   codes?: string[];
   expiresAt?: string | null;
   visibility?: ExamVisibility;
+  notice?: string;
 };
 
 type SubmitBody = { answers: Record<string, AnswerValueV1>; code?: string };
@@ -247,7 +248,8 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       policy: normalizedPolicy,
       codesHashed,
       expiresAt: body.expiresAt ?? undefined,
-      visibility: normalizeExamVisibility(body.visibility)
+      visibility: normalizeExamVisibility(body.visibility),
+      notice: body.notice?.trim() || undefined
     };
 
     const stored = await putExam(c.env, exam);
@@ -301,7 +303,8 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       policy,
       expiresAt: found.value.expiresAt ?? null,
       auth: resolved ? resolved.identity.provider : null,
-      visibility: normalizeExamVisibility(found.value.visibility)
+      visibility: normalizeExamVisibility(found.value.visibility),
+      notice: found.value.notice ?? null
     });
   });
 

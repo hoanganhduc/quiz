@@ -14,7 +14,9 @@ module.exports = {
         info: "var(--info)",
         warn: "var(--warn)",
         error: "var(--error)",
-        success: "var(--success)"
+        success: "var(--success)",
+        selectionBg: "var(--selected-bg)",
+        selectionText: "var(--selected-text)"
       },
       boxShadow: {
         card: "0 4px 18px rgba(0,0,0,0.06)"

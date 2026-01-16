@@ -11,6 +11,7 @@ export type AdminExamRequest = {
   codes?: string[];
   expiresAt?: string | null;
   visibility?: "public" | "private";
+  notice?: string;
 };
 
 export type CreateExamResponse = { examId: string; examUrl: string; seed: string };
@@ -36,6 +37,7 @@ export type AdminExamSummary = {
   policy: ExamPolicyV1;
   hasSubmissions: boolean;
   title?: string;
+  notice?: string;
 };
 
 export type ListExamsResponse = { items: AdminExamSummary[]; cursor?: string };
@@ -64,6 +66,7 @@ export type ExamTemplateRecord = {
     codes?: string[];
     expiresAt?: string | null;
     visibility?: "public" | "private";
+    notice?: string;
   };
 };
 
