@@ -185,6 +185,7 @@ function Home() {
               <ExamListItem
                 key={exam.examId}
                 exam={exam}
+                onLinkClick={undefined}
                 actions={[
                   {
                     label: "Open",

@@ -57,7 +57,7 @@ export function ExamListItem({ exam, actions, onCheck, checked, onLinkClick }: E
                                 {displayName}
                             </button>
                         ) : (
-                            <span className="text-sm font-medium text-text truncate max-w-[15rem] sm:max-w-md">
+                            <span className="text-sm font-medium text-text truncate max-w-[15rem] sm:max-w-md cursor-default">
                                 {displayName}
                             </span>
                         )}
