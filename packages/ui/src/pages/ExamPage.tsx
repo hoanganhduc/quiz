@@ -578,44 +578,6 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
               </div>
             </Card>
           ) : null}
-          <Card className="sticky top-24 z-10 space-y-3 bg-card/95 backdrop-blur">
-            <div className="flex flex-wrap items-center gap-2">
-              {!bank ? (
-                <Button variant="primary" size="sm" onClick={handleBank} disabled={loadDisabled}>
-                  Load questions
-                </Button>
-              ) : (
-                <Badge tone="info">Questions loaded</Badge>
-              )}
-              <Button variant="ghost" size="sm" onClick={openClearAnswersConfirm} disabled={!bank || !!submission}>
-                Clear all answers
-              </Button>
-              {bank ? (
-                <>
-                  <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
-                  <Button variant="secondary" size="sm" onClick={handleSaveForLater} disabled={!bank || !versionId}>
-                    Save &amp; submit later
-                  </Button>
-                  <Button variant="primary" size="sm" onClick={openSubmitConfirm} disabled={submitDisabled}>
-                    Submit answers
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={scrollToTop} title="Scroll to top">
-                    ↑ Top
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={scrollToBottom} title="Scroll to bottom">
-                    ↓ Bottom
-                  </Button>
-                </>
-              ) : null}
-            </div>
-            {loadDisabled && !bank ? (
-              <div className="text-xs text-textMuted">
-                {authMode === "required" && !signedIn
-                  ? "Sign in to load questions."
-                  : "Enter the view code to load questions."}
-              </div>
-            ) : null}
-          </Card>
           {bank ? (
             bank.questions.map((q, idx) => {
               const pq = submission?.perQuestion?.find((p: any) => p.uid === q.uid);
@@ -709,20 +671,6 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
             </Accordion>
           ) : null}
 
-          <Card className="space-y-3">
-            <div className="flex justify-between items-center">
-              <div className="font-semibold text-sm">Submit</div>
-              <Badge tone={submitDisabled ? "warn" : "info"}>
-                {answeredCount}/{totalQuestions} answered
-              </Badge>
-            </div>
-            <Button variant="secondary" onClick={handleSaveForLater} disabled={!bank || !versionId} className="w-full">
-              Save &amp; submit later
-            </Button>
-            <Button onClick={openSubmitConfirm} disabled={submitDisabled} className="w-full">
-              Submit answers
-            </Button>
-          </Card>
 
           <Card className="sticky top-24 space-y-3">
             <div className="flex items-center justify-between">
@@ -813,6 +761,17 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         answered={answeredCount}
         total={totalQuestions || config.composition.reduce((acc, i) => acc + i.n, 0)}
         status={status?.text}
+        bankLoaded={!!bank}
+        onLoadQuestions={handleBank}
+        onClearAnswers={openClearAnswersConfirm}
+        onSave={handleSaveForLater}
+        onSubmit={openSubmitConfirm}
+        onScrollTop={scrollToTop}
+        onScrollBottom={scrollToBottom}
+        loadDisabled={loadDisabled}
+        clearDisabled={!bank || !!submission}
+        saveDisabled={!bank || !versionId}
+        submitDisabled={submitDisabled}
       />
       {layout}
 
@@ -893,43 +852,6 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         </div>
       ) : null}
 
-      <FloatingActionBar show>
-        <FloatingActionsRow className="justify-between items-center text-xs text-textMuted">
-          <div>
-            {answeredCount}/{totalQuestions || "?"} answered
-          </div>
-          <div>{Math.round(completionPct)}% complete</div>
-        </FloatingActionsRow>
-        <FloatingActionsRow>
-          {requireViewCode ? (
-            <input
-              className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-              value={viewCode}
-              onChange={(e) => setViewCode(e.target.value)}
-              placeholder="View code"
-            />
-          ) : null}
-          {requireSubmitCode ? (
-            <input
-              className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-              value={submitCode}
-              onChange={(e) => setSubmitCode(e.target.value)}
-              placeholder="Submit code"
-            />
-          ) : null}
-        </FloatingActionsRow>
-        <FloatingActionsRow>
-          <Button variant="secondary" className="flex-1" onClick={handleSaveForLater} disabled={!bank || !versionId}>
-            Save &amp; submit later
-          </Button>
-          <Button variant="secondary" className="flex-1" onClick={reviewUnanswered} disabled={!bank || remainingCount === 0}>
-            Review unanswered
-          </Button>
-          <FloatingPrimaryButton disabled={submitDisabled} onClick={openSubmitConfirm}>
-            Submit
-          </FloatingPrimaryButton>
-        </FloatingActionsRow>
-      </FloatingActionBar>
     </>
   );
 }
