@@ -237,7 +237,8 @@ export type SubmissionDetail = {
 };
 
 export async function getSubmissionDetail(submissionId: string): Promise<SubmissionDetail> {
-  return apiFetch(`/me/submissions/${submissionId}`);
+  const data = await apiFetch<{ submission: SubmissionDetail }>(`/me/submissions/${submissionId}`);
+  return data.submission;
 }
 
 export type PublicExamSummary = {
