@@ -30,7 +30,7 @@ export function ExamListItem({ exam, actions, onCheck, checked, onLinkClick }: E
         return formatDateTime(value);
     };
 
-    const displayName = exam.title ? exam.title : `Exam ${exam.examId}`;
+    const displayName = exam.title ? exam.title : exam.examId;
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 bg-card shadow-sm hover:shadow-md transition-shadow">

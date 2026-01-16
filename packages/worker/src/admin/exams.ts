@@ -126,7 +126,7 @@ function parseTemplateBody(body: any): ExamTemplateBody {
   if (template.codes !== undefined && !Array.isArray(template.codes)) {
     throw new Error("codes must be an array");
   }
-    if (Array.isArray(template.codes) && template.codes.some((code: unknown) => typeof code !== "string")) {
+  if (Array.isArray(template.codes) && template.codes.some((code: unknown) => typeof code !== "string")) {
     throw new Error("codes must be strings");
   }
   return { name, template };
@@ -161,7 +161,8 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
         composition: exam.composition,
         policy: normalizeExamPolicyDefaults(exam.policy),
         visibility: normalizeExamVisibility(exam.visibility),
-        hasSubmissions: taken
+        hasSubmissions: taken,
+        title: exam.title
       });
     }
     return c.json({ items, cursor: list.list_complete ? undefined : list.cursor });
