@@ -397,6 +397,8 @@ function replaceTypography(text: string): string {
     // Math brackets
     .replace(/\\(Floor|floor)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌊$2⌋")
     .replace(/\\(Ceil|ceil)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌈$2⌉")
+    // \emph{...} -> <i>...</i>
+    .replace(/\\emph\{((?:[^{}]|\{[^{}]*\})*)\}/g, "<i>$1</i>")
     // \mathsc, \mathsf - Extract from start of math block
     .replace(/\$(\\mathsc|\\mathsf)\{([^{}]+)\}/g, (_m, cmd, content) => {
       let style = "";
