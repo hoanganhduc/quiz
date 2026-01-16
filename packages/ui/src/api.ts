@@ -43,7 +43,7 @@ function saveSessionToken(token: string) {
   localStorage.setItem(SESSION_KEY, token);
 }
 
-function getSessionToken(): string | null {
+export function getSessionToken(): string | null {
   return localStorage.getItem(SESSION_KEY);
 }
 
@@ -76,7 +76,7 @@ if (hash.includes("session=")) {
   }
 }
 
-async function apiFetch<T = unknown>(path: string, init?: FetchOptions): Promise<T> {
+export async function apiFetch<T = unknown>(path: string, init?: FetchOptions): Promise<T> {
   const token = getSessionToken();
   const headers = new Headers(init?.headers);
   if (token) {

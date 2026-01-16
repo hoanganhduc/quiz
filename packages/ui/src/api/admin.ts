@@ -1,5 +1,6 @@
 import type { ExamCompositionItemV1, ExamPolicyV1, ExamV1 } from "@app/shared";
 import type { BankPublicV1 } from "@app/shared";
+import { getSessionToken } from "../api";
 
 export type AdminExamRequest = {
   subject: "discrete-math";
@@ -90,13 +91,22 @@ async function parseError(res: Response): Promise<ApiError> {
   return { status: res.status, message: text || res.statusText || "Request failed" };
 }
 
+async function authFetch(url: string, init?: RequestInit): Promise<Response> {
+  const token = getSessionToken();
+  const headers = new Headers(init?.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  return fetch(url, { ...init, headers });
+}
+
 export async function createExam(params: {
   apiBase: string;
   adminToken?: string;
   body: AdminExamRequest;
 }): Promise<CreateExamResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams`, {
+  const res = await authFetch(`${apiBase}/admin/exams`, {
     method: "POST",
     headers: {
       ...(params.adminToken ? { Authorization: `Bearer ${params.adminToken}` } : {}),
@@ -115,7 +125,7 @@ export async function createExam(params: {
 
 export async function healthCheck(apiBase: string): Promise<{ ok: true } | { ok: false; error: ApiError }> {
   const base = normalizeBase(apiBase);
-  const res = await fetch(`${base}/health`, { method: "GET" });
+  const res = await authFetch(`${base}/health`, { method: "GET" });
   if (!res.ok) {
     return { ok: false, error: await parseError(res) };
   }
@@ -124,7 +134,7 @@ export async function healthCheck(apiBase: string): Promise<{ ok: true } | { ok:
 
 export async function getExamTemplate(params: { apiBase: string; examId: string }): Promise<ExamTemplateResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/template`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/template`, {
     method: "GET",
     credentials: "include"
   });
@@ -143,7 +153,7 @@ export async function listExams(params: {
   const apiBase = normalizeBase(params.apiBase);
   const url = new URL(`${apiBase}/admin/exams`);
   if (params.includeDeleted) url.searchParams.set("includeDeleted", "1");
-  const res = await fetch(url.toString(), { credentials: "include" });
+  const res = await authFetch(url.toString(), { credentials: "include" });
   if (!res.ok) {
     throw await parseError(res);
   }
@@ -152,7 +162,7 @@ export async function listExams(params: {
 
 export async function getAdminExam(params: { apiBase: string; examId: string }): Promise<AdminExamDetailResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}`, {
     method: "GET",
     credentials: "include"
   });
@@ -168,7 +178,7 @@ export async function updateExam(params: {
   body: AdminExamRequest;
 }): Promise<UpdateExamResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -186,7 +196,7 @@ export async function deleteExam(params: {
   mode: "soft" | "hard";
 }): Promise<DeleteExamResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/delete`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/delete`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -200,7 +210,7 @@ export async function deleteExam(params: {
 
 export async function restoreExam(params: { apiBase: string; examId: string }): Promise<{ examId: string; restoredAt: string }> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/restore`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/restore`, {
     method: "POST",
     credentials: "include"
   });
@@ -216,7 +226,7 @@ export async function importExams(params: {
   mode?: "overwrite";
 }): Promise<ImportExamsResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/import`, {
+  const res = await authFetch(`${apiBase}/admin/exams/import`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -230,7 +240,7 @@ export async function importExams(params: {
 
 export async function cloneExam(params: { apiBase: string; examId: string }): Promise<CloneExamResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/clone`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/clone`, {
     method: "POST",
     credentials: "include"
   });
@@ -242,7 +252,7 @@ export async function cloneExam(params: { apiBase: string; examId: string }): Pr
 
 export async function createExamShortLink(params: { apiBase: string; examId: string }): Promise<ExamShortLinkResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/shortlink`, {
+  const res = await authFetch(`${apiBase}/admin/exams/${encodeURIComponent(params.examId)}/shortlink`, {
     method: "POST",
     credentials: "include"
   });
@@ -254,7 +264,7 @@ export async function createExamShortLink(params: { apiBase: string; examId: str
 
 export async function listTemplates(params: { apiBase: string }): Promise<ListTemplatesResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/templates`, { credentials: "include" });
+  const res = await authFetch(`${apiBase}/admin/templates`, { credentials: "include" });
   if (!res.ok) {
     throw await parseError(res);
   }
@@ -267,7 +277,7 @@ export async function createTemplate(params: {
   template: ExamTemplateRecord["template"];
 }): Promise<ExamTemplateRecord> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/templates`, {
+  const res = await authFetch(`${apiBase}/admin/templates`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -286,7 +296,7 @@ export async function updateTemplate(params: {
   template: ExamTemplateRecord["template"];
 }): Promise<ExamTemplateRecord> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/templates/${encodeURIComponent(params.templateId)}`, {
+  const res = await authFetch(`${apiBase}/admin/templates/${encodeURIComponent(params.templateId)}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -300,7 +310,7 @@ export async function updateTemplate(params: {
 
 export async function deleteTemplate(params: { apiBase: string; templateId: string }): Promise<void> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/templates/${encodeURIComponent(params.templateId)}`, {
+  const res = await authFetch(`${apiBase}/admin/templates/${encodeURIComponent(params.templateId)}`, {
     method: "DELETE",
     credentials: "include"
   });
@@ -314,7 +324,7 @@ export async function importTemplates(params: {
   items: Array<{ name: string; template: ExamTemplateRecord["template"] }>;
 }): Promise<ImportTemplatesResponse> {
   const apiBase = normalizeBase(params.apiBase);
-  const res = await fetch(`${apiBase}/admin/templates/import`, {
+  const res = await authFetch(`${apiBase}/admin/templates/import`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -330,7 +340,7 @@ export type BanksListResponse = { subjects: string[] };
 
 export async function listAvailableBanks(apiBase: string): Promise<BanksListResponse> {
   const base = normalizeBase(apiBase);
-  const res = await fetch(`${base}/admin/banks`, { credentials: "include" });
+  const res = await authFetch(`${base}/admin/banks`, { credentials: "include" });
   if (!res.ok) {
     throw await parseError(res);
   }
@@ -339,7 +349,7 @@ export async function listAvailableBanks(apiBase: string): Promise<BanksListResp
 
 export async function getLatestPublicBank(apiBase: string, subject: string): Promise<BankPublicV1> {
   const base = normalizeBase(apiBase);
-  const res = await fetch(`${base}/admin/banks/${encodeURIComponent(subject)}/public`, { credentials: "include" });
+  const res = await authFetch(`${base}/admin/banks/${encodeURIComponent(subject)}/public`, { credentials: "include" });
   if (!res.ok) {
     throw await parseError(res);
   }
