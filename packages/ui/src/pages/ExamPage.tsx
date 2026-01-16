@@ -174,6 +174,13 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
   };
 
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  const scrollToBottom = () => {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
+  };
+
   useEffect(() => {
     if (!bank || !versionId || !timeLimitMinutes) {
       setTimeRemainingMs(null);
@@ -586,6 +593,20 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
               <Button variant="ghost" size="sm" onClick={openClearAnswersConfirm} disabled={!bank || !!submission}>
                 Clear all answers
               </Button>
+              {bank ? (
+                <>
+                  <div className="h-4 w-px bg-border mx-1 hidden sm:block" />
+                  <Button variant="primary" size="sm" onClick={openSubmitConfirm} disabled={submitDisabled}>
+                    Submit answers
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={scrollToTop} title="Scroll to top">
+                    ↑ Top
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={scrollToBottom} title="Scroll to bottom">
+                    ↓ Bottom
+                  </Button>
+                </>
+              ) : null}
             </div>
             {loadDisabled && !bank ? (
               <div className="text-xs text-textMuted">
