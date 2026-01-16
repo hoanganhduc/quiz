@@ -7,7 +7,9 @@ import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Alert } from "../components/ui/Alert";
 import { McqQuestion } from "../components/McqQuestion";
+import { FillBlankQuestion } from "../components/FillBlankQuestion";
 import { formatDateTime } from "../utils/time";
+import { AnswerValueV1 } from "@app/shared";
 
 export function SubmissionDetailPage() {
     const { submissionId } = useParams<{ submissionId: string }>();
@@ -117,6 +119,7 @@ export function SubmissionDetailPage() {
                         prompt: pq.prompt,
                         choices: pq.choices,
                         answerKey: pq.answerKey,
+                        answers: pq.expected,
                         solution: pq.solution,
                         type: pq.choices ? "mcq-single" : "fill-blank",
                         // Mock other fields for UI
@@ -127,17 +130,32 @@ export function SubmissionDetailPage() {
                         number: idx + 1
                     };
 
-                    return (
-                        <McqQuestion
-                            key={pq.uid}
-                            index={idx}
-                            question={displayQuestion}
-                            answer={pq.chosen as string}
-                            onChange={() => { }} // Read-only
-                            showSolution={true}
-                            submissionStatus={pq.correct ? "correct" : "incorrect"}
-                        />
-                    );
+                    if (displayQuestion.type === "mcq-single") {
+                        return (
+                            <McqQuestion
+                                key={pq.uid}
+                                index={idx}
+                                question={displayQuestion}
+                                answer={pq.chosen as string}
+                                onChange={() => { }} // Read-only
+                                showSolution={true}
+                                submissionStatus={pq.correct ? "correct" : "incorrect"}
+                            />
+                        );
+                    } else if (displayQuestion.type === "fill-blank") {
+                        return (
+                            <FillBlankQuestion
+                                key={pq.uid}
+                                index={idx}
+                                question={displayQuestion}
+                                answer={pq.chosen as AnswerValueV1}
+                                onChange={() => { }} // Read-only
+                                showSolution={true}
+                                submissionStatus={pq.correct ? "correct" : "incorrect"}
+                            />
+                        );
+                    }
+                    return null;
                 })}
             </div>
         </PageShell>

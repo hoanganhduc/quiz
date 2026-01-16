@@ -526,6 +526,8 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       ok: true,
       submission: {
         submissionId: submission.submissionId,
+        examId: submission.examId,
+        submittedAt: submission.submittedAt,
         score,
         perQuestion: filtered,
         version: submission.version

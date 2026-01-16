@@ -584,12 +584,20 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
               const submissionStatus =
                 pq?.correct === true ? "correct" : submission ? "incorrect" : undefined;
 
+              // Merge solutions from submission if present
+              const fullQuestion = pq ? {
+                ...q,
+                answerKey: pq.answerKey ?? (q as any).answerKey,
+                solution: pq.solution ?? (q as any).solution,
+                answers: pq.expected ?? (q as any).answers
+              } : q;
+
               return (
                 <div id={`q-${idx + 1}`} key={q.uid}>
                   {q.type === "mcq-single" ? (
                     <McqQuestion
                       index={idx}
-                      question={q}
+                      question={fullQuestion as any}
                       answer={typeof answers[q.uid] === "string" ? (answers[q.uid] as string) : ""}
                       onChange={(uid, val) => setAnswers((prev) => ({ ...prev, [uid]: val }))}
                       showSolution={showSolutions && config?.policy.solutionsMode !== "never"}
@@ -598,7 +606,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
                   ) : q.type === "fill-blank" ? (
                     <FillBlankQuestion
                       index={idx}
-                      question={q}
+                      question={fullQuestion as any}
                       answer={answers[q.uid]}
                       onChange={(uid, val) => setAnswers((prev) => ({ ...prev, [uid]: val }))}
                       showSolution={showSolutions && config?.policy.solutionsMode !== "never"}

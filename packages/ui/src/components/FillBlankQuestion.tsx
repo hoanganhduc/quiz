@@ -83,12 +83,18 @@ export function FillBlankQuestion({
             <div className="text-xs text-textMuted mb-1">Blank {i + 1}</div>
             <input
               className={clsx(
-                "w-full rounded-lg border px-3 py-2 text-sm",
-                "border-border focus:outline-none focus:ring-2 focus:ring-info focus:ring-offset-2"
+                "w-full rounded-lg border px-3 py-2 text-sm transition-colors",
+                status === "correct"
+                  ? "border-green-500 bg-green-50 text-green-900 focus:ring-green-500 dark:bg-green-900/20 dark:text-green-100 dark:border-green-600"
+                  : status === "incorrect"
+                    ? "border-red-500 bg-red-50 text-red-900 focus:ring-red-500 dark:bg-red-900/20 dark:text-red-100 dark:border-red-600"
+                    : "border-border bg-bg focus:ring-info",
+                "focus:outline-none focus:ring-2 focus:ring-offset-2"
               )}
               value={values[i] ?? ""}
               onChange={(e) => onSet(i, e.target.value)}
               placeholder="Enter answer"
+              disabled={status === "correct" || status === "incorrect"}
             />
           </label>
         ))}
