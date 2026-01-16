@@ -393,7 +393,9 @@ function replaceTypography(text: string): string {
     .replace(/---/g, "—")
     // Smart quotes -> Double quotes
     .replace(/``/g, '"')
-    .replace(/''/g, '"');
+    .replace(/''/g, '"')
+    // \mathsc{Text} -> Small Caps
+    .replace(/(?:\$)?\\mathsc\{([^{}]+)\}(?:\$)?/g, '<span style="font-variant: small-caps;">$1</span>');
 }
 
 export function renderLatexText(text: string, opts: RenderOptions): string {
