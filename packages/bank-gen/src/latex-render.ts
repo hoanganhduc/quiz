@@ -14,10 +14,13 @@ type RenderOptions = {
   language?: "en" | "vi";
 };
 
-const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
+const ENV_LIST = "tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo";
+// Group 3 is the environment name because Group 1 is minipage match and Group 2 is block match.
+const BLOCK_PATTERN = `\\\\begin\\{(${ENV_LIST})\\}(?:\\[[^\\]]*\\])?[\\s\\S]*?\\\\end\\{\\3\\}`;
+const MINIPAGE_PATTERN = "(?:\\\\begin\\{minipage\\}(?:\\[[^\\]]*\\])?\\{[^}]+\\}[\\s\\S]*?\\\\end\\{minipage\\}[~%\\s]*)+";
+const COMBINED_REGEX = new RegExp(`(${MINIPAGE_PATTERN})|(${BLOCK_PATTERN})`, "g");
+
 const MACRO_REGEX = /\\dongkhung\{((?:[^{}]|{[^{}]*})*)\}/g;
-// Matches one or more consecutive minipage environments (for side-by-side algorithms)
-const MINIPAGE_REGEX = /(?:\\begin\{minipage\}(?:\[[^\]]*\])?\{[^}]+\}[\s\S]*?\\end\{minipage\}[~%\s]*)+/g;
 
 function normalizeAssetsBase(value: string): string {
   if (!value) return value;
@@ -269,6 +272,7 @@ function extractCommandContent(text: string, command: string): { content: string
       break;
     }
     if (!/\s/.test(char)) break; // Found non-whitespace before {
+    // If we hit something else, it might be command without args (unlikely here)
   }
 
   if (braceStart === -1) return null;
@@ -294,12 +298,16 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
   if (!text) return text;
   let cleaned = stripCommentLines(text);
 
-  // First, handle consecutive minipage blocks (side-by-side algorithms)
-  cleaned = cleaned.replace(MINIPAGE_REGEX, (match) => {
-    return `\\includegraphics{${renderBlockToImage(match, opts)}}`;
-  });
+  return cleaned.replace(COMBINED_REGEX, (match, minipageMatch, blockMatch) => {
+    // If it matched the minipage pattern (Group 1), render it as an image
+    if (minipageMatch) {
+      return `\\includegraphics{${renderBlockToImage(minipageMatch, opts)}}`;
+    }
 
-  return cleaned.replace(BLOCK_REGEX, (match) => {
+    // If it matched the normal block pattern (Group 2)
+    // We can proceed with existing logic for figures/tables/etc.
+    // Note: match === blockMatch here.
+
     if (match.startsWith("\\begin{figure}") || match.startsWith("\\begin{figwindow}")) {
       let contentForImage = match;
       let label = "";
