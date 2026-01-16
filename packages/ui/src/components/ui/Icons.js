@@ -32,3 +32,9 @@ export function IconLink(props) {
 export function IconPlus(props) {
     return (_jsxs(Svg, { ...props, children: [_jsx("path", { d: "M12 5v14" }), _jsx("path", { d: "M5 12h14" })] }));
 }
+export function IconMenu(props) {
+    return (_jsxs(Svg, { ...props, children: [_jsx("path", { d: "M3 12h18" }), _jsx("path", { d: "M3 6h18" }), _jsx("path", { d: "M3 18h18" })] }));
+}
+export function IconX(props) {
+    return (_jsxs(Svg, { ...props, children: [_jsx("path", { d: "M18 6L6 18" }), _jsx("path", { d: "M6 6l12 12" })] }));
+}
