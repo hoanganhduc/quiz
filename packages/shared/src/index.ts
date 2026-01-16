@@ -129,6 +129,8 @@ export type SubmissionPerQuestionV1 = {
   answerKey?: ChoiceKey;
   expected?: string[];
   solution?: string;
+  prompt?: string;
+  choices?: ChoiceV1[];
 };
 
 export type SubmissionV1 = {
@@ -283,7 +285,9 @@ export const SubmissionPerQuestionSchema = z.object({
   correct: z.boolean(),
   answerKey: ChoiceKeySchema.optional(),
   expected: z.array(z.string()).optional(),
-  solution: z.string().optional()
+  solution: z.string().optional(),
+  prompt: z.string().optional(),
+  choices: z.array(ChoiceSchema).optional()
 });
 
 export const SubmissionOwnerSchema = z

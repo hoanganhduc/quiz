@@ -230,6 +230,8 @@ export type SubmissionDetail = {
     answerKey?: ChoiceKey;
     expected?: string[];
     solution?: string;
+    prompt?: string;
+    choices?: { key: ChoiceKey; text: string }[];
   }[];
   version?: { versionId: string; versionIndex?: number };
 };

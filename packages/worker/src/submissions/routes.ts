@@ -3,6 +3,8 @@ import type { Env } from "../env";
 import { readSession } from "../session";
 import { isLoggedInUser, SubmissionV1Schema } from "@app/shared";
 import { getSubmissionOwnerMap, listUserSubmissionIndex } from "./index";
+import { getExam, getLatestBanks } from "../kv";
+import { makeVersionSeed, shuffleChoicesForQuestion } from "../exam/versioning";
 
 const submissionKey = (examId: string, submissionId: string) => `sub:${examId}:${submissionId}`;
 
@@ -47,6 +49,38 @@ export function registerSubmissionRoutes(app: Hono<{ Bindings: Env }>) {
       return c.text("Not found", 404);
     }
 
-    return c.json({ submission: parsed.data });
+    const submission = parsed.data;
+
+    // Enrich with question data if possible
+    const [examRes, banksRes] = await Promise.all([
+      getExam(c.env, submission.examId),
+      getLatestBanks(c.env, "discrete-math") // Hardcoded subject for now as per project scope
+    ]);
+
+    if (examRes.ok && banksRes.ok) {
+      const exam = examRes.value;
+      const mapAns = new Map(banksRes.value.answersBank.questions.map(q => [q.uid, q]));
+
+      const versionSeed = submission.version
+        ? makeVersionSeed(exam.seed, submission.identity.userId, submission.version.versionIndex)
+        : undefined;
+
+      submission.perQuestion = submission.perQuestion.map(pq => {
+        const question = mapAns.get(pq.uid);
+        if (question) {
+          pq.prompt = question.prompt;
+          if (question.type === "mcq-single") {
+            if (versionSeed && exam.policy.shuffleChoices) {
+              pq.choices = shuffleChoicesForQuestion(question, versionSeed).choices;
+            } else {
+              pq.choices = question.choices;
+            }
+          }
+        }
+        return pq;
+      });
+    }
+
+    return c.json({ submission });
   });
 }

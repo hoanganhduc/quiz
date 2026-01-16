@@ -25,10 +25,15 @@ export function SubmissionDetailPage() {
                 const sub = await getSubmissionDetail(submissionId);
                 setSubmission(sub);
 
-                // Try to load the bank if we have an examId
-                if (sub.examId) {
-                    const bankData = await getExamBank(sub.examId);
-                    setBank(bankData);
+                // If sub doesn't have prompts, try to load the bank as fallback
+                const firstPq = sub.perQuestion[0];
+                if (sub.examId && (!firstPq || !firstPq.prompt)) {
+                    try {
+                        const bankData = await getExamBank(sub.examId);
+                        setBank(bankData);
+                    } catch (e) {
+                        console.warn("Could not load bank fallback", e);
+                    }
                 }
             } catch (err: any) {
                 setError(err?.message ?? "Failed to load submission details");
@@ -95,48 +100,43 @@ export function SubmissionDetailPage() {
 
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-text">Questions & Results</h2>
-                {bank ? (
-                    bank.questions.map((q, idx) => {
-                        const result = submission.perQuestion.find((p) => p.uid === q.uid);
+                {submission.perQuestion.map((pq, idx) => {
+                    // Try to find full question from bank if available, otherwise reconstruct from enriched pq
+                    const questionFromBank = bank?.questions.find(q => q.uid === pq.uid);
+
+                    if (!pq.prompt && !questionFromBank) {
                         return (
-                            <McqQuestion
-                                key={q.uid}
-                                index={idx}
-                                question={q}
-                                answer={result?.chosen as string}
-                                onChange={() => { }} // Read-only
-                                showSolution={true}
-                                submissionStatus={result?.correct ? "correct" : "incorrect"}
-                            />
-                        );
-                    })
-                ) : (
-                    <div className="space-y-4">
-                        {submission.perQuestion.map((p, idx) => (
-                            <Card key={p.uid} className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <div className="font-semibold text-sm text-text">Question {idx + 1}</div>
-                                    <Badge tone={p.correct ? "success" : "error"}>
-                                        {p.correct ? "Correct" : "Incorrect"}
-                                    </Badge>
-                                </div>
-                                <div className="text-sm">
-                                    <span className="font-semibold">Your choice:</span> {p.chosen || "Unanswered"}
-                                </div>
-                                {p.answerKey && (
-                                    <div className="text-sm text-success">
-                                        <span className="font-semibold">Correct answer:</span> {p.answerKey}
-                                    </div>
-                                )}
-                                {p.solution && (
-                                    <div className="mt-2 text-sm text-textMuted italic border-l-2 border-border pl-3">
-                                        {p.solution}
-                                    </div>
-                                )}
+                            <Card key={pq.uid} className="p-4 text-sm text-textMuted italic">
+                                Question content not available ({pq.uid})
                             </Card>
-                        ))}
-                    </div>
-                )}
+                        );
+                    }
+
+                    const displayQuestion: any = questionFromBank || {
+                        uid: pq.uid,
+                        prompt: pq.prompt,
+                        choices: pq.choices,
+                        type: pq.choices ? "mcq-single" : "fill-blank",
+                        // Mock other fields for UI
+                        id: pq.uid.split(":").pop() || pq.uid,
+                        subject: "discrete-math",
+                        topic: "General",
+                        level: "basic",
+                        number: idx + 1
+                    };
+
+                    return (
+                        <McqQuestion
+                            key={pq.uid}
+                            index={idx}
+                            question={displayQuestion}
+                            answer={pq.chosen as string}
+                            onChange={() => { }} // Read-only
+                            showSolution={true}
+                            submissionStatus={pq.correct ? "correct" : "incorrect"}
+                        />
+                    );
+                })}
             </div>
         </PageShell>
     );
