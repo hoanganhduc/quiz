@@ -216,6 +216,74 @@ export function ExamPage({ session, setSession }) {
         return () => clearTimeout(timer);
     }, [answers, examId, versionId, bank]);
     useEffect(() => {
+        if (!bank)
+            return;
+        let timer = null;
+        const resolveNumbers = () => {
+            // Find all figures in order
+            const figures = Array.from(document.querySelectorAll('[data-latex-type="figure"]'));
+            const labelToNum = new Map();
+            figures.forEach((fig, i) => {
+                const num = i + 1;
+                // Primary label
+                const primaryLabel = fig.getAttribute("data-label");
+                if (primaryLabel)
+                    labelToNum.set(primaryLabel, num);
+                // Map auxiliary anchors to the same number
+                // These are siblings of the figure
+                let prev = fig.previousElementSibling;
+                while (prev && prev.getAttribute("data-latex-type") === "anchor") {
+                    const aid = prev.getAttribute("data-label");
+                    if (aid)
+                        labelToNum.set(aid, num);
+                    prev = prev.previousElementSibling;
+                }
+            });
+            // Update all placeholders
+            const spans = Array.from(document.querySelectorAll(".latex-fig-num"));
+            spans.forEach((span) => {
+                const label = span.getAttribute("data-label");
+                if (label) {
+                    const n = labelToNum.get(label);
+                    if (n !== undefined) {
+                        span.textContent = n.toString();
+                    }
+                    else {
+                        span.textContent = "?";
+                    }
+                }
+            });
+        };
+        const debouncedResolve = () => {
+            if (timer)
+                window.clearTimeout(timer);
+            timer = window.setTimeout(resolveNumbers, 100);
+        };
+        resolveNumbers();
+        const observer = new MutationObserver((mutations) => {
+            let shouldUpdate = false;
+            for (const m of mutations) {
+                if (m.type === "childList" || m.type === "characterData") {
+                    // Ignore our own updates to textContent of spans
+                    const target = m.target;
+                    if (target.classList?.contains("latex-fig-num") || target.parentElement?.classList?.contains("latex-fig-num")) {
+                        continue;
+                    }
+                    shouldUpdate = true;
+                    break;
+                }
+            }
+            if (shouldUpdate)
+                debouncedResolve();
+        });
+        observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+        return () => {
+            observer.disconnect();
+            if (timer)
+                window.clearTimeout(timer);
+        };
+    }, [bank]);
+    useEffect(() => {
         if (!confirmOpen && !clearConfirmOpen && !clearAnswersOpen)
             return;
         const onKeyDown = (e) => {

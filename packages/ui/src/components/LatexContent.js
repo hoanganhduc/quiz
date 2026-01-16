@@ -1,5 +1,5 @@
 import { jsx as _jsx } from "react/jsx-runtime";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { MathJax } from "better-react-mathjax";
 import clsx from "clsx";
 function escapeHtml(value) {
@@ -121,9 +121,16 @@ function applyBlockCommand(text, command, className) {
     return result;
 }
 function transformLatexText(input) {
+    const htmlTagTokens = [];
     const verbTokens = [];
     const imgTokens = [];
-    let text = input.replace(/\\verb(.)([\s\S]*?)\1/g, (_match, _delim, body) => {
+    // Protect HTML tags first so bank-gen injected HTML is preserved
+    let text = input.replace(/<[^>]+>/g, (match) => {
+        const token = `__HTML_TAG_${htmlTagTokens.length}__`;
+        htmlTagTokens.push(match);
+        return token;
+    });
+    text = text.replace(/\\verb(.)([\s\S]*?)\1/g, (_match, _delim, body) => {
         const html = `<code class="latex-code">${escapeHtml(body)}</code>`;
         const token = `__LATEX_VERB_${verbTokens.length}__`;
         verbTokens.push(html);
@@ -137,7 +144,6 @@ function transformLatexText(input) {
         return token;
     });
     text = escapeHtml(text);
-    text = text.replace(/\\dongkhung\s*\{/g, "\\dongkhung{");
     text = text.replace(/\\begin\{tikzpicture\}[\s\S]*?\\end\{tikzpicture\}/g, '<div class="latex-figure latex-omit">[TikZ diagram omitted]</div>');
     text = text.replace(/\\begin\{tikz\}[\s\S]*?\\end\{tikz\}/g, '<div class="latex-figure latex-omit">[TikZ diagram omitted]</div>');
     text = text.replace(/\\begin\{center\}/g, '<div class="latex-center">');
@@ -146,7 +152,6 @@ function transformLatexText(input) {
     text = text.replace(/\\end\{flushleft\}/g, "</div>");
     text = text.replace(/\\begin\{flushright\}/g, '<div class="latex-right">');
     text = text.replace(/\\end\{flushright\}/g, "</div>");
-    text = applyBlockCommand(text, "dongkhung", "latex-box latex-box-block");
     text = text.replace(/\\begin\{figure\}/g, '<div class="latex-figure">');
     text = text.replace(/\\end\{figure\}/g, "</div>");
     text = text.replace(/\\begin\{table\}/g, '<div class="latex-table">');
@@ -173,25 +178,94 @@ function transformLatexText(input) {
     text = text.replace(/\\\\/g, "<br />");
     text = text.replace(/\r?\n/g, "<br />");
     verbTokens.forEach((html, index) => {
-        text = text.replace(`__LATEX_VERB_${index}__`, html);
+        text = text.split(`__LATEX_VERB_${index}__`).join(html);
     });
     imgTokens.forEach((html, index) => {
-        text = text.replace(`__LATEX_IMG_${index}__`, html);
+        text = text.split(`__LATEX_IMG_${index}__`).join(html);
+    });
+    htmlTagTokens.forEach((tag, index) => {
+        text = text.split(`__HTML_TAG_${index}__`).join(tag);
     });
     return text;
 }
 function formatLatexToHtml(input) {
     if (!input)
         return "";
-    const segments = splitLatexSegments(input);
-    return segments
+    const blocks = [];
+    const tokenPrefix = "__LATEX_BLOCK_TOKEN_";
+    let text = input;
+    let index = 0;
+    // 1. Process block-level commands balanced-brace wise
+    // This allows them to contain math segments ($...$) without being broken by splitLatexSegments
+    while (true) {
+        // Normalizing whitespace slightly just to find the token
+        const start = text.indexOf("\\dongkhung", index);
+        if (start === -1)
+            break;
+        // Check if it's \dongkhung{
+        let braceStart = text.indexOf("{", start + 10);
+        if (braceStart === -1 || text.slice(start + 10, braceStart).trim() !== "") {
+            index = start + 10;
+            continue;
+        }
+        let pos = braceStart + 1;
+        let depth = 1;
+        while (pos < text.length && depth > 0) {
+            if (text[pos] === "{")
+                depth += 1;
+            else if (text[pos] === "}")
+                depth -= 1;
+            pos += 1;
+        }
+        if (depth === 0) {
+            const inner = text.slice(braceStart + 1, pos - 1).trim();
+            const html = `<div class="latex-box latex-box-block">${formatLatexToHtml(inner)}</div>`;
+            const token = `${tokenPrefix}${blocks.length}__`;
+            blocks.push(html);
+            text = text.slice(0, start) + token + text.slice(pos);
+            index = start + token.length;
+        }
+        else {
+            index = start + 10;
+        }
+    }
+    // 2. Process math and standard text segments
+    const segments = splitLatexSegments(text);
+    let result = segments
         .map((segment) => (segment.type === "math" ? segment.value : transformLatexText(segment.value)))
         .join("");
+    // 3. Replace block tokens back
+    blocks.forEach((html, i) => {
+        result = result.replace(`${tokenPrefix}${i}__`, html);
+    });
+    return result;
 }
 export function LatexContent({ content, inline = false, className }) {
+    const containerRef = useRef(null);
     const html = useMemo(() => formatLatexToHtml(content ?? ""), [content]);
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!container)
+            return;
+        const handleClick = (e) => {
+            const target = e.target.closest("a");
+            if (target && target.classList.contains("latex-ref")) {
+                e.preventDefault();
+                const href = target.getAttribute("href");
+                if (href?.startsWith("#")) {
+                    const id = href.slice(1);
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }
+                }
+            }
+        };
+        container.addEventListener("click", handleClick);
+        return () => container.removeEventListener("click", handleClick);
+    }, [html]);
     if (inline) {
-        return (_jsx(MathJax, { renderMode: "post", inline: true, dynamic: true, children: _jsx("span", { className: clsx(className), dangerouslySetInnerHTML: { __html: html } }) }));
+        return (_jsx(MathJax, { renderMode: "post", inline: true, dynamic: true, children: _jsx("span", { ref: containerRef, className: clsx(className), dangerouslySetInnerHTML: { __html: html } }) }));
     }
-    return (_jsx(MathJax, { renderMode: "post", dynamic: true, children: _jsx("div", { className: clsx(className), dangerouslySetInnerHTML: { __html: html } }) }));
+    return (_jsx(MathJax, { renderMode: "post", dynamic: true, children: _jsx("div", { ref: containerRef, className: clsx(className), dangerouslySetInnerHTML: { __html: html } }) }));
 }

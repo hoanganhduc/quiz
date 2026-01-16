@@ -2,7 +2,7 @@ import { jwtVerify } from "jose";
 import type { Hono } from "hono";
 import type { Env } from "../env";
 import type { AppUser, SessionV2 } from "@app/shared";
-import { issueSessionCookie, readSession } from "../session";
+import { issueSessionCookie, readSession, signSession } from "../session";
 import { getGoogleJwks } from "./jwksCache";
 import {
   ConflictError,
@@ -114,10 +114,12 @@ async function upsertGoogleUser(
 function buildCallbackUrl(req: Request): string {
   const url = new URL(req.url);
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || url.host;
+  // Handle IPv6 hostnames by wrapping them in brackets if they contain colons but no brackets
+  const safeHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
   const proto = req.headers.get("x-forwarded-proto") || (url.protocol.startsWith("https") ? "https" : "http");
   const prefix = req.headers.get("x-forwarded-prefix") || "";
 
-  return `${proto}://${host}${prefix}/auth/callback/google`;
+  return `${proto}://${safeHost}${prefix}/auth/callback/google`;
 }
 
 async function exchangeGoogleCode(env: Env, code: string, redirectUri: string): Promise<{ id_token?: string } | null> {
@@ -246,9 +248,16 @@ export function registerGoogleAuth(app: Hono<{ Bindings: Env }>) {
     };
 
     const cookie = await issueSessionCookie(c.env, c.req.raw, sessionPayload);
+    const token = await signSession(c.env, sessionPayload);
 
-    const res = c.redirect(redirect);
-    res.headers.append("Set-Cookie", cookie);
+    const redirectUrl = new URL(redirect);
+    // Append token to fragment for local redirects to bypass cookie issues on mobile
+    if (isLocalUrl(redirect)) {
+      redirectUrl.hash = `session=${token}`;
+    }
+
+    const res = c.redirect(redirectUrl.toString());
+    res.headers.set("Set-Cookie", cookie);
     return res;
   });
 

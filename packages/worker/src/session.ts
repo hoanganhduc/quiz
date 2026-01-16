@@ -81,6 +81,13 @@ export function readSessionCookie(request: Request): string | null {
 
 export async function readSession(env: Env, request: Request): Promise<SessionV2 | null> {
   const cookie = readSessionCookie(request);
-  if (!cookie) return null;
-  return verifySession(env, cookie);
+  if (cookie) return verifySession(env, cookie);
+
+  const authHeader = request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    const token = authHeader.slice(7);
+    return verifySession(env, token);
+  }
+
+  return null;
 }

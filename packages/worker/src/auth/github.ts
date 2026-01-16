@@ -1,7 +1,7 @@
 import type { Hono } from "hono";
 import type { AppUser, SessionV2 } from "@app/shared";
 import type { Env } from "../env";
-import { issueSessionCookie, readSession } from "../session";
+import { issueSessionCookie, readSession, signSession } from "../session";
 import {
   ConflictError,
   createUserWithProvider,
@@ -63,10 +63,12 @@ async function fetchGithubUser(token: string): Promise<{ user: GithubUser; email
 function buildCallbackUrl(req: Request): string {
   const url = new URL(req.url);
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || url.host;
+  // Handle IPv6 hostnames by wrapping them in brackets if they contain colons but no brackets
+  const safeHost = host.includes(":") && !host.startsWith("[") ? `[${host}]` : host;
   const proto = req.headers.get("x-forwarded-proto") || (url.protocol.startsWith("https") ? "https" : "http");
   const prefix = req.headers.get("x-forwarded-prefix") || "";
 
-  return `${proto}://${host}${prefix}/auth/callback/github`;
+  return `${proto}://${safeHost}${prefix}/auth/callback/github`;
 }
 
 export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
@@ -136,12 +138,12 @@ export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
       return c.text("Invalid redirect", 400);
     }
 
-    const token = await fetchGithubToken(c.env, code, state);
-    if (!token) {
+    const accessToken = await fetchGithubToken(c.env, code, state);
+    if (!accessToken) {
       return c.text("Failed to exchange code", 400);
     }
 
-    const profile = await fetchGithubUser(token);
+    const profile = await fetchGithubUser(accessToken);
     if (!profile) {
       return c.text("Failed to fetch user", 400);
     }
@@ -212,9 +214,16 @@ export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
     };
 
     const cookie = await issueSessionCookie(c.env, c.req.raw, sessionPayload);
+    const token = await signSession(c.env, sessionPayload);
 
-    const res = c.redirect(redirect);
-    res.headers.append("Set-Cookie", cookie);
+    const redirectUrl = new URL(redirect);
+    // Append token to fragment for local redirects to bypass cookie issues on mobile
+    if (isLocalUrl(redirect)) {
+      redirectUrl.hash = `session=${token}`;
+    }
+
+    const res = c.redirect(redirectUrl.toString());
+    res.headers.set("Set-Cookie", cookie);
     return res;
   });
 }

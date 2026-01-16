@@ -14,6 +14,8 @@ if (!API_BASE) {
   console.warn("VITE_API_BASE is not set; API calls will fail.");
 }
 
+const SESSION_KEY = "quiz_session_v2";
+
 type SessionMeta = {
   roles?: string[];
   displayName?: string;
@@ -37,10 +39,40 @@ export type Session = SessionUser | SessionAnon;
 
 type FetchOptions = RequestInit & { parseJson?: boolean };
 
+function saveSessionToken(token: string) {
+  localStorage.setItem(SESSION_KEY, token);
+}
+
+function getSessionToken(): string | null {
+  return localStorage.getItem(SESSION_KEY);
+}
+
+export function clearSessionToken() {
+  localStorage.removeItem(SESSION_KEY);
+}
+
+// Check if there's a session token in the URL fragment (passed by backend for local IP redirects)
+const searchParams = new URLSearchParams(window.location.hash.slice(1));
+const sessionFromUrl = searchParams.get("session");
+if (sessionFromUrl) {
+  saveSessionToken(sessionFromUrl);
+  // Clean up URL fragment
+  searchParams.delete("session");
+  const nextHash = searchParams.toString();
+  window.location.hash = nextHash ? `#${nextHash}` : "#/";
+}
+
 async function apiFetch<T = unknown>(path: string, init?: FetchOptions): Promise<T> {
+  const token = getSessionToken();
+  const headers = new Headers(init?.headers);
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
-    ...init
+    ...init,
+    headers
   });
   if (!res.ok) {
     const text = await res.text();
@@ -55,6 +87,11 @@ async function apiFetch<T = unknown>(path: string, init?: FetchOptions): Promise
 export async function getSession(): Promise<Session | null> {
   const data = await apiFetch<{ session: Session | null }>("/auth/me");
   return data.session;
+}
+
+export async function logout(): Promise<void> {
+  await apiFetch("/auth/logout", { method: "POST", parseJson: false });
+  clearSessionToken();
 }
 
 export async function loginGoogle(idToken: string): Promise<SessionUser> {
@@ -96,9 +133,16 @@ export type ExamBankResponse = { examId?: string; version?: ExamVersionInfo; que
 export async function getExamBank(examId: string, code?: string): Promise<ExamBankResponse> {
   const url = new URL(`${API_BASE}/exam/${examId}/bank`);
   if (code) url.searchParams.set("code", code);
+
+  const token = getSessionToken();
+  const headers: Record<string, string> = code ? { "X-Quiz-Code": code } : {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const res = await fetch(url.toString(), {
     credentials: "include",
-    headers: code ? { "X-Quiz-Code": code } : undefined
+    headers
   });
   if (!res.ok) {
     throw new Error(await res.text());
