@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import clsx from "clsx";
 import type { Session } from "../../api";
-import { githubLoginUrl, googleLoginUrl } from "../../api";
+import { githubLoginUrl, googleLoginUrl, logout } from "../../api";
 import { Badge } from "../ui/Badge";
 import { IconClock, IconLogin, IconLogout, IconMenu, IconPlay, IconQuestion, IconSettings, IconShield, IconUser, IconX } from "../ui/Icons";
 import { HelpDrawer } from "./HelpDrawer";
@@ -49,7 +49,7 @@ export function TopBar({ session }: { session: SessionLike | null }) {
 
   const handleLogout = async () => {
     if (!apiBase) return;
-    await fetch(`${apiBase}/auth/logout`, { method: "POST", credentials: "include" });
+    await logout();
     window.location.reload();
   };
 

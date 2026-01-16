@@ -26,6 +26,7 @@ import { Textarea } from "../../components/ui/Textarea";
 import { Badge } from "../../components/ui/Badge";
 import { Select } from "../../components/ui/Select";
 import { formatDateTime } from "../../utils/time";
+import { ExamListItem } from "../../components/ExamListItem";
 
 type Notice = { tone: "success" | "error" | "warn" | "info"; text: string };
 

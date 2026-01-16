@@ -34,6 +34,7 @@ export type AdminExamSummary = {
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
   hasSubmissions: boolean;
+  title?: string;
 };
 
 export type ListExamsResponse = { items: AdminExamSummary[]; cursor?: string };
@@ -191,10 +192,10 @@ export async function deleteExam(params: {
     credentials: "include",
     body: JSON.stringify({ mode: params.mode })
   });
-    if (!res.ok) {
-      throw await parseError(res);
-    }
-    return (await res.json()) as DeleteExamResponse;
+  if (!res.ok) {
+    throw await parseError(res);
+  }
+  return (await res.json()) as DeleteExamResponse;
 }
 
 export async function restoreExam(params: { apiBase: string; examId: string }): Promise<{ examId: string; restoredAt: string }> {

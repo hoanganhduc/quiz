@@ -240,6 +240,7 @@ export async function getSubmissionDetail(submissionId: string): Promise<Submiss
 export type PublicExamSummary = {
   examId: string;
   subject: string;
+  title?: string;
   createdAt: string;
   expiresAt: string | null;
 };

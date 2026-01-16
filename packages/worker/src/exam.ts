@@ -548,6 +548,7 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       items.push({
         examId: exam.examId,
         subject: exam.subject,
+        title: exam.title,
         createdAt: exam.createdAt,
         expiresAt: exam.expiresAt ?? null
       });
