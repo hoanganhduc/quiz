@@ -640,85 +640,10 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
             </Accordion>
           ) : null}
 
-          {codesRequired ? (
-            <Accordion title="Access codes" defaultOpen tone="warn">
-              <div className="text-xs text-textMuted">
-                View code unlocks questions. Submit code is only required when you submit your final answers.
-              </div>
-              {requireViewCode ? (
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">View code</label>
-                  <input
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-                    value={viewCode}
-                    onChange={(e) => setViewCode(e.target.value)}
-                    placeholder="Enter view code"
-                  />
-                </div>
-              ) : null}
-
-              {requireSubmitCode ? (
-                <div className="space-y-1">
-                  <label className="text-sm font-medium">Submit code</label>
-                  <input
-                    className="w-full rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-info"
-                    value={submitCode}
-                    onChange={(e) => setSubmitCode(e.target.value)}
-                    placeholder="Enter submit code"
-                  />
-                </div>
-              ) : null}
-            </Accordion>
-          ) : null}
 
 
           <Card className="sticky top-24 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="text-sm font-semibold">Summary</div>
-              <Badge tone="info">{Math.round(completionPct)}%</Badge>
-            </div>
-            <ProgressBar value={completionPct} />
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="p-2 rounded-lg bg-muted">
-                <div className="text-xs text-textMuted">Answered</div>
-                <div className="font-semibold">{answeredCount}</div>
-              </div>
-              <div className="p-2 rounded-lg bg-muted">
-                <div className="text-xs text-textMuted">Remaining</div>
-                <div className="font-semibold">{remainingCount}</div>
-              </div>
-            </div>
-            {timeLimitMinutes ? (
-              <div className="rounded-lg border border-border p-2 text-xs text-textMuted">
-                <div className="text-[11px] uppercase tracking-wide">Time remaining</div>
-                <div className={clsx("mt-1 text-sm font-semibold", timeExpired ? "text-warn" : "text-text")}>
-                  {timeRemainingMs === null ? "—" : formatTimeRemaining(timeRemainingMs)}
-                </div>
-              </div>
-            ) : null}
-            {submission ? (
-              <div className="p-3 rounded-lg bg-success/10 text-success text-sm">
-                Score: {submission.score.correct}/{submission.score.total}
-              </div>
-            ) : null}
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={reviewUnanswered}
-              disabled={!bank || remainingCount === 0}
-              className="w-full"
-            >
-              Review unanswered
-            </Button>
-            <Button variant="ghost" size="sm" onClick={openClearDraftConfirm} disabled={!versionId || !hasDraft}>
-              Clear saved draft
-            </Button>
-            {canShare ? (
-              <Button variant="secondary" size="sm" onClick={handleShare}>
-                Share exam link
-              </Button>
-            ) : null}
-            <div className="text-xs text-textMuted">Jump to question</div>
+            <div className="text-xs text-textMuted uppercase tracking-wider font-bold">Navigation</div>
             <div className="flex flex-wrap gap-2">
               {Array.from({ length: totalQuestions }).map((_, i) => {
                 const idx = i + 1;
@@ -727,16 +652,23 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
                   <button
                     key={idx}
                     className={clsx(
-                      "w-9 h-9 rounded-full border text-sm font-semibold",
-                      answered ? "bg-info/10 border-info text-info" : "bg-muted border-border text-textMuted"
+                      "w-8 h-8 rounded-md border text-xs font-semibold transition-all",
+                      answered
+                        ? "bg-info/10 border-info/50 text-info"
+                        : "bg-muted border-border text-textMuted hover:border-info/30"
                     )}
-                    onClick={() => document.getElementById(`q-${idx}`)?.scrollIntoView({ behavior: "smooth" })}
+                    onClick={() => document.getElementById(`q-${idx}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}
                   >
                     {idx}
                   </button>
                 );
               })}
             </div>
+            {canShare ? (
+              <Button variant="secondary" size="sm" onClick={handleShare} className="w-full mt-2 text-xs">
+                Share exam link
+              </Button>
+            ) : null}
           </Card>
         </div>
       </div>
@@ -768,10 +700,19 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         onSubmit={openSubmitConfirm}
         onScrollTop={scrollToTop}
         onScrollBottom={scrollToBottom}
+        onReviewUnanswered={reviewUnanswered}
         loadDisabled={loadDisabled}
         clearDisabled={!bank || !!submission}
         saveDisabled={!bank || !versionId}
         submitDisabled={submitDisabled}
+        viewCode={viewCode}
+        onViewCodeChange={setViewCode}
+        submitCode={submitCode}
+        onSubmitCodeChange={setSubmitCode}
+        requireViewCode={requireViewCode}
+        requireSubmitCode={requireSubmitCode}
+        timeRemainingLabel={timeLimitMinutes ? formatTimeRemaining(timeRemainingMs ?? 0) : null}
+        timeExpired={timeExpired}
       />
       {layout}
 

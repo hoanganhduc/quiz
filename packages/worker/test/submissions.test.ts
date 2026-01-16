@@ -1,10 +1,11 @@
+/// <reference types="@cloudflare/workers-types" />
 import { beforeEach, describe, expect, it } from "vitest";
 import app from "../src/index";
 import type { BankAnswersV1, BankPublicV1, ChoiceKey, SessionV2 } from "@app/shared";
 import { makeUid } from "@app/shared";
 import { issueSessionCookie } from "../src/session";
 
-class MemoryKV implements KVNamespace {
+class MemoryKV {
   private store = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {
@@ -19,7 +20,7 @@ class MemoryKV implements KVNamespace {
     this.store.delete(key);
   }
 
-  async list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<KVNamespaceListResult> {
+  async list(options?: { prefix?: string; limit?: number; cursor?: string }): Promise<any> {
     const prefix = options?.prefix ?? "";
     const limit = options?.limit ?? 1000;
     const keys = Array.from(this.store.keys())
@@ -28,6 +29,10 @@ class MemoryKV implements KVNamespace {
       .slice(0, limit)
       .map((name) => ({ name }));
     return { keys, list_complete: true, cursor: "" };
+  }
+
+  getWithMetadata(key: string, options?: any): Promise<any> {
+    throw new Error("Not implemented");
   }
 }
 
@@ -44,7 +49,7 @@ type TestEnv = {
 };
 
 const baseEnv: TestEnv = {
-  QUIZ_KV: new MemoryKV(),
+  QUIZ_KV: new MemoryKV() as any,
   ADMIN_TOKEN: "adm",
   JWT_SECRET: "secret",
   CODE_PEPPER: "pep",
@@ -55,7 +60,7 @@ const baseEnv: TestEnv = {
   GOOGLE_CLIENT_SECRET: "google-secret"
 };
 
-const subject = "discrete-math";
+const subject = "discrete-math" as const;
 const q1 = makeUid("MAT3500", "topic1:q1");
 
 function banks(): { pub: BankPublicV1; ans: BankAnswersV1 } {
@@ -76,8 +81,8 @@ function banks(): { pub: BankPublicV1; ans: BankAnswersV1 } {
       number: 1,
       prompt: "Q1",
       choices: [
-        { key: "A", text: "a1" },
-        { key: "B", text: "b1" }
+        { key: "A" as ChoiceKey, text: "a1" },
+        { key: "B" as ChoiceKey, text: "b1" }
       ]
     }
   ];
@@ -142,7 +147,7 @@ describe("submission history", () => {
   let env: TestEnv;
 
   beforeEach(async () => {
-    env = { ...baseEnv, QUIZ_KV: new MemoryKV() };
+    env = { ...baseEnv, QUIZ_KV: new MemoryKV() as any };
     await seedBanks(env);
   });
 
@@ -162,8 +167,8 @@ describe("submission history", () => {
       env
     );
     expect(listRes.status).toBe(200);
-    const listJson = (await listRes.json()) as { items: { submissionId: string }[] };
-    expect(listJson.items.some((item) => item.submissionId === submissionId)).toBe(true);
+    const listJson = (await listRes.json()) as { submissions: { submissionId: string }[] };
+    expect(listJson.submissions.some((item) => item.submissionId === submissionId)).toBe(true);
   });
 
   it("restricts submission detail to owner", async () => {

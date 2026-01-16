@@ -128,3 +128,19 @@ export function IconX(props: Props) {
     </Svg>
   );
 }
+
+export function IconArrowUp(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M18 15l-6-6-6 6" />
+    </Svg>
+  );
+}
+
+export function IconArrowDown(props: Props) {
+  return (
+    <Svg {...props}>
+      <path d="M6 9l6 6 6-6" />
+    </Svg>
+  );
+}

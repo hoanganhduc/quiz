@@ -1,7 +1,8 @@
-import { ProgressBar } from "./ProgressBar";
 import { Badge } from "./Badge";
-import { Card } from "./Card";
 import { Button } from "./Button";
+import { ProgressBar } from "./ProgressBar";
+import { IconArrowUp, IconArrowDown } from "./Icons";
+import clsx from "clsx";
 
 type Props = {
   examId: string;
@@ -12,20 +13,30 @@ type Props = {
   total: number;
   status?: string;
   bankLoaded: boolean;
-  onLoadQuestions?: () => void;
-  onClearAnswers?: () => void;
-  onSave?: () => void;
-  onSubmit?: () => void;
-  onScrollTop?: () => void;
-  onScrollBottom?: () => void;
+  onLoadQuestions: () => void;
+  onClearAnswers: () => void;
+  onSave: () => void;
+  onSubmit: () => void;
+  onScrollTop: () => void;
+  onScrollBottom: () => void;
+  onReviewUnanswered?: () => void;
   loadDisabled?: boolean;
   clearDisabled?: boolean;
   saveDisabled?: boolean;
   submitDisabled?: boolean;
+  viewCode?: string;
+  onViewCodeChange?: (v: string) => void;
+  submitCode?: string;
+  onSubmitCodeChange?: (v: string) => void;
+  requireViewCode?: boolean;
+  requireSubmitCode?: boolean;
+  timeRemainingLabel?: string | null;
+  timeExpired?: boolean;
 };
 
 export function StickyHeader({
   examId,
+  subject,
   title,
   progressPct,
   answered,
@@ -38,67 +49,123 @@ export function StickyHeader({
   onSubmit,
   onScrollTop,
   onScrollBottom,
+  onReviewUnanswered,
   loadDisabled,
   clearDisabled,
   saveDisabled,
-  submitDisabled
+  submitDisabled,
+  viewCode,
+  onViewCodeChange,
+  submitCode,
+  onSubmitCodeChange,
+  requireViewCode,
+  requireSubmitCode,
+  timeRemainingLabel,
+  timeExpired
 }: Props) {
   return (
-    <div className="sticky top-14 z-30 backdrop-blur bg-bg/90 border-b border-border">
-      <Card padding="sm" className="flex flex-col gap-2 shadow-none border-none">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400">Exam</span>
-              <Badge tone={status === "error" ? "error" : "info"} className="text-[10px] uppercase py-0 px-1.5 h-auto">
-                {status ?? "In progress"}
-              </Badge>
+    <div className="sticky top-14 z-30 w-full border-b border-border bg-card/95 backdrop-blur-sm shadow-sm transition-all duration-200">
+      <div className="mx-auto max-w-6xl px-4 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          {/* Left info: Title, Badge, Progress */}
+          <div className="min-w-0 flex-1 flex items-center gap-4">
+            <div className="hidden sm:block">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-neutral-500 dark:text-neutral-400">Exam</span>
+                <Badge tone={status === "error" ? "error" : "info"} className="text-[10px] uppercase py-0 px-1.5 h-auto">
+                  {status ?? "In progress"}
+                </Badge>
+              </div>
+              <div className="font-semibold text-sm text-neutral-900 dark:text-neutral-100 truncate max-w-[200px]">
+                {title || examId}
+              </div>
+              <div className="text-[10px] text-neutral-500 dark:text-neutral-400 truncate max-w-[150px]">
+                {subject}
+              </div>
             </div>
-            <div className="font-semibold text-sm sm:text-base text-neutral-900 dark:text-neutral-100 truncate">
-              {title || examId}
+
+            <div className="flex-1 max-w-[180px]">
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="font-medium text-neutral-600 dark:text-neutral-400">{answered}/{total} Answered</span>
+                <div className="flex items-center gap-2">
+                  {timeRemainingLabel && (
+                    <span className={clsx("font-bold", timeExpired ? "text-error" : "text-neutral-700 dark:text-neutral-300")}>
+                      {timeRemainingLabel}
+                    </span>
+                  )}
+                  <span className="font-bold text-info">{Math.round(progressPct)}%</span>
+                </div>
+              </div>
+              <ProgressBar value={progressPct} />
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 flex-wrap sm:flex-nowrap">
+          {/* Right actions: Codes and Buttons */}
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+            {!bankLoaded && requireViewCode && (
+              <input
+                type="text"
+                value={viewCode || ""}
+                onChange={(e) => onViewCodeChange?.(e.target.value)}
+                placeholder="View code"
+                className="h-8 w-24 rounded-md border border-border bg-bg px-2 text-xs focus:outline-none focus:ring-2 focus:ring-info outline-none"
+              />
+            )}
+
             {!bankLoaded ? (
               <Button variant="primary" size="sm" onClick={onLoadQuestions} disabled={loadDisabled}>
                 Load questions
               </Button>
             ) : (
               <>
-                <Button variant="ghost" size="sm" onClick={onClearAnswers} disabled={clearDisabled} title="Clear all answers">
-                  Clear
-                </Button>
-                <Button variant="secondary" size="sm" onClick={onSave} disabled={saveDisabled}>
-                  Save
-                </Button>
-                <Button variant="primary" size="sm" onClick={onSubmit} disabled={submitDisabled}>
-                  Submit
-                </Button>
-                <div className="h-4 w-px bg-border mx-0.5 hidden sm:block" />
-                <Button variant="ghost" size="sm" onClick={onScrollTop} title="Scroll to top" className="px-2">
-                  ↑
-                </Button>
-                <Button variant="ghost" size="sm" onClick={onScrollBottom} title="Scroll to bottom" className="px-2">
-                  ↓
-                </Button>
+                {requireSubmitCode && total > 0 && (
+                  <input
+                    type="text"
+                    value={submitCode || ""}
+                    onChange={(e) => onSubmitCodeChange?.(e.target.value)}
+                    placeholder="Submit code"
+                    className="h-8 w-24 rounded-md border border-border bg-bg px-2 text-xs focus:outline-none focus:ring-2 focus:ring-info outline-none"
+                  />
+                )}
+                <div className="flex items-center gap-1 border-r border-border pr-2 mr-1 h-8">
+                  <Button variant="ghost" size="sm" onClick={onReviewUnanswered} className="h-7 text-xs px-2" disabled={answered === total}>
+                    Review
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={onClearAnswers} className="h-7 text-xs px-2 text-error hover:text-error" disabled={clearDisabled}>
+                    Clear
+                  </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={onSave} disabled={saveDisabled}>
+                    Save
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={onSubmit} disabled={submitDisabled}>
+                    Submit
+                  </Button>
+                </div>
               </>
             )}
-          </div>
-        </div>
 
-        <div className="flex items-center gap-3">
-          <div className="text-[11px] text-neutral-600 dark:text-neutral-300 whitespace-nowrap">
-            {answered}/{total} answered
-          </div>
-          <div className="flex-1">
-            <ProgressBar value={progressPct} />
-          </div>
-          <div className="text-[11px] font-bold text-neutral-700 dark:text-neutral-200">
-            {Math.round(progressPct)}%
+            <div className="flex items-center gap-1 ml-1 pl-2 border-l border-border h-8">
+              <button
+                onClick={onScrollTop}
+                className="p-1 text-neutral-500 hover:text-info hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
+                title="Scroll to Top"
+              >
+                <IconArrowUp className="w-5 h-5" />
+              </button>
+              <button
+                onClick={onScrollBottom}
+                className="p-1 text-neutral-500 hover:text-info hover:bg-neutral-100 dark:hover:bg-neutral-800 rounded transition-colors"
+                title="Scroll to Bottom"
+              >
+                <IconArrowDown className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
