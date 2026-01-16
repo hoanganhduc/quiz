@@ -16,6 +16,8 @@ type RenderOptions = {
 
 const BLOCK_REGEX = /\\begin\{(tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo)\}(?:\[[^\]]*\])?[\s\S]*?\\end\{\1\}/g;
 const MACRO_REGEX = /\\dongkhung\{((?:[^{}]|{[^{}]*})*)\}/g;
+// Matches one or more consecutive minipage environments (for side-by-side algorithms)
+const MINIPAGE_REGEX = /(?:\\begin\{minipage\}(?:\[[^\]]*\])?\{[^}]+\}[\s\S]*?\\end\{minipage\}[~%\s]*)+/g;
 
 function normalizeAssetsBase(value: string): string {
   if (!value) return value;
@@ -78,7 +80,12 @@ function buildTexDocument(body: string, initialFigureCounter?: number): string {
     "\\def\\end@lgo{\\end{tabbing}\\end{minipage}}",
     "\\newenvironment{algorithm}{\\begin{tabular}{|l|}\\hline\\begin@lgo}{\\end@lgo\\\\\\hline\\end{tabular}}",
     "\\newenvironment{algo}{\\begin{center}\\small\\begin{algorithm}}{\\end{algorithm}\\end{center}}",
-    "\\def\\Comment#1{{\\textsf{\\textsl{$\\langle\\!\\langle$#1\\/$\\rangle\\!\\rangle$}}}}"
+    "\\def\\Comment#1{{\\textsf{\\textsl{$\\langle\\!\\langle$#1\\/$\\rangle\\!\\rangle$}}}}",
+    // Additional macros from dethi.sty for algorithm formatting
+    "\\def\\textul#1{\\underline{\\smash{#1}\\vphantom{.}}}",
+    "\\def\\mathsc#1{\\text{\\textsc{#1}}}",
+    "\\def\\Floor#1{\\left\\lfloor #1 \\right\\rfloor}",
+    "\\def\\Ceil#1{\\left\\lceil #1 \\right\\rceil}"
   ];
 
   if (initialFigureCounter !== undefined) {
@@ -285,7 +292,13 @@ function extractCommandContent(text: string, command: string): { content: string
 
 function replaceBlocks(text: string, opts: RenderOptions): string {
   if (!text) return text;
-  const cleaned = stripCommentLines(text);
+  let cleaned = stripCommentLines(text);
+
+  // First, handle consecutive minipage blocks (side-by-side algorithms)
+  cleaned = cleaned.replace(MINIPAGE_REGEX, (match) => {
+    return `\\includegraphics{${renderBlockToImage(match, opts)}}`;
+  });
+
   return cleaned.replace(BLOCK_REGEX, (match) => {
     if (match.startsWith("\\begin{figure}") || match.startsWith("\\begin{figwindow}")) {
       let contentForImage = match;
