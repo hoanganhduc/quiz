@@ -228,7 +228,14 @@ export function registerGithubAuth(app: Hono<{ Bindings: Env }>) {
     const redirectUrl = new URL(redirect);
     // Append token to fragment for local redirects to bypass cookie issues on mobile
     if (isLocalUrl(redirect)) {
-      redirectUrl.hash = `session=${token}`;
+      const hash = redirectUrl.hash;
+      if (hash) {
+        // If hash already has params, append with &, else with ?
+        const separator = hash.includes("?") ? "&" : "?";
+        redirectUrl.hash = `${hash}${separator}session=${token}`;
+      } else {
+        redirectUrl.hash = `session=${token}`;
+      }
     }
 
     logAuthStep("SESSION_ISSUED", c, { appUserId: user.appUserId, hasTokenInHash: isLocalUrl(redirect) });
