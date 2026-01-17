@@ -117,6 +117,8 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
       if (!branch) fail(`sources.${index}.branch`, "Required");
       validateRelativeDir(normalizedDir, `sources.${index}.dir`);
 
+      const subjectId = (src as any).subjectId?.trim?.() || undefined;
+
       const auth = (src as any).auth;
       if (auth) {
         if (auth.kind !== "githubToken") fail(`sources.${index}.auth.kind`, "Invalid kind");
@@ -131,11 +133,12 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
           branch,
           dir: normalizedDir,
           format,
+          subjectId,
           auth: { kind: "githubToken", secretRef: ref }
         } as GitHubSourceDefV1;
       }
 
-      return { id, type: "github", repo, branch, dir: normalizedDir, format } as GitHubSourceDefV1;
+      return { id, type: "github", repo, branch, dir: normalizedDir, format, subjectId } as GitHubSourceDefV1;
     }
 
     if (src.type === "gdrive") {
@@ -145,6 +148,8 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
       if (!/^[A-Za-z0-9_-]{5,}$/.test(folderId)) {
         fail(`sources.${index}.folderId`, "folderId must be alphanumeric with dashes/underscores");
       }
+
+      const subjectId = (src as any).subjectId?.trim?.() || undefined;
 
       const auth = (src as any).auth;
       if (auth) {
@@ -158,11 +163,12 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
           type: "gdrive",
           folderId,
           format,
+          subjectId,
           auth: { kind: "httpHeader", secretRef: ref }
         } as GoogleDriveFolderSourceDefV1;
       }
 
-      return { id, type: "gdrive", folderId, format } as GoogleDriveFolderSourceDefV1;
+      return { id, type: "gdrive", folderId, format, subjectId } as GoogleDriveFolderSourceDefV1;
     }
 
     // zip
@@ -184,6 +190,7 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
     }
 
     const format = (src as any).format === "canvas" || (src as any).type === "canvas" ? "canvas" : "latex";
+    const subjectId = (src as any).subjectId?.trim?.() || undefined;
 
     const auth = (src as any).auth;
     if (auth) {
@@ -198,11 +205,12 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
         url,
         dir: dirRaw === undefined ? undefined : dirTrimmed,
         format,
+        subjectId,
         auth: { kind: "httpHeader", secretRef: ref }
       } as ZipSourceDefV1;
     }
 
-    return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format } as ZipSourceDefV1;
+    return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format, subjectId } as ZipSourceDefV1;
   });
 
   return {
@@ -1057,6 +1065,11 @@ export function SourcesManagerPage() {
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="font-mono text-sm font-semibold text-text truncate">{src.id}</span>
                                 <Badge tone="muted">{src.type}</Badge>
+                                {(src as any).subjectId ? (
+                                  <Badge tone="info">Subject: {(src as any).subjectId}</Badge>
+                                ) : (
+                                  <Badge tone="muted">No Subject</Badge>
+                                )}
                                 {authBadge(src as any)}
                                 {test ? (
                                   <Badge tone={test.ok ? "success" : "error"}>

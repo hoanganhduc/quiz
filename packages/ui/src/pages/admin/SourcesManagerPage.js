@@ -81,6 +81,7 @@ function validateAndNormalizeConfig(cfg) {
             if (!branch)
                 fail(`sources.${index}.branch`, "Required");
             validateRelativeDir(normalizedDir, `sources.${index}.dir`);
+            const subjectId = src.subjectId?.trim?.() || undefined;
             const auth = src.auth;
             if (auth) {
                 if (auth.kind !== "githubToken")
@@ -96,10 +97,11 @@ function validateAndNormalizeConfig(cfg) {
                     branch,
                     dir: normalizedDir,
                     format,
+                    subjectId,
                     auth: { kind: "githubToken", secretRef: ref }
                 };
             }
-            return { id, type: "github", repo, branch, dir: normalizedDir, format };
+            return { id, type: "github", repo, branch, dir: normalizedDir, format, subjectId };
         }
         if (src.type === "gdrive") {
             const folderId = src.folderId?.trim?.() ?? "";
@@ -109,6 +111,7 @@ function validateAndNormalizeConfig(cfg) {
             if (!/^[A-Za-z0-9_-]{5,}$/.test(folderId)) {
                 fail(`sources.${index}.folderId`, "folderId must be alphanumeric with dashes/underscores");
             }
+            const subjectId = src.subjectId?.trim?.() || undefined;
             const auth = src.auth;
             if (auth) {
                 if (auth.kind !== "httpHeader")
@@ -122,10 +125,11 @@ function validateAndNormalizeConfig(cfg) {
                     type: "gdrive",
                     folderId,
                     format,
+                    subjectId,
                     auth: { kind: "httpHeader", secretRef: ref }
                 };
             }
-            return { id, type: "gdrive", folderId, format };
+            return { id, type: "gdrive", folderId, format, subjectId };
         }
         // zip
         const url = src.url?.trim?.() ?? "";
@@ -148,6 +152,7 @@ function validateAndNormalizeConfig(cfg) {
             validateRelativeDir(dirTrimmed, `sources.${index}.dir`);
         }
         const format = src.format === "canvas" || src.type === "canvas" ? "canvas" : "latex";
+        const subjectId = src.subjectId?.trim?.() || undefined;
         const auth = src.auth;
         if (auth) {
             if (auth.kind !== "httpHeader")
@@ -162,10 +167,11 @@ function validateAndNormalizeConfig(cfg) {
                 url,
                 dir: dirRaw === undefined ? undefined : dirTrimmed,
                 format,
+                subjectId,
                 auth: { kind: "httpHeader", secretRef: ref }
             };
         }
-        return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format };
+        return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format, subjectId };
     });
     return {
         version: "v1",
@@ -687,7 +693,7 @@ export function SourcesManagerPage() {
                                                         nextSteps.push("After it passes, click Save config.");
                                                     }
                                                 }
-                                                return (_jsxs("div", { className: "rounded-lg border border-border bg-card p-3 space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-start justify-between gap-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "font-mono text-sm font-semibold text-text truncate", children: src.id }), _jsx(Badge, { tone: "muted", children: src.type }), authBadge(src), test ? (_jsxs(Badge, { tone: test.ok ? "success" : "error", children: ["Test: ", test.ok ? "OK" : "FAIL", " (", test.status, ")"] })) : null] }), _jsx("div", { className: "text-xs text-textMuted mt-1", children: src.type === "github" ? (_jsxs("span", { children: ["repo=", _jsx("span", { className: "font-mono", children: src.repo }), " \u00B7 branch=", _jsx("span", { className: "font-mono", children: src.branch }), " \u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) : src.type === "gdrive" ? (_jsxs("span", { children: ["folderId=", _jsx("span", { className: "font-mono break-all", children: src.folderId }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) : (_jsxs("span", { children: ["url=", _jsx("span", { className: "font-mono break-all", children: src.url }), src.dir ? (_jsxs(_Fragment, { children: [" ", "\u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir })] })) : null, " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSourceModal(index), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => runTest(src.id), children: "Test" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSource(index), children: "Delete" })] })] }), test ? (_jsxs("div", { className: "rounded-lg border p-2 text-xs " +
+                                                return (_jsxs("div", { className: "rounded-lg border border-border bg-card p-3 space-y-2", children: [_jsxs("div", { className: "flex flex-wrap items-start justify-between gap-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "font-mono text-sm font-semibold text-text truncate", children: src.id }), _jsx(Badge, { tone: "muted", children: src.type }), src.subjectId ? (_jsxs(Badge, { tone: "info", children: ["Subject: ", src.subjectId] })) : (_jsx(Badge, { tone: "muted", children: "No Subject" })), authBadge(src), test ? (_jsxs(Badge, { tone: test.ok ? "success" : "error", children: ["Test: ", test.ok ? "OK" : "FAIL", " (", test.status, ")"] })) : null] }), _jsx("div", { className: "text-xs text-textMuted mt-1", children: src.type === "github" ? (_jsxs("span", { children: ["repo=", _jsx("span", { className: "font-mono", children: src.repo }), " \u00B7 branch=", _jsx("span", { className: "font-mono", children: src.branch }), " \u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) : src.type === "gdrive" ? (_jsxs("span", { children: ["folderId=", _jsx("span", { className: "font-mono break-all", children: src.folderId }), " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) : (_jsxs("span", { children: ["url=", _jsx("span", { className: "font-mono break-all", children: src.url }), src.dir ? (_jsxs(_Fragment, { children: [" ", "\u00B7 dir=", _jsx("span", { className: "font-mono", children: src.dir })] })) : null, " ", "\u00B7 format=", _jsx("span", { className: "font-mono", children: src.format ?? "latex" })] })) })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSourceModal(index), children: "Edit" }), _jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => runTest(src.id), children: "Test" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSource(index), children: "Delete" })] })] }), test ? (_jsxs("div", { className: "rounded-lg border p-2 text-xs " +
                                                                 (test.ok ? "border-success/30 bg-success/10 text-success" : "border-error/30 bg-error/10 text-error"), children: [_jsxs("div", { className: "font-medium", children: ["Last test: ", _jsx("span", { className: "font-mono", children: formatUpdatedAt(test.at) })] }), test.message ? _jsx("div", { className: "mt-1 whitespace-pre-wrap text-inherit", children: test.message }) : null, nextSteps.length ? (_jsx("ul", { className: "mt-2 list-disc pl-5 space-y-1 text-inherit", children: nextSteps.map((s) => (_jsx("li", { children: s }, s))) })) : null] })) : null] }, src.id));
                                             }) }))] }), _jsxs("details", { className: "text-xs", children: [_jsx("summary", { className: "cursor-pointer text-textMuted", children: "Raw JSON" }), _jsx("pre", { className: "mt-2 bg-muted border border-border rounded-md p-3 overflow-auto", children: loading ? "Loading…" : configJson ?? "—" })] })] })] })) : (_jsx("div", { className: "grid gap-4", children: _jsxs(Card, { className: "space-y-4", children: [_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h2", { className: "text-lg font-semibold text-text", children: "Secrets" }), _jsx("p", { className: "text-sm text-textMuted", children: "Secrets are write-only; only names + timestamps are shown." })] }), _jsx(Button, { type: "button", variant: "secondary", onClick: () => openSecretModal(), children: "Create / replace secret" })] }), _jsx(Alert, { tone: "warn", children: "You can\u2019t view an existing secret value. Saving a name that already exists will replace it." }), loading ? (_jsx("p", { className: "text-sm text-textMuted", children: "Loading\u2026" })) : secrets.length === 0 ? (_jsx("p", { className: "text-sm text-textMuted", children: "No secrets." })) : (_jsx("div", { className: "space-y-2", children: secrets.map((s) => (_jsxs("div", { className: "flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card px-3 py-2", children: [_jsxs("div", { className: "min-w-0", children: [_jsxs("div", { className: "flex items-center gap-2 min-w-0", children: [_jsx("span", { className: "text-sm font-semibold text-text font-mono truncate", children: s.name }), _jsx(Badge, { tone: "muted", children: "secret" })] }), _jsxs("div", { className: "text-xs text-textMuted", children: ["Updated: ", formatUpdatedAt(s.updatedAt)] })] }), _jsxs("div", { className: "flex items-center gap-2", children: [_jsx(Button, { type: "button", size: "sm", variant: "secondary", onClick: () => openSecretModal(s.name), children: "Replace" }), _jsx(Button, { type: "button", size: "sm", variant: "danger", onClick: () => confirmAndDeleteSecret(s.name), children: "Delete" })] })] }, s.name))) }))] }) })), sourceModalOpen ? (_jsxs("div", { className: "fixed inset-0 z-40 flex items-center justify-center p-3", children: [_jsx("div", { className: "absolute inset-0 bg-black/40", onClick: closeSourceModal }), _jsxs(Card, { className: "relative w-full max-w-2xl space-y-4 max-h-[calc(100vh-2rem)] overflow-y-auto", padding: "md", children: [_jsxs("div", { className: "flex items-start justify-between gap-2", children: [_jsxs("div", { children: [_jsx("h3", { className: "text-lg font-semibold text-text", children: "Add / edit source" }), _jsxs("p", { className: "text-sm text-textMuted", children: ["Choose the source type below. For ZIP sources, pick ", _jsx("span", { className: "font-mono", children: "format" }), " =", _jsx("span", { className: "font-mono", children: " latex" }), " or ", _jsx("span", { className: "font-mono", children: " canvas" }), " in the form. Secret values are never shown\u2014only secret references."] })] }), _jsx(Button, { type: "button", variant: "ghost", onClick: closeSourceModal, children: "Close" })] }), !config ? (_jsxs(Alert, { tone: "warn", children: ["Sources config has not loaded yet. Check ", _jsx("span", { className: "font-mono", children: "VITE_API_BASE" }), " / admin session. You can view the modal, but saving will fail until the API is reachable."] })) : null, sourceModalNotice ? _jsx(Alert, { tone: sourceModalNotice.tone, children: sourceModalNotice.text }) : null, _jsxs("div", { className: "grid gap-3 sm:grid-cols-2", children: [_jsxs("div", { className: "space-y-1", children: [_jsx("label", { className: "text-sm font-medium text-neutral-700 dark:text-neutral-200", htmlFor: "source-type", children: "type" }), _jsxs(Select, { id: "source-type", value: sourceType, onChange: (e) => {
                                                         const next = e.target.value;
