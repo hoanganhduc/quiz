@@ -487,8 +487,8 @@ export const SourcesConfigV1Schema = z
   })
   .transform((data) => {
     let subjects = data.subjects || [];
-    if (subjects.length === 0 && data.subject === "discrete-math") {
-      subjects = [{ id: "discrete-math", title: "Discrete Mathematics" }];
+    if (subjects.length === 0 && data.subject) {
+      subjects = [{ id: data.subject, title: data.subject }];
     }
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { subject: _legacy, ...rest } = data;
