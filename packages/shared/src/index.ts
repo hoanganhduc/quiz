@@ -402,6 +402,7 @@ const GitHubSourceDefV1Schema = z.object({
   branch: z.string().min(1),
   dir: relativeDirSchema,
   format: z.enum(["latex", "canvas"]).optional(),
+  subjectId: z.string().optional(),
   auth: z
     .object({
       kind: z.literal("githubToken"),
@@ -419,6 +420,7 @@ const ZipSourceDefV1Schema = z.object({
     .refine((val) => val.startsWith("https://"), { message: "url must use https" }),
   dir: relativeDirSchema.optional(),
   format: z.enum(["latex", "canvas"]).optional(),
+  subjectId: z.string().optional(),
   auth: z
     .object({
       kind: z.literal("httpHeader"),
@@ -434,6 +436,7 @@ const CanvasSourceDefV1Schema = z.object({
     .string()
     .url()
     .refine((val) => val.startsWith("https://"), { message: "url must use https" }),
+  subjectId: z.string().optional(),
   auth: z
     .object({
       kind: z.literal("httpHeader"),
@@ -450,6 +453,7 @@ const GoogleDriveFolderSourceDefV1Schema = z.object({
     .min(5)
     .regex(/^[A-Za-z0-9_-]+$/, { message: "folderId must be alphanumeric with dashes/underscores" }),
   format: z.enum(["latex", "canvas"]).optional(),
+  subjectId: z.string().optional(),
   auth: z
     .object({
       kind: z.literal("httpHeader"),
@@ -463,9 +467,7 @@ const SourceDefSchema = z.union([
   ZipSourceDefV1Schema,
   CanvasSourceDefV1Schema,
   GoogleDriveFolderSourceDefV1Schema
-]).and(z.object({
-  subjectId: z.string().optional()
-}));
+]);
 
 export const SubjectDefV1Schema = z.object({
   id: z.string().min(1),

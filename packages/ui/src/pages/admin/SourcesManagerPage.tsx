@@ -96,10 +96,10 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
   if (cfg.version !== "v1") fail("version", "must be v1");
 
   const courseCode = cfg.courseCode.trim();
-  const subject = cfg.subject.trim();
+  const subject = cfg.subject?.trim() || "";
   const uidNamespace = cfg.uidNamespace.trim();
   if (!courseCode) fail("courseCode", "Required");
-  if (!subject) fail("subject", "Required");
+  if (!subject && (!cfg.subjects || cfg.subjects.length === 0)) fail("subject", "Required");
   if (!uidNamespace) fail("uidNamespace", "Required");
 
   const ids = new Set<string>();
@@ -109,15 +109,15 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
     if (ids.has(id)) fail(`sources.${index}.id`, "id must be unique");
     ids.add(id);
 
-      if (src.type === "github") {
-        const repo = (src as any).repo?.trim?.() ?? "";
-        const branch = (src as any).branch?.trim?.() ?? "";
-        const dir = (src as any).dir?.trim?.() ?? "";
-        const normalizedDir = dir || ".";
-        const format = (src as any).format === "canvas" || (src as any).type === "canvas" ? "canvas" : "latex";
-        if (!repoOk(repo)) fail(`sources.${index}.repo`, "repo must be OWNER/REPO");
-        if (!branch) fail(`sources.${index}.branch`, "Required");
-        validateRelativeDir(normalizedDir, `sources.${index}.dir`);
+    if (src.type === "github") {
+      const repo = (src as any).repo?.trim?.() ?? "";
+      const branch = (src as any).branch?.trim?.() ?? "";
+      const dir = (src as any).dir?.trim?.() ?? "";
+      const normalizedDir = dir || ".";
+      const format = (src as any).format === "canvas" || (src as any).type === "canvas" ? "canvas" : "latex";
+      if (!repoOk(repo)) fail(`sources.${index}.repo`, "repo must be OWNER/REPO");
+      if (!branch) fail(`sources.${index}.branch`, "Required");
+      validateRelativeDir(normalizedDir, `sources.${index}.dir`);
 
       const auth = (src as any).auth;
       if (auth) {
@@ -210,7 +210,7 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
   return {
     version: "v1",
     courseCode,
-    subject: cfg.subject,
+    subject: subject || undefined,
     subjects: cfg.subjects,
     uidNamespace,
     sources
@@ -268,6 +268,7 @@ export function SourcesManagerPage() {
   const [authEnabled, setAuthEnabled] = useState(false);
   const [authKind, setAuthKind] = useState<SourceDraftAuthKind>("githubToken");
   const [secretRef, setSecretRef] = useState("");
+  const [sourceSubjectId, setSourceSubjectId] = useState("");
 
   const secretNames = useMemo(() => secrets.map((s) => s.name), [secrets]);
   const configJson = useMemo(() => (config ? JSON.stringify(config, null, 2) : null), [config]);
@@ -1200,6 +1201,23 @@ export function SourcesManagerPage() {
                   <Input id="source-id" value={sourceId} onChange={(e) => setSourceId(e.target.value)} disabled={sourceSaving} />
                 </div>
 
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="source-subject">
+                    subjectId (optional)
+                  </label>
+                  <Select
+                    id="source-subject"
+                    value={sourceSubjectId}
+                    onChange={(e) => setSourceSubjectId(e.target.value)}
+                    disabled={sourceSaving}
+                  >
+                    <option value="">(None)</option>
+                    {config?.subjects?.map(s => (
+                      <option key={s.id} value={s.id}>{s.title} ({s.id})</option>
+                    ))}
+                  </Select>
+                </div>
+
                 {sourceType !== "gdrive" && !(sourceType === "zip" && zipFormat === "canvas") ? (
                   <div className="space-y-1 sm:col-span-2">
                     <label className="text-sm font-medium text-neutral-700 dark:text-neutral-200" htmlFor="source-dir">
@@ -1295,11 +1313,11 @@ export function SourcesManagerPage() {
                       url
                     </label>
                     <Input
-                    id="zip-url"
-                    value={zipUrl}
-                    onChange={(e) => setZipUrl(e.target.value)}
-                    placeholder="https://..."
-                    disabled={sourceSaving || uploadingZip}
+                      id="zip-url"
+                      value={zipUrl}
+                      onChange={(e) => setZipUrl(e.target.value)}
+                      placeholder="https://..."
+                      disabled={sourceSaving || uploadingZip}
                     />
                     <p className="text-xs text-neutral-500 dark:text-neutral-400">Must be https.</p>
                     <div className="pt-2">
@@ -1350,8 +1368,8 @@ export function SourcesManagerPage() {
                       />
                       <span className="text-xs text-neutral-500 dark:text-neutral-400">Upload and auto-fill URL.</span>
                     </div>
-                </div>
-              )}
+                  </div>
+                )}
               </div>
 
               <Card padding="sm" className="space-y-3 bg-white dark:bg-neutral-900">
