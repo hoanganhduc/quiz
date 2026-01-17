@@ -269,6 +269,8 @@ export function SourcesManagerPage() {
   const [authKind, setAuthKind] = useState<SourceDraftAuthKind>("githubToken");
   const [secretRef, setSecretRef] = useState("");
   const [sourceSubjectId, setSourceSubjectId] = useState("");
+  const [newSubjectId, setNewSubjectId] = useState("");
+  const [newSubjectTitle, setNewSubjectTitle] = useState("");
 
   const secretNames = useMemo(() => secrets.map((s) => s.name), [secrets]);
   const configJson = useMemo(() => (config ? JSON.stringify(config, null, 2) : null), [config]);
@@ -955,6 +957,61 @@ export function SourcesManagerPage() {
                   />
                 </div>
               </div>
+
+              <Card padding="sm" className="space-y-3 bg-muted/20 border-x-0 sm:border-x rounded-none sm:rounded-xl">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-semibold text-text">Manage Subjects</h3>
+                  <Badge tone="muted">{config?.subjects?.length ?? 0} total</Badge>
+                </div>
+
+                <p className="text-xs text-textMuted leading-relaxed">
+                  Define unique subject IDs and descriptive titles. These subjects will be available for source association and exam generation.
+                </p>
+
+                <div className="grid gap-3 sm:grid-cols-2 p-3 rounded-lg border border-border bg-card shadow-sm">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-textMuted uppercase tracking-wider" htmlFor="new-subject-id">ID (e.g. discrete-math)</label>
+                    <Input id="new-subject-id" size="sm" value={newSubjectId} onChange={(e) => setNewSubjectId(e.target.value.toLowerCase().replace(/\s+/g, '-'))} placeholder="subject-id" />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-textMuted uppercase tracking-wider" htmlFor="new-subject-title">Title (e.g. Discrete Mathematics)</label>
+                    <div className="flex gap-2">
+                      <Input id="new-subject-title" size="sm" value={newSubjectTitle} onChange={(e) => setNewSubjectTitle(e.target.value)} placeholder="Subject Title" />
+                      <Button type="button" size="sm" onClick={() => {
+                        if (!config || !newSubjectId.trim() || !newSubjectTitle.trim()) return;
+                        const subjects = [...(config.subjects ?? [])];
+                        if (subjects.some(s => s.id === newSubjectId.trim())) {
+                          setNotice({ tone: "error", text: `Subject ID "${newSubjectId.trim()}" already exists` });
+                          return;
+                        }
+                        subjects.push({ id: newSubjectId.trim(), title: newSubjectTitle.trim() });
+                        setConfig({ ...config, subjects });
+                        setNewSubjectId("");
+                        setNewSubjectTitle("");
+                      }}>Add</Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                  {config?.subjects?.map((s, idx) => (
+                    <div key={s.id} className="flex items-center justify-between bg-card p-2 rounded-md border border-border group hover:border-border/80 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold truncate text-text">{s.title}</div>
+                        <div className="text-[10px] font-mono text-textMuted">{s.id}</div>
+                      </div>
+                      <Button type="button" size="sm" variant="ghost" className="text-error opacity-60 group-hover:opacity-100 hover:bg-error/10 h-8" onClick={() => {
+                        if (!config) return;
+                        const subjects = config.subjects?.filter((_, i) => i !== idx);
+                        setConfig({ ...config, subjects });
+                      }}>Delete</Button>
+                    </div>
+                  ))}
+                  {(!config?.subjects || config.subjects.length === 0) && (
+                    <p className="text-xs text-textMuted italic text-center py-4 bg-card/50 rounded-md border border-dashed border-border px-4">No subjects defined yet. Define your first subject above.</p>
+                  )}
+                </div>
+              </Card>
 
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
