@@ -127,6 +127,7 @@ export async function loginAnonymous(): Promise<void> {
 export type ExamConfigResponse = {
   examId: string;
   subject: string;
+  subjectTitle?: string | null;
   title?: string | null;
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
@@ -299,6 +300,7 @@ export async function batchHardDeleteSubmissions(submissionIds: string[]): Promi
 export type PublicExamSummary = {
   examId: string;
   subject: string;
+  subjectTitle?: string;
   title?: string;
   shortLinkCode?: string;
   createdAt: string;

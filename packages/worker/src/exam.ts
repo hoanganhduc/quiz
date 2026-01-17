@@ -27,6 +27,7 @@ import { createRng, hashAccessCode, shuffle } from "./utils";
 import { putUser } from "./users/store";
 import { requireAdmin } from "./admin/requireAdmin";
 import { putSubmissionOwnerMap, putUserSubmissionIndex } from "./submissions";
+import { getSourcesConfig } from "./sources/store";
 import {
   computeVersionId,
   computeVersionIndex,
@@ -291,9 +292,13 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
     const resolved = await requireSessionIfNeeded(c, policy.authMode);
     if (!resolved && policy.authMode === "required") return unauthorized(c);
 
+    const sources = await getSourcesConfig(c.env);
+    const subjectDef = sources.subjects.find(s => s.id === found.value.subject);
+
     return c.json({
       examId: found.value.examId,
       subject: found.value.subject,
+      subjectTitle: subjectDef?.title ?? found.value.subject,
       title: found.value.title ?? null,
       composition: found.value.composition,
       policy,
@@ -533,6 +538,7 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
 
   app.get("/public/exams", async (c) => {
     const list = await c.env.QUIZ_KV.list({ prefix: "exam:", limit: 1000 });
+    const sources = await getSourcesConfig(c.env);
     const items = [];
     for (const key of list.keys) {
       const raw = await c.env.QUIZ_KV.get(key.name);
@@ -548,10 +554,12 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       if (!isOpenExam(exam)) continue;
 
       const shortCode = await c.env.QUIZ_KV.get(`shortExam:${exam.examId}`);
+      const subjectDef = sources.subjects.find(s => s.id === exam.subject);
 
       items.push({
         examId: exam.examId,
         subject: exam.subject,
+        subjectTitle: subjectDef?.title ?? exam.subject,
         title: exam.title,
         createdAt: exam.createdAt,
         expiresAt: exam.expiresAt ?? null,

@@ -264,7 +264,7 @@ function formatLatexToHtml(input: string): string {
 
   // 3. Replace block tokens back
   blocks.forEach((html, i) => {
-    result = result.replace(`${tokenPrefix}${i}__`, html);
+    result = result.replace(`${tokenPrefix}${i}__`, () => html);
   });
 
   return result;

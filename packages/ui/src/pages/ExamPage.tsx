@@ -523,7 +523,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     <PageShell className="py-0 pb-24 lg:pb-10">
       <Card className="mt-4 space-y-3">
         <div>
-          <h1 className="text-lg font-semibold text-text">{examTitle}{config?.subject ? ` — ${config.subject}` : ""}</h1>
+          <h1 className="text-lg font-semibold text-text">{examTitle}{config?.subjectTitle ? ` — ${config.subjectTitle}` : ""}</h1>
           <p className="text-sm text-textMuted">Answer questions and submit when done.</p>
         </div>
         {timeLimitMinutes ? (
@@ -695,7 +695,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     <>
       <StickyHeader
         examId={config.examId}
-        subject={config.subject}
+        subject={config.subjectTitle ?? config.subject}
         title={config.title ?? null}
         progressPct={completionPct}
         answered={answeredCount}

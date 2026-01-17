@@ -17,6 +17,7 @@ import {
   type ExamV1,
   type QuestionLevel
 } from "@app/shared";
+import { getSourcesConfig } from "../sources/store";
 
 type AdminExamBody = {
   subject: string;
@@ -138,6 +139,7 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
     const cursor = c.req.query("cursor") ?? undefined;
     const includeDeleted = c.req.query("includeDeleted") === "1";
     const list = await c.env.QUIZ_KV.list({ prefix: EXAM_PREFIX, limit, cursor });
+    const sources = await getSourcesConfig(c.env);
     const items = [];
     for (const key of list.keys) {
       const raw = await c.env.QUIZ_KV.get(key.name);
@@ -150,9 +152,11 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
       }
       if (!includeDeleted && exam.deletedAt) continue;
       const taken = await hasSubmissions(c.env, exam.examId);
+      const subjectDef = sources.subjects.find((s) => s.id === exam.subject);
       items.push({
         examId: exam.examId,
         subject: exam.subject,
+        subjectTitle: subjectDef?.title ?? exam.subject,
         createdAt: exam.createdAt,
         updatedAt: exam.updatedAt ?? null,
         deletedAt: exam.deletedAt ?? null,

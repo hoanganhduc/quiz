@@ -37,6 +37,7 @@ export type AdminExamSummary = {
   policy: ExamPolicyV1;
   hasSubmissions: boolean;
   title?: string;
+  subjectTitle?: string;
   notice?: string;
 };
 
