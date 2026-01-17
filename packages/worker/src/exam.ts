@@ -37,7 +37,7 @@ import {
 } from "./exam/versioning";
 
 type AdminExamBody = {
-  subject: "discrete-math";
+  subject: string;
   composition: ExamCompositionItemV1[];
   title?: string;
   seed?: string;
@@ -194,10 +194,6 @@ export function registerExamRoutes(app: Hono<{ Bindings: Env }>) {
       body = (await c.req.json()) as AdminExamBody;
     } catch {
       return c.text("Invalid body", 400);
-    }
-
-    if (body.subject !== "discrete-math") {
-      return c.text("Unsupported subject", 400);
     }
 
     const normalizedPolicy = normalizeExamPolicyDefaults(body.policy);
