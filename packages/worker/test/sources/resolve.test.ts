@@ -6,7 +6,7 @@ import { putSourcesConfig } from "../../src/sources/store";
 import type { SourcesConfigV1 } from "@app/shared";
 import { webcrypto as nodeCrypto } from "crypto";
 
-class MemoryKV implements KVNamespace {
+class MemoryKV {
   private store = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {
@@ -26,10 +26,19 @@ class MemoryKV implements KVNamespace {
   }
 }
 
+class MemoryR2 {
+  async head(): Promise<any | null> { return null; }
+  async get(): Promise<any | null> { return null; }
+  async put(): Promise<any> { return {} as any; }
+  async delete(): Promise<void> { }
+  async list(): Promise<any> { return { objects: [], truncated: false, cursor: "", delimitedPrefixes: [] }; }
+}
+
 function makeEnv(): Env {
   const rawKey = nodeCrypto.getRandomValues(new Uint8Array(32));
   return {
-    QUIZ_KV: new MemoryKV(),
+    QUIZ_KV: new MemoryKV() as any,
+    UPLOADS_BUCKET: new MemoryR2() as any,
     ADMIN_TOKEN: "adm",
     JWT_SECRET: "jwt",
     CODE_PEPPER: "pep",
@@ -51,10 +60,10 @@ describe("resolveForBuild", () => {
 
   it("injects resolvedAuth with plaintext", async () => {
     await putSecret(env, "gh-token", "SECRET_TOKEN");
-    const cfg: SourcesConfigV1 = {
+    const cfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {
@@ -82,9 +91,9 @@ describe("resolveForBuild", () => {
     };
 
     const resolved = await resolveForBuild(env, cfg);
-    const gh = resolved.sources.find((s) => s.id === "gh1");
-    const zip = resolved.sources.find((s) => s.id === "zip1");
-    const gd = resolved.sources.find((s) => s.id === "gd1");
+    const gh = resolved.sources.find((s) => s.id === "gh1") as any;
+    const zip = resolved.sources.find((s) => s.id === "zip1") as any;
+    const gd = resolved.sources.find((s) => s.id === "gd1") as any;
     expect(gh?.resolvedAuth).toEqual({ authorizationBearer: "Bearer SECRET_TOKEN" });
     expect(zip?.resolvedAuth).toEqual({ headerLine: "SECRET_TOKEN" });
     expect(gd?.resolvedAuth).toEqual({ headerLine: "SECRET_TOKEN" });
@@ -92,10 +101,10 @@ describe("resolveForBuild", () => {
 
   it("stored config never contains resolvedAuth", async () => {
     await putSecret(env, "gh-token", "SECRET_TOKEN");
-    const cfg: SourcesConfigV1 = {
+    const cfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {

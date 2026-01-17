@@ -96,10 +96,8 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
   if (cfg.version !== "v1") fail("version", "must be v1");
 
   const courseCode = cfg.courseCode.trim();
-  const subject = cfg.subject?.trim() || "";
   const uidNamespace = cfg.uidNamespace.trim();
   if (!courseCode) fail("courseCode", "Required");
-  if (!subject && (!cfg.subjects || cfg.subjects.length === 0)) fail("subject", "Required");
   if (!uidNamespace) fail("uidNamespace", "Required");
 
   const ids = new Set<string>();
@@ -207,16 +205,10 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
     return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format } as ZipSourceDefV1;
   });
 
-  let subjects = cfg.subjects || [];
-  if (subjects.length === 0 && subject === "discrete-math") {
-    subjects = [{ id: "discrete-math", title: "Discrete Mathematics" }];
-  }
-
   return {
     version: "v1",
     courseCode,
-    subject: subject || undefined,
-    subjects,
+    subjects: cfg.subjects,
     uidNamespace,
     sources
   };
@@ -936,17 +928,6 @@ export function SourcesManagerPage() {
                     id="course-code"
                     value={config?.courseCode ?? ""}
                     onChange={(e) => config && setConfig({ ...config, courseCode: e.target.value })}
-                    disabled={loading || !config}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-sm font-medium text-text" htmlFor="subject">
-                    subject
-                  </label>
-                  <Input
-                    id="subject"
-                    value={config?.subject ?? ""}
-                    onChange={(e) => config && setConfig({ ...config, subject: e.target.value })}
                     disabled={loading || !config}
                   />
                 </div>

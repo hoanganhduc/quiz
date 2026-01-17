@@ -480,12 +480,31 @@ export const SourcesConfigV1Schema = z
   .object({
     version: z.literal("v1"),
     courseCode: z.string().min(1),
-    subject: z.string().min(1).optional(), // Kept for legacy compatibility
+    subject: z.string().min(1).optional(), // Legacy support
     subjects: z.array(SubjectDefV1Schema).optional(),
     uidNamespace: z.string().min(1),
     sources: z.array(SourceDefSchema)
   })
+  .transform((data) => {
+    let subjects = data.subjects || [];
+    if (subjects.length === 0 && data.subject === "discrete-math") {
+      subjects = [{ id: "discrete-math", title: "Discrete Mathematics" }];
+    }
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { subject: _legacy, ...rest } = data;
+    return {
+      ...rest,
+      subjects
+    };
+  })
   .superRefine((data, ctx) => {
+    if (data.subjects.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one subject must be defined",
+        path: ["subjects"]
+      });
+    }
     const ids = new Set<string>();
     for (const [index, source] of data.sources.entries()) {
       if (ids.has(source.id)) {

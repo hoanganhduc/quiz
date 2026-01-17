@@ -3,7 +3,7 @@ import type { Env } from "../../src/env";
 import { DEFAULT_SOURCES_CONFIG, getSourcesConfig, putSourcesConfig } from "../../src/sources/store";
 import type { SourcesConfigV1 } from "@app/shared";
 
-class MemoryKV implements KVNamespace {
+class MemoryKV {
   private store = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {
@@ -19,9 +19,18 @@ class MemoryKV implements KVNamespace {
   }
 }
 
+class MemoryR2 {
+  async head(): Promise<any | null> { return null; }
+  async get(): Promise<any | null> { return null; }
+  async put(): Promise<any> { return {} as any; }
+  async delete(): Promise<void> { }
+  async list(): Promise<any> { return { objects: [], truncated: false, cursor: "", delimitedPrefixes: [] }; }
+}
+
 function makeEnv(): Env {
   return {
-    QUIZ_KV: new MemoryKV(),
+    QUIZ_KV: new MemoryKV() as any,
+    UPLOADS_BUCKET: new MemoryR2() as any,
     ADMIN_TOKEN: "adm",
     JWT_SECRET: "jwt",
     CODE_PEPPER: "pep",
@@ -47,10 +56,10 @@ describe("sources store", () => {
   });
 
   it("put/get roundtrip", async () => {
-    const cfg: SourcesConfigV1 = {
+    const cfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {
@@ -72,7 +81,7 @@ describe("sources store", () => {
     const badCfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {

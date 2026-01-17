@@ -7,7 +7,7 @@ import type { AppUser, SessionV2, SourcesConfigV1 } from "@app/shared";
 import { putSourcesConfig } from "../src/sources/store";
 import { putSecret } from "../src/secrets/store";
 
-class MemoryKV implements KVNamespace {
+class MemoryKV {
   private store = new Map<string, string>();
 
   async get(key: string): Promise<string | null> {
@@ -30,10 +30,19 @@ class MemoryKV implements KVNamespace {
   }
 }
 
+class MemoryR2 {
+  async head(): Promise<any | null> { return null; }
+  async get(): Promise<any | null> { return null; }
+  async put(): Promise<any> { return {} as any; }
+  async delete(): Promise<void> { }
+  async list(): Promise<any> { return { objects: [], truncated: false, cursor: "", delimitedPrefixes: [] }; }
+}
+
 type TestEnv = Env;
 
 const baseEnv: TestEnv = {
-  QUIZ_KV: new MemoryKV(),
+  QUIZ_KV: new MemoryKV() as any,
+  UPLOADS_BUCKET: new MemoryR2() as any,
   ADMIN_TOKEN: "adm",
   JWT_SECRET: "secret",
   CODE_PEPPER: "pep",
@@ -103,10 +112,10 @@ describe("admin sources endpoints", () => {
     await putSecret(env, "gh-token", "TOKEN123");
     await putSecret(env, "gd-auth", "Authorization: Bearer <TOKEN>");
 
-    const cfg: SourcesConfigV1 = {
+    const cfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {
@@ -147,10 +156,10 @@ describe("admin sources endpoints", () => {
 
     await putSecret(env, "gh-token", "TOKEN123");
 
-    const cfg: SourcesConfigV1 = {
+    const cfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {
@@ -189,10 +198,10 @@ describe("admin sources endpoints", () => {
 
     await putSecret(env, "gd-auth", "Authorization: Bearer <TOKEN>");
 
-    const cfg: SourcesConfigV1 = {
+    const cfg: any = {
       version: "v1",
       courseCode: "c1",
-      subject: "math",
+      subjects: [{ id: "math", title: "Mathematics" }],
       uidNamespace: "ns",
       sources: [
         {
