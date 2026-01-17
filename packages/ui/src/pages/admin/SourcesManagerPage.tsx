@@ -207,11 +207,16 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
     return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format } as ZipSourceDefV1;
   });
 
+  let subjects = cfg.subjects || [];
+  if (subjects.length === 0 && subject === "discrete-math") {
+    subjects = [{ id: "discrete-math", title: "Discrete Mathematics" }];
+  }
+
   return {
     version: "v1",
     courseCode,
     subject: subject || undefined,
-    subjects: cfg.subjects,
+    subjects,
     uidNamespace,
     sources
   };
