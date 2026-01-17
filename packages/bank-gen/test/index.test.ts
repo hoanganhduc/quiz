@@ -28,11 +28,11 @@ describe("parsing", () => {
     const content = `
       \\baitracnghiem{graph:q12}{Prompt with {nested {details}} braces}{\\bonpa{B}{A}{B text}{C}{D}}{Solution {deeply {nested}} text}
     `;
-    const result = parseQuestionsFromContent(stripComments(content), "inline.tex");
+    const result = parseQuestionsFromContent(stripComments(content), "inline.tex", "MAT3500", "discrete-math");
     expect(result).toHaveLength(1);
     expect(result[0].publicQuestion.prompt).toContain("nested {details}");
     expect(result[0].answerQuestion.solution).toContain("deeply {nested}");
-    expect(result[0].answerQuestion.answerKey).toBe("B");
+    expect((result[0].answerQuestion as any).answerKey).toBe("B");
   });
 
   it("parses haipa/bapa/nampa choice blocks", () => {
@@ -41,24 +41,24 @@ describe("parsing", () => {
       \\baitracnghiem{graph:q15}{P2}{\\bapa{3}{A}{B}{C}}{S2}
       \\baitracnghiem{graph:q16}{P3}{\\nampa{5}{A}{B}{C}{D}{E}}{S3}
     `;
-    const result = parseQuestionsFromContent(stripComments(content), "choices.tex");
+    const result = parseQuestionsFromContent(stripComments(content), "choices.tex", "MAT3500", "discrete-math");
     expect(result).toHaveLength(3);
 
-    expect(result[0].answerQuestion.answerKey).toBe("B");
-    expect(result[0].publicQuestion.choices.map((c) => c.key)).toEqual(["A", "B"]);
+    expect((result[0].answerQuestion as any).answerKey).toBe("B");
+    expect((result[0].publicQuestion as any).choices.map((c: any) => c.key)).toEqual(["A", "B"]);
 
     expect(result[1].answerQuestion.answerKey).toBe("C");
-    expect(result[1].publicQuestion.choices.map((c) => c.key)).toEqual(["A", "B", "C"]);
+    expect((result[1].publicQuestion as any).choices.map((c: any) => c.key)).toEqual(["A", "B", "C"]);
 
-    expect(result[2].answerQuestion.answerKey).toBe("E");
-    expect(result[2].publicQuestion.choices.map((c) => c.key)).toEqual(["A", "B", "C", "D", "E"]);
+    expect((result[2].answerQuestion as any).answerKey).toBe("E");
+    expect((result[2].publicQuestion as any).choices.map((c: any) => c.key)).toEqual(["A", "B", "C", "D", "E"]);
   });
 
   it("parses fill-blank with inline \\blank/\\answer", () => {
     const content = `
       \\baidienvao{graph:q20}{Compute \\blank{42} and then \\answer{x+y}.}{Solution text}
     `;
-    const result = parseFillBlankQuestionsFromContent(stripComments(content), "fib.tex");
+    const result = parseFillBlankQuestionsFromContent(stripComments(content), "fib.tex", "MAT3500", "discrete-math");
     expect(result).toHaveLength(1);
 
     const pub = result[0].publicQuestion;
@@ -76,7 +76,7 @@ describe("parsing", () => {
     const content = `
       % \\baitracnghiem{graph:q13}{Should not parse}{\\bonpa{A}{1}{2}{3}{4}}{Ignored}
     `;
-    const result = parseQuestionsFromContent(stripComments(content), "commented.tex");
+    const result = parseQuestionsFromContent(stripComments(content), "commented.tex", "MAT3500", "discrete-math");
     expect(result).toHaveLength(0);
   });
 
@@ -84,7 +84,9 @@ describe("parsing", () => {
     const content = `
       \\baitracnghiem{graph:q99}{Prompt}{\\bonpa{A}{Same}{Same}{C}{D}}{Solution}
     `;
-    expect(() => parseQuestionsFromContent(stripComments(content), "dup-choices.tex")).toThrow(/Duplicate choice text/i);
+    expect(() =>
+      parseQuestionsFromContent(stripComments(content), "dup-choices.tex", "MAT3500", "discrete-math")
+    ).toThrow(/Duplicate choice text/i);
   });
 });
 
@@ -92,7 +94,7 @@ describe("bank generation", () => {
   it("produces schema-valid banks in stable uid order", async () => {
     const fixturesDir = resolve(__dirname, "fixtures");
     const files = [resolve(fixturesDir, "q2.tex"), resolve(fixturesDir, "q1.tex")];
-    const { publicBank, answersBank } = await buildBanksFromFiles(files);
+    const { publicBank, answersBank } = await buildBanksFromFiles(files, "MAT3500", "discrete-math");
 
     expect(publicBank.questions.map((q) => q.uid)).toEqual([
       "latex:MAT3500:advanceprobability:q02",
@@ -125,7 +127,9 @@ describe("bank generation", () => {
         "utf8"
       );
 
-      await expect(buildBanksFromFiles([f1, f2])).rejects.toThrow(/Duplicate question content/i);
+      await expect(buildBanksFromFiles([f1, f2], "MAT3500", "discrete-math")).rejects.toThrow(
+        /Duplicate question content/i
+      );
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

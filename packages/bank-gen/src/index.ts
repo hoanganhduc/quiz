@@ -256,7 +256,12 @@ function processCitations(text: string): string {
   return text.replace(/\\cite\s*\{([^}]+)\}/g, (_, key) => `[${key}]`);
 }
 
-export function parseQuestionsFromContent(content: string, file: string, courseCode: string, subjectId: string): ParseResult[] {
+export function parseQuestionsFromContent(
+  content: string,
+  file: string,
+  courseCode: string = "MAT3500",
+  subjectId: string = "discrete-math"
+): ParseResult[] {
   const results: ParseResult[] = [];
   let cursor = 0;
   while (true) {
@@ -375,7 +380,12 @@ function extractInlineBlanks(promptRaw: string, file: string): { maskedPrompt: s
   return { maskedPrompt: out, answers };
 }
 
-export function parseFillBlankQuestionsFromContent(content: string, file: string, courseCode: string, subjectId: string): ParseResult[] {
+export function parseFillBlankQuestionsFromContent(
+  content: string,
+  file: string,
+  courseCode: string = "MAT3500",
+  subjectId: string = "discrete-math"
+): ParseResult[] {
   const results: ParseResult[] = [];
   let cursor = 0;
   while (true) {
@@ -495,7 +505,11 @@ function writeBanks(publicBank: BankPublicV1, answersBank: BankAnswersV1, subjec
   }
 }
 
-export async function buildBanksFromFiles(filePaths: string[], courseCode: string, subjectId: string): Promise<{
+export async function buildBanksFromFiles(
+  filePaths: string[],
+  courseCode: string = "MAT3500",
+  subjectId: string = "discrete-math"
+): Promise<{
   publicBank: BankPublicV1;
   answersBank: BankAnswersV1;
   questions: ParseResult[];
