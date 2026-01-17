@@ -305,23 +305,24 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
     }
 
     // If it matched the normal block pattern (Group 2)
-    // We can proceed with existing logic for figures/tables/etc.
-    // Note: match === blockMatch here.
+    const envName = (match.match(/\\begin\{([^}]+)\}/) || [])[1];
+    if (!envName) return match;
 
-    if (match.startsWith("\\begin{figure}") || match.startsWith("\\begin{figwindow}")) {
+    const isFigure = /^(figure|figwindow)$/.test(envName);
+    const isMath = /^(align|equation|gather|multline|alignat|flalign)\*?$/.test(envName);
+
+    // Extract ALL labels
+    const allLabels: string[] = [];
+    const LABEL_REG = /\\label\s*\{([^}]+)\}/g;
+    let lMatch;
+    while ((lMatch = LABEL_REG.exec(match)) !== null) {
+      allLabels.push(lMatch[1].trim());
+    }
+
+    if (isFigure) {
       let contentForImage = match;
-      let label = "";
+      let primaryLabel = "";
       let captionText = "";
-      const allLabels: string[] = [];
-
-      // Extract all labels
-      let lMatch;
-      const LABEL_REG = /\\label\s*\{([^}]+)\}/g;
-      while ((lMatch = LABEL_REG.exec(match)) !== null) {
-        const l = lMatch[1].trim();
-        allLabels.push(l);
-        if (!label) label = l;
-      }
 
       const captionRes = extractCommandContent(match, "caption");
       if (captionRes) {
@@ -330,22 +331,21 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
 
         // Match label AFTER caption start
         const textAfterCaption = match.slice(match.indexOf(captionRes.fullMatch) + captionRes.fullMatch.length);
+        LABEL_REG.lastIndex = 0;
         const nextLabelMatch = LABEL_REG.exec(textAfterCaption);
         if (nextLabelMatch) {
-          label = nextLabelMatch[1].trim();
+          primaryLabel = nextLabelMatch[1].trim();
         }
-        LABEL_REG.lastIndex = 0; // Reset
       }
 
-      // If no label found after caption, pick the first one (or last as fallback for complex items)
-      if (!label && allLabels.length > 0) {
-        label = allLabels[allLabels.length - 1]; // Usually the group label is last
+      // Fallback for primary label
+      if (!primaryLabel && allLabels.length > 0) {
+        primaryLabel = allLabels[allLabels.length - 1];
       }
 
       const imgUrl = renderBlockToImage(contentForImage, opts);
       const hash = hashContent(match);
-
-      const placeholderId = label || hash;
+      const placeholderId = primaryLabel || hash;
       const figureNumberPlaceholder = `<span class="latex-fig-num" data-label="${placeholderId}">[[FIG_NUM_${placeholderId}]]</span>`;
 
       const figureAttrs = [
@@ -359,18 +359,24 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
 
       // Create anchors for all labels so they all jump to this figure
       const anchors = allLabels
-        .filter((l) => l !== label) // Skip the primary id
+        .filter((l) => l !== primaryLabel)
         .map((l) => `<div id="fig-${l}" class="latex-anchor" data-latex-type="anchor" data-label="${l}"></div>`)
         .join("\n");
 
       return `${anchors}\n<figure ${figureAttrs}>\n\\includegraphics{${imgUrl}}\n${figcaption}\n</figure>`;
     }
 
-    if (match.startsWith("\\begin{table}") || match.startsWith("\\begin{tabwindow}")) {
-      // Tables could follow a similar pattern if needed.
-    }
+    // Generic block (math, table, algorithm, etc)
+    const imgUrl = renderBlockToImage(match, opts);
 
-    return `\\includegraphics{${renderBlockToImage(match, opts)}}`;
+    // For math environments, each label needs an anchor that is COUNTED as a figure in our global sequence
+    const anchors = allLabels.map((l) => {
+      // If it's math, we want the UI to count it so labels match. 
+      // In UI logic, data-latex-type="figure" is what triggers a number assignment.
+      return `<div id="fig-${l}" class="latex-anchor" data-latex-type="figure" data-label="${l}"></div>`;
+    }).join("\n");
+
+    return `${anchors}\n\\includegraphics{${imgUrl}}`;
   });
 }
 

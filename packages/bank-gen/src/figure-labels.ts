@@ -1,12 +1,12 @@
 import { createHash } from "node:crypto";
 
+import { COMBINED_REGEX } from "./latex-render-regex.js";
+
 export type LabelMap = {
   labels: Map<string, string>;
   hashes: Map<string, string>;
 };
 
-const FIGURE_ENV_REGEX = /\\begin\{(figure|figwindow)\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{\1\}/g;
-const TABLE_ENV_REGEX = /\\begin\{(table|tabwindow|tabular)\}(?:\[[^\]]*\])?([\s\S]*?)\\end\{\1\}/g;
 const LABEL_REGEX = /\\label\s*\{([^}]+)\}/g;
 
 function normalizeContent(text: string): string {
@@ -18,55 +18,64 @@ function hashContent(content: string): string {
 }
 
 /**
- * Collects figure and table labels by scanning content sequentially.
- * This is still used to find all labels, but the UI will handle the actual numbering.
+ * Collects labels from all blocks (figures, tables, equations, etc) sequentially.
+ * This unifies the numbering across all types to match the UI's simple global sequence.
  */
 export function collectSequentialLabels(contents: string[]): LabelMap {
   const labelMap = new Map<string, string>();
   const hashMap = new Map<string, string>();
 
-  let figureCounter = 0;
-  let tableCounter = 0;
+  let globalCounter = 0;
 
   for (const text of contents) {
-    // Figures
     let match;
-    while ((match = FIGURE_ENV_REGEX.exec(text)) !== null) {
-      figureCounter++;
-      const fullMatch = match[0];
-      const innerContent = match[2];
-      const numStr = figureCounter.toString();
+    COMBINED_REGEX.lastIndex = 0;
+    while ((match = COMBINED_REGEX.exec(text)) !== null) {
+      const minipageMatch = match[1];
+      const blockMatch = match[2];
+      const envName = match[3];
 
-      const hash = hashContent(fullMatch);
-      hashMap.set(hash, numStr);
+      if (minipageMatch) {
+        // Minipages are treated as a single block for numbering if they contain figures/tables
+        globalCounter++;
+        const numStr = globalCounter.toString();
+        const hash = hashContent(minipageMatch);
+        hashMap.set(hash, numStr);
 
-      // Search for ALL labels in this environment
-      let labelMatch;
-      LABEL_REGEX.lastIndex = 0; // Reset for inner search
-      while ((labelMatch = LABEL_REGEX.exec(innerContent)) !== null) {
-        labelMap.set(labelMatch[1].trim(), numStr);
+        let labelMatch;
+        LABEL_REGEX.lastIndex = 0;
+        while ((labelMatch = LABEL_REGEX.exec(minipageMatch)) !== null) {
+          labelMap.set(labelMatch[1].trim(), numStr);
+        }
+      } else if (blockMatch) {
+        const isMath = /^(align|equation|gather|multline|alignat|flalign)\*?$/.test(envName);
+
+        if (isMath) {
+          // Math environments get a new number for EACH label
+          let labelMatch;
+          LABEL_REGEX.lastIndex = 0;
+          while ((labelMatch = LABEL_REGEX.exec(blockMatch)) !== null) {
+            globalCounter++;
+            labelMap.set(labelMatch[1].trim(), globalCounter.toString());
+          }
+          // Also set hash for the block itself, mapping to the FIRST label's number or current counter
+          const hash = hashContent(blockMatch);
+          hashMap.set(hash, globalCounter.toString());
+        } else {
+          // Non-math blocks (figure, table, etc) get ONE number for the whole block
+          globalCounter++;
+          const numStr = globalCounter.toString();
+          const hash = hashContent(blockMatch);
+          hashMap.set(hash, numStr);
+
+          let labelMatch;
+          LABEL_REGEX.lastIndex = 0;
+          while ((labelMatch = LABEL_REGEX.exec(blockMatch)) !== null) {
+            labelMap.set(labelMatch[1].trim(), numStr);
+          }
+        }
       }
     }
-
-    // Tables
-    while ((match = TABLE_ENV_REGEX.exec(text)) !== null) {
-      tableCounter++;
-      const fullMatch = match[0];
-      const innerContent = match[2];
-      const numStr = tableCounter.toString();
-
-      const hash = hashContent(fullMatch);
-      hashMap.set(hash, numStr);
-
-      let labelMatch;
-      LABEL_REGEX.lastIndex = 0; // Reset for inner search
-      while ((labelMatch = LABEL_REGEX.exec(innerContent)) !== null) {
-        labelMap.set(labelMatch[1].trim(), numStr);
-      }
-    }
-
-    FIGURE_ENV_REGEX.lastIndex = 0;
-    TABLE_ENV_REGEX.lastIndex = 0;
   }
 
   return { labels: labelMap, hashes: hashMap };
