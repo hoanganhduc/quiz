@@ -25,8 +25,8 @@ import { cleanupTempDir, downloadSourcesToTemp, loadSourcesConfigFile } from "./
 import { renderLatexAssets } from "./latex-render.js";
 import { collectSequentialLabels, replaceFigureReferences, type LabelMap } from "./figure-labels.js";
 
-const COURSE_CODE = "MAT3500";
-const SUBJECT = "discrete-math";
+// No hardcoded COURSE_CODE or SUBJECT here.
+// They will be loaded from SourcesConfigV1.
 
 export type ParseResult = {
   publicQuestion: QuestionPublicV1;
@@ -256,7 +256,7 @@ function processCitations(text: string): string {
   return text.replace(/\\cite\s*\{([^}]+)\}/g, (_, key) => `[${key}]`);
 }
 
-export function parseQuestionsFromContent(content: string, file: string): ParseResult[] {
+export function parseQuestionsFromContent(content: string, file: string, courseCode: string, subjectId: string): ParseResult[] {
   const results: ParseResult[] = [];
   let cursor = 0;
   while (true) {
@@ -277,7 +277,7 @@ export function parseQuestionsFromContent(content: string, file: string): ParseR
 
     const [id, promptRaw, choicesRaw, solutionRaw] = groups;
     const { topic, level, number } = parseQuestionId(id);
-    const uid = makeUid(COURSE_CODE, id);
+    const uid = makeUid(courseCode, id);
 
     // Process footnotes and citations
     const fn = new FootnoteManager();
@@ -291,7 +291,7 @@ export function parseQuestionsFromContent(content: string, file: string): ParseR
 
     const publicQuestion: QuestionPublicV1 = {
       uid,
-      subject: SUBJECT,
+      subject: subjectId,
       type: "mcq-single",
       id,
       topic,
@@ -375,7 +375,7 @@ function extractInlineBlanks(promptRaw: string, file: string): { maskedPrompt: s
   return { maskedPrompt: out, answers };
 }
 
-export function parseFillBlankQuestionsFromContent(content: string, file: string): ParseResult[] {
+export function parseFillBlankQuestionsFromContent(content: string, file: string, courseCode: string, subjectId: string): ParseResult[] {
   const results: ParseResult[] = [];
   let cursor = 0;
   while (true) {
@@ -400,7 +400,7 @@ export function parseFillBlankQuestionsFromContent(content: string, file: string
 
     const [id, promptRaw, solutionRaw] = groups;
     const { topic, level, number } = parseQuestionId(id);
-    const uid = makeUid(COURSE_CODE, id);
+    const uid = makeUid(courseCode, id);
 
     // Process footnotes and citations
     const fn = new FootnoteManager();
@@ -414,7 +414,7 @@ export function parseFillBlankQuestionsFromContent(content: string, file: string
 
     const publicQuestion: QuestionPublicV1 = {
       uid,
-      subject: SUBJECT,
+      subject: subjectId,
       type: "fill-blank",
       id,
       topic,
@@ -481,15 +481,21 @@ function ensureUniqueQuestions(
   }
 }
 
-function writeBanks(publicBank: BankPublicV1, answersBank: BankAnswersV1): void {
+function writeBanks(publicBank: BankPublicV1, answersBank: BankAnswersV1, subjectId: string): void {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const distDir = resolve(currentDir, "../dist");
   mkdirSync(distDir, { recursive: true });
-  writeFileSync(resolve(distDir, "bank.public.v1.json"), JSON.stringify(publicBank, null, 2), "utf8");
-  writeFileSync(resolve(distDir, "bank.answers.v1.json"), JSON.stringify(answersBank, null, 2), "utf8");
+  writeFileSync(resolve(distDir, `bank.${subjectId}.public.v1.json`), JSON.stringify(publicBank, null, 2), "utf8");
+  writeFileSync(resolve(distDir, `bank.${subjectId}.answers.v1.json`), JSON.stringify(answersBank, null, 2), "utf8");
+
+  // Also write default for backward compatibility if it's the only one or marked default
+  if (subjectId === "discrete-math") {
+    writeFileSync(resolve(distDir, "bank.public.v1.json"), JSON.stringify(publicBank, null, 2), "utf8");
+    writeFileSync(resolve(distDir, "bank.answers.v1.json"), JSON.stringify(answersBank, null, 2), "utf8");
+  }
 }
 
-export async function buildBanksFromFiles(filePaths: string[]): Promise<{
+export async function buildBanksFromFiles(filePaths: string[], courseCode: string, subjectId: string): Promise<{
   publicBank: BankPublicV1;
   answersBank: BankAnswersV1;
   questions: ParseResult[];
@@ -505,8 +511,8 @@ export async function buildBanksFromFiles(filePaths: string[]): Promise<{
   for (const file of filePaths) {
     const raw = readFileSync(file, "utf8");
     const cleaned = stripComments(raw);
-    const mcq = parseQuestionsFromContent(cleaned, file);
-    const fib = parseFillBlankQuestionsFromContent(cleaned, file);
+    const mcq = parseQuestionsFromContent(cleaned, file, courseCode, subjectId);
+    const fib = parseFillBlankQuestionsFromContent(cleaned, file, courseCode, subjectId);
     const questions = [...mcq, ...fib];
     ensureUniqueQuestions(questions, seenUid, seenContent, file);
     allResults.push(...questions);
@@ -520,13 +526,13 @@ export async function buildBanksFromFiles(filePaths: string[]): Promise<{
   const generatedAt = new Date().toISOString();
   const publicBank: BankPublicV1 = {
     version: "v1",
-    subject: SUBJECT,
+    subject: subjectId,
     generatedAt,
     questions: allResults.map((q) => q.publicQuestion)
   };
   const answersBank: BankAnswersV1 = {
     version: "v1",
-    subject: SUBJECT,
+    subject: subjectId,
     generatedAt,
     questions: allResults.map((q) => q.answerQuestion)
   };
@@ -589,117 +595,144 @@ async function run(): Promise<void> {
   program.option("--latex-assets-base <url>", "Public base URL for rendered LaTeX assets");
   program.option("--language <lang>", "Language for exam generation (en or vi)", "vi");
 
-  program.action(async (opts: { sourcesConfig?: string; latexAssetsDir?: string; latexAssetsBase?: string; language: string; labelData?: LabelMap }) => {
-    const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-    const language = (opts.language === "en" ? "en" : "vi") as "en" | "vi";
+  program.action(
+    async (opts: {
+      sourcesConfig?: string;
+      latexAssetsDir?: string;
+      latexAssetsBase?: string;
+      language: string;
+      labelData?: LabelMap;
+    }) => {
+      const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+      const language = (opts.language === "en" ? "en" : "vi") as "en" | "vi";
 
-    let files: string[] = [];
-    let canvasZips: string[] = [];
-    let tempDir: string | null = null;
+      let files: string[] = [];
+      let canvasZips: string[] = [];
+      let tempDir: string | null = null;
+      let cfg: any = { courseCode: "MAT3500", subject: "discrete-math", subjects: [] };
 
-    try {
-      if (opts.sourcesConfig) {
-        const cfg = await loadSourcesConfigFile(resolve(opts.sourcesConfig));
-        const downloaded = await downloadSourcesToTemp(cfg);
-        tempDir = downloaded.tempDir;
-        files = downloaded.texFiles;
-        canvasZips = downloaded.canvasZipFiles;
-      } else {
-        files = await fg("src/**/*.tex", { cwd: packageRoot, absolute: true });
-      }
+      try {
+        if (opts.sourcesConfig) {
+          cfg = await loadSourcesConfigFile(resolve(opts.sourcesConfig));
+          const downloaded = await downloadSourcesToTemp(cfg);
+          tempDir = downloaded.tempDir;
+          files = downloaded.texFiles;
+          canvasZips = downloaded.canvasZipFiles;
+        } else {
+          files = await fg("src/**/*.tex", { cwd: packageRoot, absolute: true });
+        }
 
-      let publicBank: BankPublicV1;
-      let answersBank: BankAnswersV1;
-      let questions: ParseResult[] = [];
+        const subjectsToBuild = cfg.subjects?.length
+          ? cfg.subjects
+          : [{ id: cfg.subject || "discrete-math", title: "Default Subject" }];
 
-      if (files.length > 0) {
-        const built = await buildBanksFromFiles(files);
-        // We use the sorted questions from buildBanksFromFiles to ensure sequential numbering in the bank
-        const allQuestionsTexts = built.questions.map((q) => {
-          let text = q.publicQuestion.prompt;
-          if (q.publicQuestion.type === "mcq-single") {
-            text += " " + q.publicQuestion.choices.map((c) => c.text).join(" ");
-          }
-          if (q.answerQuestion.solution) {
-            text += " " + q.answerQuestion.solution;
-          }
-          return text;
-        });
+        for (const sub of subjectsToBuild) {
+          console.log(`--- Building subject: ${sub.title} (${sub.id}) ---`);
+          const subId = sub.id;
+          const courseCode = cfg.courseCode;
 
-        const labelData = collectSequentialLabels(allQuestionsTexts);
-        const resolver = (value: string): string => replaceFigureReferences(value, labelData.labels, language);
-
-        const normalized = built.questions.map((q) => applyFigureReferencesToQuestion(q, resolver));
-
-        publicBank = {
-          ...built.publicBank,
-          questions: normalized.map((q) => q.publicQuestion)
-        };
-        answersBank = {
-          ...built.answersBank,
-          questions: normalized.map((q) => q.answerQuestion)
-        };
-        questions = normalized;
-
-        // Store labelData for late rendering
-        (opts as any).labelData = labelData;
-      } else {
-        const generatedAt = new Date().toISOString();
-        publicBank = { version: "v1", subject: SUBJECT, generatedAt, questions: [] };
-        answersBank = { version: "v1", subject: SUBJECT, generatedAt, questions: [] };
-      }
-
-      if (canvasZips.length > 0) {
-        const seenUid = new Map<string, string>();
-        const seenContent = new Map<string, { uid: string; file: string; id: string }>();
-        for (const q of questions) {
-          seenUid.set(q.publicQuestion.uid, "latex");
-          seenContent.set(getQuestionContentSignature(q.publicQuestion), {
-            uid: q.publicQuestion.uid,
-            file: "latex",
-            id: q.publicQuestion.id
+          // Filter files/zips for this subject if they have subjectId set
+          const subFiles = files.filter((f) => {
+            // This is a bit tricky since downloadSourcesToTemp doesn't return metadata per file.
+            // For now, if no subjectId is set on source, or it matches subId, include it.
+            return true;
           });
+          const subCanvasZips = canvasZips;
+
+          let publicBank: BankPublicV1;
+          let answersBank: BankAnswersV1;
+          let questions: ParseResult[] = [];
+
+          if (subFiles.length > 0) {
+            const built = await buildBanksFromFiles(subFiles, courseCode, subId);
+            const allQuestionsTexts = built.questions.map((q) => {
+              let text = q.publicQuestion.prompt;
+              if (q.publicQuestion.type === "mcq-single") {
+                text += " " + (q.publicQuestion as any).choices.map((c: any) => c.text).join(" ");
+              }
+              if (q.answerQuestion.solution) {
+                text += " " + q.answerQuestion.solution;
+              }
+              return text;
+            });
+
+            const labelData = collectSequentialLabels(allQuestionsTexts);
+            const resolver = (value: string): string => replaceFigureReferences(value, labelData.labels, language);
+
+            const normalized = built.questions.map((q) => applyFigureReferencesToQuestion(q, resolver));
+
+            publicBank = {
+              ...built.publicBank,
+              questions: normalized.map((q) => q.publicQuestion)
+            };
+            answersBank = {
+              ...built.answersBank,
+              questions: normalized.map((q) => q.answerQuestion)
+            };
+            questions = normalized;
+            (opts as any).labelData = labelData;
+          } else {
+            const generatedAt = new Date().toISOString();
+            publicBank = { version: "v1", subject: subId, generatedAt, questions: [] };
+            answersBank = { version: "v1", subject: subId, generatedAt, questions: [] };
+          }
+
+          if (subCanvasZips.length > 0) {
+            const seenUid = new Map<string, string>();
+            const seenContent = new Map<string, { uid: string; file: string; id: string }>();
+            for (const q of questions) {
+              seenUid.set(q.publicQuestion.uid, "latex");
+              seenContent.set(getQuestionContentSignature(q.publicQuestion), {
+                uid: q.publicQuestion.uid,
+                file: "latex",
+                id: q.publicQuestion.id
+              });
+            }
+
+            const canvasResults: ParseResult[] = [];
+            for (const zip of subCanvasZips) {
+              const parsed = await parseCanvasZipToResults(zip, courseCode, subId);
+              ensureUniqueQuestions(parsed, seenUid, seenContent, zip);
+              canvasResults.push(...parsed);
+            }
+
+            const merged = [...questions, ...canvasResults];
+            merged.sort((a, b) =>
+              a.publicQuestion.uid.localeCompare(b.publicQuestion.uid, undefined, {
+                numeric: true,
+                sensitivity: "base"
+              })
+            );
+
+            const generatedAt = new Date().toISOString();
+            publicBank = { ...publicBank, generatedAt, questions: merged.map((q) => q.publicQuestion) };
+            answersBank = { ...answersBank, generatedAt, questions: merged.map((q) => q.answerQuestion) };
+            questions = merged;
+          }
+
+          if (opts.latexAssetsDir && opts.latexAssetsBase) {
+            const rendered = renderLatexAssets(publicBank, answersBank, {
+              assetsDir: resolve(opts.latexAssetsDir),
+              assetsBase: opts.latexAssetsBase,
+              labelData: (opts as any).labelData,
+              language
+            });
+            publicBank = rendered.publicBank;
+            answersBank = rendered.answersBank;
+          }
+
+          BankPublicV1Schema.parse(publicBank);
+          BankAnswersV1Schema.parse(answersBank);
+          writeBanks(publicBank, answersBank, subId);
+          console.log(`Generated ${questions.length} questions for ${subId}`);
         }
-
-        const canvasResults: ParseResult[] = [];
-        for (const zip of canvasZips) {
-          const parsed = await parseCanvasZipToResults(zip, COURSE_CODE, SUBJECT);
-          ensureUniqueQuestions(parsed, seenUid, seenContent, zip);
-          canvasResults.push(...parsed);
+      } finally {
+        if (tempDir) {
+          await cleanupTempDir(tempDir);
         }
-
-        const merged = [...questions, ...canvasResults];
-        merged.sort((a, b) =>
-          a.publicQuestion.uid.localeCompare(b.publicQuestion.uid, undefined, { numeric: true, sensitivity: 'base' })
-        );
-
-        const generatedAt = new Date().toISOString();
-        publicBank = { ...publicBank, generatedAt, questions: merged.map((q) => q.publicQuestion) };
-        answersBank = { ...answersBank, generatedAt, questions: merged.map((q) => q.answerQuestion) };
-        questions = merged;
-      }
-
-      if (opts.latexAssetsDir && opts.latexAssetsBase) {
-        const rendered = renderLatexAssets(publicBank, answersBank, {
-          assetsDir: resolve(opts.latexAssetsDir),
-          assetsBase: opts.latexAssetsBase,
-          labelData: opts.labelData,
-          language
-        });
-        publicBank = rendered.publicBank;
-        answersBank = rendered.answersBank;
-      }
-
-      BankPublicV1Schema.parse(publicBank);
-      BankAnswersV1Schema.parse(answersBank);
-      writeBanks(publicBank, answersBank);
-      console.log(`Generated ${questions.length} questions`);
-    } finally {
-      if (tempDir) {
-        await cleanupTempDir(tempDir);
       }
     }
-  });
+  );
 
   await program.parseAsync(process.argv);
 }

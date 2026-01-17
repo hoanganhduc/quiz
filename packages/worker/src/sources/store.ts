@@ -7,6 +7,7 @@ export const DEFAULT_SOURCES_CONFIG: SourcesConfigV1 = {
   version: "v1",
   courseCode: "default-course",
   subject: "default-subject",
+  subjects: [{ id: "discrete-math", title: "Discrete Mathematics" }],
   uidNamespace: "default-uid",
   sources: []
 };

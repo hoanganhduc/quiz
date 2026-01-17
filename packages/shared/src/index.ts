@@ -10,7 +10,7 @@ export type QuestionLevel = "basic" | "advanced";
 
 export type QuestionBaseV1 = {
   uid: string;
-  subject: "discrete-math";
+  subject: string;
   id: string;
   topic: string;
   level: QuestionLevel;
@@ -44,14 +44,14 @@ export type QuestionAnswersV1 = QuestionMcqAnswersV1 | QuestionFillBlankAnswersV
 
 export type BankPublicV1 = {
   version: "v1";
-  subject: "discrete-math";
+  subject: string;
   generatedAt: string;
   questions: QuestionPublicV1[];
 };
 
 export type BankAnswersV1 = {
   version: "v1";
-  subject: "discrete-math";
+  subject: string;
   generatedAt: string;
   questions: QuestionAnswersV1[];
 };
@@ -99,7 +99,7 @@ export type AnswerDraftV1 = {
 
 export type ExamV1 = {
   examId: string;
-  subject: "discrete-math";
+  subject: string;
   createdAt: string;
   updatedAt?: string;
   deletedAt?: string;
@@ -184,8 +184,8 @@ export const ChoiceSchema = z.object({
 export const AnswerValueV1Schema = z.union([z.string(), z.array(z.string())]);
 
 const QuestionBaseV1Schema = z.object({
-  uid: z.string().regex(/^latex:MAT3500:.+$/),
-  subject: z.literal("discrete-math"),
+  uid: z.string().regex(/^latex:[^:]+:.+$/),
+  subject: z.string().min(1),
   id: z.string(),
   topic: z.string(),
   level: z.enum(["basic", "advanced"]),
@@ -225,14 +225,14 @@ export const QuestionAnswersV1Schema = z.discriminatedUnion("type", [
 
 export const BankPublicV1Schema = z.object({
   version: z.literal("v1"),
-  subject: z.literal("discrete-math"),
+  subject: z.string().min(1),
   generatedAt: z.string().datetime(),
   questions: z.array(QuestionPublicV1Schema)
 });
 
 export const BankAnswersV1Schema = z.object({
   version: z.literal("v1"),
-  subject: z.literal("discrete-math"),
+  subject: z.string().min(1),
   generatedAt: z.string().datetime(),
   questions: z.array(QuestionAnswersV1Schema)
 });
@@ -258,7 +258,7 @@ export const ExamPolicySchema = z.object({
 
 export const ExamV1Schema = z.object({
   examId: z.string(),
-  subject: z.literal("discrete-math"),
+  subject: z.string().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime().optional(),
   deletedAt: z.string().datetime().optional(),
@@ -463,13 +463,23 @@ const SourceDefSchema = z.union([
   ZipSourceDefV1Schema,
   CanvasSourceDefV1Schema,
   GoogleDriveFolderSourceDefV1Schema
-]);
+]).and(z.object({
+  subjectId: z.string().optional()
+}));
+
+export const SubjectDefV1Schema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1)
+});
+
+export type SubjectDefV1 = z.infer<typeof SubjectDefV1Schema>;
 
 export const SourcesConfigV1Schema = z
   .object({
     version: z.literal("v1"),
     courseCode: z.string().min(1),
-    subject: z.string().min(1),
+    subject: z.string().min(1).optional(), // Kept for legacy compatibility
+    subjects: z.array(SubjectDefV1Schema).optional(),
     uidNamespace: z.string().min(1),
     sources: z.array(SourceDefSchema)
   })

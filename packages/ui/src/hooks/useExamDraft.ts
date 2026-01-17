@@ -3,7 +3,7 @@ import type { ExamCompositionItemV1, ExamPolicyV1 } from "@app/shared";
 import type { AdminExamRequest } from "../api/admin";
 
 export type ExamDraft = {
-  subject: "discrete-math";
+  subject: string;
   title: string;
   composition: ExamCompositionItemV1[];
   autoSeed: boolean;

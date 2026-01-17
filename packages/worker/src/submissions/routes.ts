@@ -195,10 +195,11 @@ export function registerSubmissionRoutes(app: Hono<{ Bindings: Env }>) {
     const submission = parsed.data;
 
     // Enrich with question data if possible
-    const [examRes, banksRes] = await Promise.all([
-      getExam(c.env, submission.examId),
-      getLatestBanks(c.env, "discrete-math") // Hardcoded subject for now as per project scope
-    ]);
+    const examRes = await getExam(c.env, submission.examId);
+    if (!examRes.ok) return c.json({ submission });
+
+    const exam = examRes.value;
+    const banksRes = await getLatestBanks(c.env, exam.subject);
 
     if (examRes.ok && banksRes.ok) {
       const exam = examRes.value;

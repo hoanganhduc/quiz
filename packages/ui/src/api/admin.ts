@@ -3,7 +3,7 @@ import type { BankPublicV1 } from "@app/shared";
 import { getSessionToken } from "../api";
 
 export type AdminExamRequest = {
-  subject: "discrete-math";
+  subject: string;
   composition: ExamCompositionItemV1[];
   title?: string;
   seed?: string;
@@ -17,7 +17,7 @@ export type AdminExamRequest = {
 export type CreateExamResponse = { examId: string; examUrl: string; seed: string };
 export type ExamTemplateResponse = {
   examId: string;
-  subject: "discrete-math";
+  subject: string;
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
   expiresAt: string | null;
@@ -26,7 +26,7 @@ export type ExamTemplateResponse = {
 
 export type AdminExamSummary = {
   examId: string;
-  subject: "discrete-math";
+  subject: string;
   createdAt: string;
   updatedAt: string | null;
   deletedAt: string | null;
@@ -60,7 +60,7 @@ export type ExamTemplateRecord = {
   createdAt: string;
   updatedAt?: string;
   template: {
-    subject: "discrete-math";
+    subject: string;
     composition: ExamCompositionItemV1[];
     policy: ExamPolicyV1;
     codes?: string[];
@@ -97,7 +97,7 @@ async function parseError(res: Response): Promise<ApiError> {
 async function authFetch(url: string, init?: RequestInit): Promise<Response> {
   const token = getSessionToken();
   const headers = new Headers(init?.headers);
-  if (token) {
+  if (token && !headers.has("Authorization")) {
     headers.set("Authorization", `Bearer ${token}`);
   }
   return fetch(url, { ...init, headers });

@@ -19,7 +19,7 @@ import {
 } from "@app/shared";
 
 type AdminExamBody = {
-  subject: "discrete-math";
+  subject: string;
   composition: ExamCompositionItemV1[];
   title?: string;
   seed?: string;
@@ -33,7 +33,7 @@ type AdminExamBody = {
 type ExamTemplateBody = {
   name: string;
   template: {
-    subject: "discrete-math";
+    subject: string;
     composition: ExamCompositionItemV1[];
     policy: ExamPolicyV1;
     codes?: string[];
@@ -117,7 +117,6 @@ function parseTemplateBody(body: any): ExamTemplateBody {
   if (!name) throw new Error("Template name is required");
   const template = body.template;
   if (!template || typeof template !== "object") throw new Error("Template is required");
-  if (template.subject !== "discrete-math") throw new Error("Unsupported subject");
   if (!Array.isArray(template.composition) || template.composition.length === 0) {
     throw new Error("Composition is required");
   }
@@ -195,9 +194,6 @@ export function registerAdminExamRoutes(app: Hono<{ Bindings: Env }>) {
       body = (await c.req.json()) as AdminExamBody;
     } catch {
       return c.text("Invalid body", 400);
-    }
-    if (body.subject !== "discrete-math") {
-      return c.text("Unsupported subject", 400);
     }
     if (!Array.isArray(body.composition) || body.composition.length === 0) {
       return c.text("Composition is required", 400);

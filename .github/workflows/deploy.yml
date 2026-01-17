@@ -195,19 +195,36 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           set -euo pipefail
-          docker run --rm \
-            -u "$(id -u):$(id -g)" \
-            -v "${{ github.workspace }}":/workspace \
-            -w /workspace \
-            -v /tmp/ci-home:/tmp/ci-home \
-            -e HOME=/tmp/ci-home \
-            -e NPM_CONFIG_CACHE=/tmp/ci-home/.npm \
-            -e CLOUDFLARE_API_TOKEN \
-            -e CLOUDFLARE_ACCOUNT_ID \
-            ${{ env.DOCKER_IMAGE }} \
-            sh -c 'set -euo pipefail
-              npx wrangler --config packages/worker/wrangler.toml kv key put "banks:discrete-math:latest:public" --binding QUIZ_KV --path packages/bank-gen/dist/bank.public.v1.json --preview false --remote
-              npx wrangler --config packages/worker/wrangler.toml kv key put "banks:discrete-math:latest:answers" --binding QUIZ_KV --path packages/bank-gen/dist/bank.answers.v1.json --preview false --remote'
+          SUBJECTS=$(jq -r 'if .subjects then .subjects[].id else "discrete-math" end' sources.runtime.json)
+          for SUB in $SUBJECTS; do
+            echo "Uploading banks for subject: $SUB"
+            PUBLIC_PATH="packages/bank-gen/dist/bank.$SUB.public.v1.json"
+            ANSWERS_PATH="packages/bank-gen/dist/bank.$SUB.answers.v1.json"
+            
+            # Fallback for old style naming if discrete-math
+            if [ "$SUB" = "discrete-math" ] && [ ! -f "$PUBLIC_PATH" ]; then
+               PUBLIC_PATH="packages/bank-gen/dist/bank.public.v1.json"
+               ANSWERS_PATH="packages/bank-gen/dist/bank.answers.v1.json"
+            fi
+            
+            if [ -f "$PUBLIC_PATH" ]; then
+              docker run --rm \
+                -u "$(id -u):$(id -g)" \
+                -v "${{ github.workspace }}":/workspace \
+                -w /workspace \
+                -v /tmp/ci-home:/tmp/ci-home \
+                -e HOME=/tmp/ci-home \
+                -e NPM_CONFIG_CACHE=/tmp/ci-home/.npm \
+                -e CLOUDFLARE_API_TOKEN \
+                -e CLOUDFLARE_ACCOUNT_ID \
+                ${{ env.DOCKER_IMAGE }} \
+                sh -c "set -euo pipefail; \
+                  npx wrangler --config packages/worker/wrangler.toml kv key put \"banks:$SUB:latest:public\" --binding QUIZ_KV --path \"$PUBLIC_PATH\" --preview false --remote && \
+                  npx wrangler --config packages/worker/wrangler.toml kv key put \"banks:$SUB:latest:answers\" --binding QUIZ_KV --path \"$ANSWERS_PATH\" --preview false --remote"
+            else
+              echo "Warning: Bank files for $SUB not found at $PUBLIC_PATH"
+            fi
+          done
 
       - name: Store sources hash
         if: steps.sources_compare.outputs.changed == 'true'

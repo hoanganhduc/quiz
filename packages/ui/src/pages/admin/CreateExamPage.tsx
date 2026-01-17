@@ -153,7 +153,7 @@ const API_BASE_KEY = "admin_api_base";
 const TEMPLATE_STORAGE_KEY = "admin_exam_template_v1";
 
 type ExamTemplate = {
-  subject: "discrete-math";
+  subject: string;
   composition: ExamCompositionItemV1[];
   policy: ExamPolicyV1;
   codes?: string[];
@@ -377,6 +377,13 @@ export function CreateExamPage() {
       setBankLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (bankSubject) {
+      setDraft((prev) => ({ ...prev, subject: bankSubject }));
+      void loadSelectedBank();
+    }
+  }, [bankSubject, apiBase]);
 
   const expiresIso = useMemo(() => {
     if (!draft.expiresEnabled || !draft.expiresAtLocal) return "";

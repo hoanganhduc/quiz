@@ -1,4 +1,5 @@
 import type { SourcesConfigV1 } from "@app/shared";
+import { getSessionToken } from "../api";
 
 const API_BASE = import.meta.env.VITE_API_BASE;
 
@@ -7,9 +8,16 @@ type ApiError = Error & { status: number; body?: string };
 type FetchOptions = RequestInit & { parseJson?: boolean };
 
 async function request<T = unknown>(path: string, init?: FetchOptions): Promise<T> {
+  const token = getSessionToken();
+  const headers = new Headers(init?.headers);
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
   const res = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
-    ...init
+    ...init,
+    headers
   });
 
   if (!res.ok) {
@@ -68,21 +76,21 @@ export type R2UsageResponse = {
 export type CiTriggerResponse = { ok: true; ref: string };
 export type CiStatusResponse =
   | {
-      ok: true;
-      run: null;
-    }
+    ok: true;
+    run: null;
+  }
   | {
-      ok: true;
-      run: {
-        id: number;
-        html_url: string;
-        status: string;
-        conclusion: string | null;
-        created_at: string;
-        updated_at: string;
-        head_branch: string;
-      };
+    ok: true;
+    run: {
+      id: number;
+      html_url: string;
+      status: string;
+      conclusion: string | null;
+      created_at: string;
+      updated_at: string;
+      head_branch: string;
     };
+  };
 
 export async function getSources(): Promise<SourcesConfigV1> {
   return request<SourcesConfigV1>("/admin/sources");

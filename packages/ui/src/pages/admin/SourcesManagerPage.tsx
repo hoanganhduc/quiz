@@ -207,7 +207,14 @@ function validateAndNormalizeConfig(cfg: SourcesConfigV1): SourcesConfigV1 {
     return { id, type: "zip", url, dir: dirRaw === undefined ? undefined : dirTrimmed, format } as ZipSourceDefV1;
   });
 
-  return { version: "v1", courseCode, subject, uidNamespace, sources };
+  return {
+    version: "v1",
+    courseCode,
+    subject: cfg.subject,
+    subjects: cfg.subjects,
+    uidNamespace,
+    sources
+  };
 }
 
 export function SourcesManagerPage() {
@@ -404,6 +411,7 @@ export function SourcesManagerPage() {
       setSourceType(src.type);
       setSourceId(src.id ?? "");
       setSourceDir(src.dir ?? "");
+      setSourceSubjectId(src.subjectId ?? "");
 
       if (src.type === "github") {
         setGithubRepo(src.repo ?? "");
@@ -451,6 +459,7 @@ export function SourcesManagerPage() {
       setSourceType(draftType);
       setSourceId("");
       setSourceDir("");
+      setSourceSubjectId("");
       setGithubRepo("");
       setGithubBranch("");
       setGithubFormat("latex");
@@ -610,6 +619,7 @@ export function SourcesManagerPage() {
           branch: githubBranch.trim(),
           dir: dirTrimmed || ".",
           format: githubFormat,
+          subjectId: sourceSubjectId,
           auth: authEnabled ? { kind: "githubToken", secretRef: secretRef.trim() } : undefined
         };
       } else if (sourceType === "gdrive") {
@@ -618,6 +628,7 @@ export function SourcesManagerPage() {
           type: "gdrive",
           folderId: driveFolderId.trim(),
           format: driveFormat,
+          subjectId: sourceSubjectId,
           auth: authEnabled ? { kind: "httpHeader", secretRef: secretRef.trim() } : undefined
         };
       } else {
@@ -628,6 +639,7 @@ export function SourcesManagerPage() {
           url: zipUrl.trim(),
           dir: dirTrimmed ? dirTrimmed : undefined,
           format: zipFormat,
+          subjectId: sourceSubjectId,
           auth: authEnabled ? { kind: "httpHeader", secretRef: secretRef.trim() } : undefined
         };
       }
