@@ -19,7 +19,8 @@ const DEFAULT_DRAFT = {
     codes: [],
     expiresEnabled: false,
     expiresAtLocal: "",
-    visibility: "private"
+    visibility: "private",
+    notice: ""
 };
 function normalizeCodes(codes) {
     const trimmed = codes.map((code) => code.trim()).filter(Boolean);
@@ -45,6 +46,9 @@ export function useExamDraft() {
         };
         if (draft.title.trim()) {
             body.title = draft.title.trim();
+        }
+        if (draft.notice.trim()) {
+            body.notice = draft.notice.trim();
         }
         if (!draft.autoSeed && draft.seed.trim()) {
             body.seed = draft.seed.trim();

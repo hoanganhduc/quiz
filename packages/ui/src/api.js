@@ -6,7 +6,7 @@ const SESSION_KEY = "quiz_session_v2";
 function saveSessionToken(token) {
     localStorage.setItem(SESSION_KEY, token);
 }
-function getSessionToken() {
+export function getSessionToken() {
     return localStorage.getItem(SESSION_KEY);
 }
 export function clearSessionToken() {
@@ -35,7 +35,7 @@ if (hash.includes("session=")) {
         }
     }
 }
-async function apiFetch(path, init) {
+export async function apiFetch(path, init) {
     const token = getSessionToken();
     const headers = new Headers(init?.headers);
     if (token) {
@@ -119,12 +119,63 @@ export function googleLinkUrl(currentUrl) {
     const params = new URLSearchParams({ mode: "link", redirect: currentUrl });
     return `${API_BASE}/auth/google/start?${params.toString()}`;
 }
-export async function getUserSubmissions(cursor) {
-    const path = cursor ? `/me/submissions?cursor=${encodeURIComponent(cursor)}` : "/me/submissions";
-    return apiFetch(path);
+export async function getUserSubmissions(cursor, includeDeleted = false) {
+    const q = new URLSearchParams();
+    if (cursor)
+        q.set("cursor", cursor);
+    if (includeDeleted)
+        q.set("includeDeleted", "1");
+    const query = q.toString();
+    return apiFetch(`/me/submissions${query ? "?" + query : ""}`);
+}
+export async function batchDeleteMySubmissions(submissionIds) {
+    return apiFetch(`/me/submissions/batch-delete`, {
+        method: "POST",
+        body: JSON.stringify({ submissionIds })
+    });
+}
+export async function batchRestoreMySubmissions(submissionIds) {
+    return apiFetch(`/me/submissions/batch-restore`, {
+        method: "POST",
+        body: JSON.stringify({ submissionIds })
+    });
+}
+export async function batchHardDeleteMySubmissions(submissionIds) {
+    return apiFetch(`/me/submissions/batch-hard-delete`, {
+        method: "POST",
+        body: JSON.stringify({ submissionIds })
+    });
 }
 export async function getSubmissionDetail(submissionId) {
-    return apiFetch(`/me/submissions/${submissionId}`);
+    const data = await apiFetch(`/me/submissions/${submissionId}`);
+    return data.submission;
+}
+export async function listAdminSubmissions(cursor, limit) {
+    const q = new URLSearchParams();
+    if (cursor)
+        q.set("cursor", cursor);
+    if (limit)
+        q.set("limit", String(limit));
+    const query = q.toString();
+    return apiFetch(`/admin/submissions${query ? "?" + query : ""}`);
+}
+export async function batchDeleteSubmissions(submissionIds) {
+    return apiFetch(`/admin/submissions/batch-delete`, {
+        method: "POST",
+        body: JSON.stringify({ submissionIds })
+    });
+}
+export async function batchRestoreSubmissions(submissionIds) {
+    return apiFetch(`/admin/submissions/batch-restore`, {
+        method: "POST",
+        body: JSON.stringify({ submissionIds })
+    });
+}
+export async function batchHardDeleteSubmissions(submissionIds) {
+    return apiFetch(`/admin/submissions/batch-hard-delete`, {
+        method: "POST",
+        body: JSON.stringify({ submissionIds })
+    });
 }
 export async function listPublicExams() {
     return apiFetch("/public/exams");

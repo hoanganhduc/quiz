@@ -38,3 +38,9 @@ export function IconMenu(props) {
 export function IconX(props) {
     return (_jsxs(Svg, { ...props, children: [_jsx("path", { d: "M18 6L6 18" }), _jsx("path", { d: "M6 6l12 12" })] }));
 }
+export function IconArrowUp(props) {
+    return (_jsx(Svg, { ...props, children: _jsx("path", { d: "M18 15l-6-6-6 6" }) }));
+}
+export function IconArrowDown(props) {
+    return (_jsx(Svg, { ...props, children: _jsx("path", { d: "M6 9l6 6 6-6" }) }));
+}

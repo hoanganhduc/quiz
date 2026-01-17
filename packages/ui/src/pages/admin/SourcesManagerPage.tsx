@@ -971,12 +971,12 @@ export function SourcesManagerPage() {
                 <div className="grid gap-3 sm:grid-cols-2 p-3 rounded-lg border border-border bg-card shadow-sm">
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-textMuted uppercase tracking-wider" htmlFor="new-subject-id">ID (e.g. discrete-math)</label>
-                    <Input id="new-subject-id" size="sm" value={newSubjectId} onChange={(e) => setNewSubjectId(e.target.value.toLowerCase().replace(/\s+/g, '-'))} placeholder="subject-id" />
+                    <Input id="new-subject-id" value={newSubjectId} onChange={(e) => setNewSubjectId(e.target.value.toLowerCase().replace(/\s+/g, '-'))} placeholder="subject-id" />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[10px] font-bold text-textMuted uppercase tracking-wider" htmlFor="new-subject-title">Title (e.g. Discrete Mathematics)</label>
                     <div className="flex gap-2">
-                      <Input id="new-subject-title" size="sm" value={newSubjectTitle} onChange={(e) => setNewSubjectTitle(e.target.value)} placeholder="Subject Title" />
+                      <Input id="new-subject-title" value={newSubjectTitle} onChange={(e) => setNewSubjectTitle(e.target.value)} placeholder="Subject Title" />
                       <Button type="button" size="sm" onClick={() => {
                         if (!config || !newSubjectId.trim() || !newSubjectTitle.trim()) return;
                         const subjects = [...(config.subjects ?? [])];

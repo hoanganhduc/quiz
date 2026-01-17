@@ -1,8 +1,15 @@
+import { getSessionToken } from "../api";
 const API_BASE = import.meta.env.VITE_API_BASE;
 async function request(path, init) {
+    const token = getSessionToken();
+    const headers = new Headers(init?.headers);
+    if (token && !headers.has("Authorization")) {
+        headers.set("Authorization", `Bearer ${token}`);
+    }
     const res = await fetch(`${API_BASE}${path}`, {
         credentials: "include",
-        ...init
+        ...init,
+        headers
     });
     if (!res.ok) {
         const body = await res.text();
