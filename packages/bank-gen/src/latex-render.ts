@@ -504,11 +504,21 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
         const refNumber = opts.labelData?.labels.get(trimmedLabel);
         return refNumber || "??";
       });
-    }
 
-    // Strip \label{} commands from the math content (we use anchor divs instead)
-    // This prevents MathJax "Label multiply defined" errors
-    processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+      // Replace \label{eq:x} with \tag{N} so MathJax displays consistent equation numbers
+      // This makes the displayed number match our \ref{} references
+      processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, labelName) => {
+        const trimmedLabel = labelName.trim();
+        const eqNumber = opts.labelData?.labels.get(trimmedLabel);
+        if (eqNumber) {
+          return `\\tag{${eqNumber}}`;
+        }
+        return ""; // Strip label if no number found
+      });
+    } else {
+      // No labelData - just strip labels to prevent MathJax errors
+      processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+    }
 
     // Create anchor elements for all labels (for navigation)
     const anchors = allLabels.map((l) => {
