@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { mkdirSync, mkdtempSync, copyFileSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, copyFileSync, existsSync, readFileSync, rmSync, writeFileSync, readdirSync, cpSync } from "node:fs";
 import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
@@ -12,6 +12,7 @@ type RenderOptions = {
   dpi?: number;
   labelData?: LabelMap;
   language?: "en" | "vi";
+  sourceAssetDirs?: string[]; // Directories containing source images for \includegraphics
 };
 
 const ENV_LIST = "tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo";
@@ -181,13 +182,46 @@ function renderPdfToPng(pdfPath: string, outputPath: string, dpi: number, workDi
 const LATEX_CMD = process.env.LATEX_CMD ?? "pdflatex";
 const LATEX_DEBUG = ["1", "true", "yes"].includes((process.env.LATEX_DEBUG ?? "").toLowerCase());
 
-function runLatexToPng(texBody: string, outputPath: string, dpi: number, initialFigureCounter?: number): void {
+// Helper function to recursively copy directory contents
+function copyRecursiveSync(src: string, dest: string): void {
+  if (!existsSync(src)) return;
+
+  try {
+    // Node 16.7.0+ has cpSync with recursive option
+    cpSync(src, dest, { recursive: true, force: false, errorOnExist: false });
+  } catch (err) {
+    // Fallback for older Node versions or if cpSync fails
+    const entries = readdirSync(src, { withFileTypes: true });
+    for (const entry of entries) {
+      const srcPath = join(src, entry.name);
+      const destPath = join(dest, entry.name);
+      if (entry.isDirectory()) {
+        mkdirSync(destPath, { recursive: true });
+        copyRecursiveSync(srcPath, destPath);
+      } else {
+        copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+}
+
+function runLatexToPng(texBody: string, outputPath: string, dpi: number, initialFigureCounter?: number, sourceAssetDirs?: string[]): void {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
   const texPath = join(workDir, "snippet.tex");
   const pdfPath = join(workDir, "snippet.pdf");
   const logPath = join(workDir, "snippet.log");
 
   try {
+    // Copy source asset directories to working directory to make images available to LaTeX
+    if (sourceAssetDirs && sourceAssetDirs.length > 0) {
+      for (const srcDir of sourceAssetDirs) {
+        if (existsSync(srcDir)) {
+          // Copy the directory recursively, preserving structure
+          copyRecursiveSync(srcDir, workDir);
+        }
+      }
+    }
+
     writeFileSync(texPath, buildTexDocument(texBody, initialFigureCounter), "utf8");
     const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "snippet.tex"], {
       cwd: workDir,
@@ -247,7 +281,7 @@ function renderBlockToImage(block: string, opts: RenderOptions): string {
   const filename = `latex-${hash}.png`;
   const outputPath = resolve(opts.assetsDir, filename);
   if (!existsSync(outputPath)) {
-    runLatexToPng(normalized, outputPath, opts.dpi ?? 220, initialFigureCounter);
+    runLatexToPng(normalized, outputPath, opts.dpi ?? 220, initialFigureCounter, opts.sourceAssetDirs);
   }
   const base = normalizeAssetsBase(opts.assetsBase);
   return `${base}${filename}`;

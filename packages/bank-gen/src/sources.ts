@@ -214,9 +214,17 @@ export async function downloadSourcesToTemp(config: ResolvedSourcesConfigV1): Pr
         const found = await fg("**/*.zip", { cwd: base, absolute: true });
         canvasZipFiles.push(...found);
       } else {
-        const found = await fg("**/*.tex", { cwd: base, absolute: true });
-        texFiles.push(...found);
+        // Extract both .tex files and image files that LaTeX might reference
+        const texFound = await fg("**/*.tex", { cwd: base, absolute: true });
+        texFiles.push(...texFound);
+
+        // Also extract image files to maintain directory structure for \includegraphics references
+        // Common LaTeX image formats: pdf, png, jpg, jpeg, eps, svg
+        const imagePatterns = "**/*.{pdf,png,jpg,jpeg,eps,svg,PDF,PNG,JPG,JPEG,EPS,SVG}";
+        await fg(imagePatterns, { cwd: base, absolute: true });
+        // Images stay in place in the extracted directory; we just need to ensure they're there
       }
+
     }
 
     return { tempDir, texFiles, canvasZipFiles };

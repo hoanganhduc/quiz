@@ -729,7 +729,8 @@ async function run(): Promise<void> {
               assetsDir: resolve(opts.latexAssetsDir),
               assetsBase: opts.latexAssetsBase,
               labelData: (opts as any).labelData,
-              language
+              language,
+              sourceAssetDirs: tempDir ? [tempDir] : undefined
             });
             publicBank = rendered.publicBank;
             answersBank = rendered.answersBank;
