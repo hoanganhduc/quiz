@@ -248,23 +248,23 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
 
     let timer: number | null = null;
     const resolveNumbers = () => {
-      // Find all figures in order
-      const figures = Array.from(document.querySelectorAll('[data-latex-type="figure"]'));
+      // Find all labeled elements (figures AND equations) in order
+      const labeledElements = Array.from(document.querySelectorAll('[data-latex-type="figure"], [data-latex-type="equation"]'));
       const labelToNum = new Map<string, number>();
 
-      figures.forEach((fig, i) => {
+      labeledElements.forEach((el, i) => {
         const num = i + 1;
 
         // Primary label
-        const primaryLabel = fig.getAttribute("data-label");
+        const primaryLabel = el.getAttribute("data-label");
         if (primaryLabel) labelToNum.set(primaryLabel, num);
 
         // Map auxiliary anchors to the same number
-        // These are siblings of the figure
-        let prev = fig.previousElementSibling;
-        while (prev && prev.getAttribute("data-latex-type") === "anchor") {
+        // These are siblings of the element
+        let prev = el.previousElementSibling;
+        while (prev && (prev.getAttribute("data-latex-type") === "anchor" || prev.getAttribute("data-latex-type") === "equation")) {
           const aid = prev.getAttribute("data-label");
-          if (aid) labelToNum.set(aid, num);
+          if (aid && !labelToNum.has(aid)) labelToNum.set(aid, num);
           prev = prev.previousElementSibling;
         }
       });

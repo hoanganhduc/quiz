@@ -566,7 +566,12 @@ function replaceTypography(text: string): string {
     .replace(/\\(Floor|floor)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌊$2⌋")
     .replace(/\\(Ceil|ceil)\{((?:[^{}]|\{[^{}]*\})*)\}/g, "⌈$2⌉")
     // \emph{...} -> <i>...</i>
-    .replace(/\\emph\{((?:[^{}]|\{[^{}]*\})*)\}/g, "<i>$1</i>");
+    .replace(/\\emph\{((?:[^{}]|\{[^{}]*\})*)\}/g, "<i>$1</i>")
+    // Predicate functions from dethi.sty: \isDigit{x} -> \text{isDigit}(x)
+    // Using \text{} makes it work in both MathJax and regular HTML
+    .replace(/\\isDigit\{([^}]*)\}/g, '\\text{isDigit}($1)')
+    .replace(/\\isLower\{([^}]*)\}/g, '\\text{isLower}($1)')
+    .replace(/\\isUpper\{([^}]*)\}/g, '\\text{isUpper}($1)');
 
   // 2. Holistic Math Block Fragmentation (\mathsc, \mathsf)
   // We match $ ... $ blocks and fragment them if they contain our styled commands
