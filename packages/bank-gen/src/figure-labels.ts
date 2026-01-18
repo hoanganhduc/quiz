@@ -97,13 +97,15 @@ export function replaceFigureReferences(
     const trimmedLabel = label.trim();
     const placeholder = `<span class="latex-fig-num" data-label="${trimmedLabel}">[[FIG_NUM_${trimmedLabel}]]</span>`;
 
-    let display = placeholder;
     if (prefix) {
+      // Has \figurename or \tablename prefix - show as "Figure N" or "Hình N" etc.
       const typeName = prefix.includes("figure") || prefix.includes("figurename") ? figureName : tableName;
-      display = `${typeName} ${display}`;
+      const display = `${typeName} ${placeholder}`;
+      return `<a href="#fig-${trimmedLabel}" class="latex-ref">${display}</a>`;
+    } else {
+      // Standalone \ref{} - just show the number, wrapped in a link
+      return `<a href="#fig-${trimmedLabel}" class="latex-ref">${placeholder}</a>`;
     }
-
-    return `<a href="#fig-${trimmedLabel}" class="latex-ref">${display}</a>`;
   });
 }
 

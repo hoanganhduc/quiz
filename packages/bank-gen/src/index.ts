@@ -675,19 +675,18 @@ async function run(): Promise<void> {
             });
 
             const labelData = collectSequentialLabels(allQuestionsTexts);
-            const resolver = (value: string): string => replaceFigureReferences(value, labelData.labels, language);
-
-            const normalized = built.questions.map((q) => applyFigureReferencesToQuestion(q, resolver));
+            // Store labelData for later use, but don't apply figure refs yet
+            // Figure refs will be applied AFTER LaTeX rendering to avoid HTML in LaTeX
 
             publicBank = {
               ...built.publicBank,
-              questions: normalized.map((q) => q.publicQuestion)
+              questions: built.questions.map((q) => q.publicQuestion)
             };
             answersBank = {
               ...built.answersBank,
-              questions: normalized.map((q) => q.answerQuestion)
+              questions: built.questions.map((q) => q.answerQuestion)
             };
-            questions = normalized;
+            questions = built.questions;
             (opts as any).labelData = labelData;
           } else {
             const generatedAt = new Date().toISOString();
@@ -729,6 +728,7 @@ async function run(): Promise<void> {
           }
 
           if (opts.latexAssetsDir && opts.latexAssetsBase) {
+            // First render LaTeX blocks to images (before replacing refs with HTML)
             const rendered = await renderLatexAssets(publicBank, answersBank, {
               assetsDir: resolve(opts.latexAssetsDir),
               assetsBase: opts.latexAssetsBase,
@@ -736,8 +736,35 @@ async function run(): Promise<void> {
               language,
               sourceAssetDirs: baseDirs.length > 0 ? baseDirs : undefined
             });
-            publicBank = rendered.publicBank;
-            answersBank = rendered.answersBank;
+
+            // Then apply figure reference HTML links (after LaTeX rendering is done)
+            const storedLabelData = (opts as any).labelData as LabelMap | undefined;
+            const applyRefs = (text: string) => replaceFigureReferences(text, storedLabelData?.labels ?? new Map(), language);
+
+            publicBank = {
+              ...rendered.publicBank,
+              questions: rendered.publicBank.questions.map((q) => {
+                if (q.type === "mcq-single") {
+                  return { ...q, prompt: applyRefs(q.prompt), choices: q.choices.map(c => ({ ...c, text: applyRefs(c.text) })) };
+                }
+                if (q.type === "fill-blank") {
+                  return { ...q, prompt: applyRefs(q.prompt) };
+                }
+                return q;
+              })
+            };
+            answersBank = {
+              ...rendered.answersBank,
+              questions: rendered.answersBank.questions.map((q) => {
+                if (q.type === "mcq-single") {
+                  return { ...q, prompt: applyRefs(q.prompt), choices: q.choices.map(c => ({ ...c, text: applyRefs(c.text) })), solution: q.solution ? applyRefs(q.solution) : q.solution };
+                }
+                if (q.type === "fill-blank") {
+                  return { ...q, prompt: applyRefs(q.prompt), solution: q.solution ? applyRefs(q.solution) : q.solution };
+                }
+                return q;
+              })
+            };
           }
 
           BankPublicV1Schema.parse(publicBank);

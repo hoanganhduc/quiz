@@ -16,7 +16,7 @@ type RenderOptions = {
   sourceAssetDirs?: string[]; // Directories containing source images for \includegraphics
 };
 
-const ENV_LIST = "tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo";
+const ENV_LIST = "tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo|align|align\\*|equation|equation\\*|gather|gather\\*|multline|multline\\*|alignat|alignat\\*|flalign|flalign\\*";
 // Group 3 is the environment name because Group 1 is minipage match and Group 2 is block match.
 const BLOCK_PATTERN = `\\\\begin\\{(${ENV_LIST})\\}(?:\\[[^\\]]*\\])?[\\s\\S]*?\\\\end\\{\\3\\}`;
 const MINIPAGE_PATTERN = "(?:\\\\begin\\{minipage\\}(?:\\[[^\\]]*\\])?\\{[^}]+\\}[\\s\\S]*?\\\\end\\{minipage\\}[~%\\s]*)+";
@@ -288,7 +288,7 @@ async function runLatexToPng(texBody: string, outputPath: string, dpi: number, i
 }
 
 async function renderBlockToImage(block: string, opts: RenderOptions): Promise<string> {
-  const normalized = normalizeBlockForRender(block);
+  let normalized = normalizeBlockForRender(block);
 
   // Try to find a label or hash to sync figure number
   let initialFigureCounter: number | undefined;
@@ -305,6 +305,19 @@ async function renderBlockToImage(block: string, opts: RenderOptions): Promise<s
         initialFigureCounter = num - 1;
       }
     }
+
+    // Resolve \ref{} commands inside the block by replacing with actual numbers
+    // This handles references like \ref{lem:induction:q09} inside align environments
+    normalized = normalized.replace(/\\ref\{([^}]+)\}/g, (match, refLabel) => {
+      const trimmedLabel = refLabel.trim();
+      const refNumber = opts.labelData?.labels.get(trimmedLabel);
+      if (refNumber) {
+        // Replace \ref{label} with the actual number
+        return refNumber;
+      }
+      // If not found, leave as ?? (standard LaTeX behavior for unresolved refs)
+      return "??";
+    });
   }
 
   const hash = hashContent(normalized + (initialFigureCounter ?? ""));
