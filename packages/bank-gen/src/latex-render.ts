@@ -290,41 +290,17 @@ async function runLatexToPng(texBody: string, outputPath: string, dpi: number, i
 async function renderBlockToImage(block: string, opts: RenderOptions): Promise<string> {
   let normalized = normalizeBlockForRender(block);
 
-  // Try to find a label or hash to sync figure number
-  let initialFigureCounter: number | undefined;
-  if (opts.labelData) {
-    const labelMatch = /\\label\s*\{([^}]+)\}/.exec(normalized);
-    const label = labelMatch ? labelMatch[1].trim() : "";
-    const hash = hashContent(block);
+  // For \\ref{} commands inside PNG-rendered blocks, use \"?\" as placeholder
+  // since PNG images cannot be dynamically updated at render time.
+  // Main text refs are handled by MathJax and resolved client-side.
+  normalized = normalized.replace(/\\ref\{([^}]+)\}/g, "?");
 
-    const numberStr = (label && opts.labelData.labels.get(label)) || opts.labelData.hashes.get(hash);
-
-    if (numberStr) {
-      const num = parseInt(numberStr, 10);
-      if (!isNaN(num)) {
-        initialFigureCounter = num - 1;
-      }
-    }
-
-    // Resolve \ref{} commands inside the block by replacing with actual numbers
-    // This handles references like \ref{lem:induction:q09} inside align environments
-    normalized = normalized.replace(/\\ref\{([^}]+)\}/g, (match, refLabel) => {
-      const trimmedLabel = refLabel.trim();
-      const refNumber = opts.labelData?.labels.get(trimmedLabel);
-      if (refNumber) {
-        // Replace \ref{label} with the actual number
-        return refNumber;
-      }
-      // If not found, leave as ?? (standard LaTeX behavior for unresolved refs)
-      return "??";
-    });
-  }
-
-  const hash = hashContent(normalized + (initialFigureCounter ?? ""));
+  const hash = hashContent(normalized);
   const filename = `latex-${hash}.png`;
   const outputPath = resolve(opts.assetsDir, filename);
   if (!existsSync(outputPath)) {
-    await runLatexToPng(normalized, outputPath, opts.dpi ?? 220, initialFigureCounter, opts.sourceAssetDirs);
+    // Don't pass initialFigureCounter - figure numbers are resolved client-side
+    await runLatexToPng(normalized, outputPath, opts.dpi ?? 220, undefined, opts.sourceAssetDirs);
   }
   const base = normalizeAssetsBase(opts.assetsBase);
   return `${base}${filename}`;
