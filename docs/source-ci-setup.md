@@ -20,6 +20,15 @@ The deploy workflow runs on:
 - manual `workflow_dispatch`
 - schedule: every 6 hours (`cron: "0 */6 * * *"`)
 
+### When are banks regenerated?
+
+Banks are regenerated when any of the following changes:
+- **Sources config** — changes to remote sources configuration
+- **bank-gen source files** — any `.ts` file in `packages/bank-gen/src/` (e.g., `latex-render.ts`, `figure-labels.ts`)
+- **Force regeneration** — via `workflow_dispatch` with `force_regen: true`
+
+The workflow computes a combined hash of sources config + bank-gen sources and compares it to the last-built hash stored in KV.
+
 ## Trigger CI from the admin UI
 
 The Worker can trigger the GitHub Actions workflow via `POST /admin/ci/trigger` (admin-only).

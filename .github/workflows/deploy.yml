@@ -111,12 +111,22 @@ jobs:
           curl -fsS -H "Authorization: Bearer $ADMIN_TOKEN" "$WORKER_URL/admin/sources/export" > sources.runtime.json
           python -c "import json, pathlib; json.loads(pathlib.Path('sources.runtime.json').read_text())"
 
+      - name: Compute bank-gen source hash
+        id: bankgen_hash
+        run: |
+          set -euo pipefail
+          # Hash all source files in bank-gen that affect question bank generation
+          BANKGEN_HASH=$(find packages/bank-gen/src -type f -name '*.ts' | sort | xargs cat | sha256sum | awk '{print $1}')
+          echo "hash=$BANKGEN_HASH" >> "$GITHUB_OUTPUT"
+
       - name: Compute sources hash
         id: sources_hash
         run: |
           set -euo pipefail
           CONFIG_JSON=$(jq -c -S '.config // .' sources.runtime.json)
-          HASH=$(printf "%s" "$CONFIG_JSON" | sha256sum | awk '{print $1}')
+          # Combine sources config and bank-gen hash for complete change detection
+          COMBINED="${CONFIG_JSON}${{ steps.bankgen_hash.outputs.hash }}"
+          HASH=$(printf "%s" "$COMBINED" | sha256sum | awk '{print $1}')
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
       - name: Compare sources hash

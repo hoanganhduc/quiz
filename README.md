@@ -37,6 +37,8 @@ cd packages/bank-gen
 npx tsx src/index.ts --latex-assets-dir ./output/latex --latex-assets-base /quiz/latex/
 ```
 
+**CI Note:** Banks are automatically regenerated when `bank-gen` source files change (e.g., `latex-render.ts`).
+
 See [docs/latex-rendering.md](docs/latex-rendering.md) for full documentation.
 
 ## Import/Export
