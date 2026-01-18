@@ -507,21 +507,13 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
       });
     }
 
-    // Convert \\label{} to \\tag{} with the resolved number for equation numbering
-    // This allows MathJax to display equation numbers correctly
-    if (opts.labelData) {
-      processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, label) => {
-        const trimmedLabel = label.trim();
-        const eqNumber = opts.labelData?.labels.get(trimmedLabel);
-        if (eqNumber) {
-          return `\\tag{${eqNumber}}`;
-        }
-        return ""; // Remove label if no number found
-      });
-    } else {
-      // No label data, just strip labels
-      processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
-    }
+    // Convert \\label{} to \\tag{} with a placeholder for client-side resolution
+    // The placeholder [[EQ_NUM_label]] will be replaced with sequential numbers at exam render time
+    processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, label) => {
+      const trimmedLabel = label.trim();
+      // Use a placeholder that will be resolved at client render time for per-exam numbering
+      return `\\tag{\\texttt{[[EQ_NUM_${trimmedLabel}]]}}`;
+    });
 
     // Create anchor elements for all labels (for navigation)
     const anchors = allLabels.map((l) => {

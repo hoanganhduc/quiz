@@ -269,7 +269,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         }
       });
 
-      // Update all placeholders
+      // Update figure caption placeholders
       const spans = Array.from(document.querySelectorAll(".latex-fig-num"));
       spans.forEach((span) => {
         const label = span.getAttribute("data-label");
@@ -280,6 +280,36 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
           } else {
             span.textContent = "?";
           }
+        }
+      });
+
+      // Update equation number placeholders in MathJax-rendered content
+      // These appear as [[EQ_NUM_label]] text nodes inside mjx-container elements
+      const eqPlaceholderRegex = /\[\[EQ_NUM_([^\]]+)\]\]/g;
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        {
+          acceptNode: (node) => {
+            return node.textContent && eqPlaceholderRegex.test(node.textContent)
+              ? NodeFilter.FILTER_ACCEPT
+              : NodeFilter.FILTER_REJECT;
+          }
+        }
+      );
+
+      const textNodes: Text[] = [];
+      let node;
+      while ((node = walker.nextNode())) {
+        textNodes.push(node as Text);
+      }
+
+      textNodes.forEach((textNode) => {
+        if (textNode.textContent) {
+          textNode.textContent = textNode.textContent.replace(eqPlaceholderRegex, (_match, label) => {
+            const n = labelToNum.get(label);
+            return n !== undefined ? n.toString() : "?";
+          });
         }
       });
     };
