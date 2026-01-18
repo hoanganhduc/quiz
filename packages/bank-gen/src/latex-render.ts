@@ -462,14 +462,34 @@ async function replaceBlocks(text: string, opts: RenderOptions): Promise<string>
   return result;
 }
 
-function replaceMacros(text: string, opts: RenderOptions): string {
+async function replaceMacros(text: string, opts: RenderOptions): Promise<string> {
   if (!text) return text;
   const cleaned = stripCommentLines(text);
-  return cleaned.replace(MACRO_REGEX, (match, content) => {
-    // Process content recursively
-    const inner = renderLatexText(content, opts);
+
+  // Collect all matches first, then process them async
+  const matches: { match: string; index: number; content: string }[] = [];
+  let m;
+  const regexCopy = new RegExp(MACRO_REGEX.source, MACRO_REGEX.flags);
+  while ((m = regexCopy.exec(cleaned)) !== null) {
+    matches.push({ match: m[0], index: m.index, content: m[1] });
+  }
+
+  if (matches.length === 0) return cleaned;
+
+  // Process all matches in parallel
+  const replacements = await Promise.all(matches.map(async ({ content }) => {
+    const inner = await renderLatexText(content, opts);
     return `\\dongkhung{${inner}}`;
-  });
+  }));
+
+  // Apply replacements in reverse order to preserve indices
+  let result = cleaned;
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { match, index } = matches[i];
+    result = result.slice(0, index) + replacements[i] + result.slice(index + match.length);
+  }
+
+  return result;
 }
 
 function replaceTypography(text: string): string {
@@ -534,7 +554,7 @@ function replaceTypography(text: string): string {
 
 export async function renderLatexText(text: string, opts: RenderOptions): Promise<string> {
   const withBlocks = await replaceBlocks(text, opts);
-  const withMacros = replaceMacros(withBlocks, opts);
+  const withMacros = await replaceMacros(withBlocks, opts);
   return replaceTypography(withMacros);
 }
 
