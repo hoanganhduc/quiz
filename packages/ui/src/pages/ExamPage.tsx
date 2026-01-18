@@ -351,6 +351,17 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
       setRestored(false);
       setAnswers({});
       setVersionId(data.version?.versionId ?? "fixed");
+
+      // Reset MathJax equation counter before rendering new content
+      // This ensures equations start from (1) for the new exam
+      const MathJax = (window as any).MathJax;
+      if (MathJax?.texReset) {
+        MathJax.texReset();
+      }
+      if (MathJax?.typesetClear) {
+        MathJax.typesetClear();
+      }
+
       setBank(data);
       sessionStorage.setItem(`exam:autoLoad:${examId}`, "1");
     } catch (err: any) {
