@@ -506,6 +506,10 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
       });
     }
 
+    // Strip \label{} commands from the math content (we use anchor divs instead)
+    // This prevents MathJax "Label multiply defined" errors
+    processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+
     // Create anchor elements for all labels (for navigation)
     const anchors = allLabels.map((l) => {
       return `<div id="fig-${l}" class="latex-anchor math-anchor" data-latex-type="equation" data-label="${l}"></div>`;
