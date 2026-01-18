@@ -504,36 +504,11 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
         const refNumber = opts.labelData?.labels.get(trimmedLabel);
         return refNumber || "??";
       });
-
-      // For MathJax compatibility with multiple tags:
-      // 1. Convert non-starred environments to starred (disables auto-numbering)
-      // 2. Replace \label{eq:x} with \tag{N} for custom numbering per line
-      const isStarred = envName.endsWith('*');
-      if (!isStarred) {
-        // Convert to starred version to disable auto-numbering
-        processed = processed.replace(
-          new RegExp(`\\\\begin\\{${envName}\\}`),
-          `\\begin{${envName}*}`
-        );
-        processed = processed.replace(
-          new RegExp(`\\\\end\\{${envName}\\}`),
-          `\\end{${envName}*}`
-        );
-      }
-
-      // Replace \label{eq:x} with \tag{N} so MathJax displays consistent equation numbers
-      processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, labelName) => {
-        const trimmedLabel = labelName.trim();
-        const eqNumber = opts.labelData?.labels.get(trimmedLabel);
-        if (eqNumber) {
-          return `\\tag{${eqNumber}}`;
-        }
-        return ""; // Strip label if no number found
-      });
-    } else {
-      // No labelData - just strip labels to prevent MathJax errors
-      processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
     }
+
+    // Strip \label{} commands - MathJax will auto-number equations
+    // We use anchor divs for navigation instead
+    processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
 
     // Create anchor elements for all labels (for navigation)
     const anchors = allLabels.map((l) => {
