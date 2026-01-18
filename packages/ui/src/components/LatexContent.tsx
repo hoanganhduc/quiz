@@ -140,9 +140,20 @@ function transformLatexText(input: string): string {
   const htmlTagTokens: string[] = [];
   const verbTokens: string[] = [];
   const imgTokens: string[] = [];
+  const mathDivTokens: string[] = [];
 
-  // Protect HTML tags first so bank-gen injected HTML is preserved
-  let text = input.replace(/<[^>]+>/g, (match) => {
+  let text = input;
+
+  // Protect latex-math divs FIRST - they contain display math for MathJax
+  // and should not have \\\\ converted to <br> or be further processed
+  text = text.replace(/<div class="latex-math">[\s\S]*?<\/div>/g, (match) => {
+    const token = `__LATEX_MATH_DIV_${mathDivTokens.length}__`;
+    mathDivTokens.push(match);
+    return token;
+  });
+
+  // Protect HTML tags so bank-gen injected HTML is preserved
+  text = text.replace(/<[^>]+>/g, (match) => {
     const token = `__HTML_TAG_${htmlTagTokens.length}__`;
     htmlTagTokens.push(match);
     return token;
@@ -205,6 +216,9 @@ function transformLatexText(input: string): string {
   });
   imgTokens.forEach((html, index) => {
     text = text.split(`__LATEX_IMG_${index}__`).join(html);
+  });
+  mathDivTokens.forEach((html, index) => {
+    text = text.split(`__LATEX_MATH_DIV_${index}__`).join(html);
   });
   htmlTagTokens.forEach((tag, index) => {
     text = text.split(`__HTML_TAG_${index}__`).join(tag);
