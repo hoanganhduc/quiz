@@ -16,7 +16,7 @@ type RenderOptions = {
   sourceAssetDirs?: string[]; // Directories containing source images for \includegraphics
 };
 
-const ENV_LIST = "tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo|align|align\\*|equation|equation\\*|gather|gather\\*|multline|multline\\*|alignat|alignat\\*|flalign|flalign\\*";
+const ENV_LIST = "tikzpicture|tikz|table|tabular|figure|figwindow|tabwindow|algorithm|algo";
 // Group 3 is the environment name because Group 1 is minipage match and Group 2 is block match.
 const BLOCK_PATTERN = `\\\\begin\\{(${ENV_LIST})\\}(?:\\[[^\\]]*\\])?[\\s\\S]*?\\\\end\\{\\3\\}`;
 const MINIPAGE_PATTERN = "(?:\\\\begin\\{minipage\\}(?:\\[[^\\]]*\\])?\\{[^}]+\\}[\\s\\S]*?\\\\end\\{minipage\\}[~%\\s]*)+";
@@ -475,6 +475,47 @@ async function replaceBlocks(text: string, opts: RenderOptions): Promise<string>
   return result;
 }
 
+// Regex to match math environments that should be rendered by MathJax (not as PNG)
+const MATH_ENV_REGEX = /\\begin\{(align|align\*|equation|equation\*|gather|gather\*|multline|multline\*|alignat|alignat\*|flalign|flalign\*)\}([\s\S]*?)\\end\{\1\}/g;
+
+/**
+ * Process math environments for MathJax rendering:
+ * - Resolve \ref{} to actual numbers
+ * - Add anchor elements for labels
+ * - Preserve LaTeX code as-is for MathJax
+ */
+function replaceMathEnvironments(text: string, opts: RenderOptions): string {
+  if (!text) return text;
+
+  return text.replace(MATH_ENV_REGEX, (match, envName, content) => {
+    // Extract all labels from this environment
+    const allLabels: string[] = [];
+    const LABEL_REG = /\\label\s*\{([^}]+)\}/g;
+    let lMatch;
+    while ((lMatch = LABEL_REG.exec(match)) !== null) {
+      allLabels.push(lMatch[1].trim());
+    }
+
+    // Resolve \ref{} commands to actual numbers
+    let processed = match;
+    if (opts.labelData) {
+      processed = processed.replace(/\\ref\{([^}]+)\}/g, (_m, refLabel) => {
+        const trimmedLabel = refLabel.trim();
+        const refNumber = opts.labelData?.labels.get(trimmedLabel);
+        return refNumber || "??";
+      });
+    }
+
+    // Create anchor elements for all labels (for navigation)
+    const anchors = allLabels.map((l) => {
+      return `<div id="fig-${l}" class="latex-anchor math-anchor" data-latex-type="equation" data-label="${l}"></div>`;
+    }).join("\n");
+
+    // Wrap the math in a div for styling and add the anchors
+    return `${anchors}\n<div class="latex-math">\n${processed}\n</div>`;
+  });
+}
+
 async function replaceMacros(text: string, opts: RenderOptions): Promise<string> {
   if (!text) return text;
   const cleaned = stripCommentLines(text);
@@ -567,7 +608,8 @@ function replaceTypography(text: string): string {
 
 export async function renderLatexText(text: string, opts: RenderOptions): Promise<string> {
   const withBlocks = await replaceBlocks(text, opts);
-  const withMacros = await replaceMacros(withBlocks, opts);
+  const withMath = replaceMathEnvironments(withBlocks, opts);
+  const withMacros = await replaceMacros(withMath, opts);
   return replaceTypography(withMacros);
 }
 
