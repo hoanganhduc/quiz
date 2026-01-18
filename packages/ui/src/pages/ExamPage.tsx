@@ -248,21 +248,21 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
 
     let timer: number | null = null;
     const resolveNumbers = () => {
-      // Find all labeled elements (figures AND equations) in order
-      const labeledElements = Array.from(document.querySelectorAll('[data-latex-type="figure"], [data-latex-type="equation"]'));
+      // Find only FIGURE elements for figure numbering (not equations)
+      // This ensures figures are numbered 1, 2, 3... independently of equations
+      const figureElements = Array.from(document.querySelectorAll('[data-latex-type="figure"]'));
       const labelToNum = new Map<string, number>();
 
-      labeledElements.forEach((el, i) => {
+      figureElements.forEach((el, i) => {
         const num = i + 1;
 
         // Primary label
         const primaryLabel = el.getAttribute("data-label");
         if (primaryLabel) labelToNum.set(primaryLabel, num);
 
-        // Map auxiliary anchors to the same number
-        // These are siblings of the element
+        // Map auxiliary anchors (siblings before this element) to the same number
         let prev = el.previousElementSibling;
-        while (prev && (prev.getAttribute("data-latex-type") === "anchor" || prev.getAttribute("data-latex-type") === "equation")) {
+        while (prev && prev.getAttribute("data-latex-type") === "anchor") {
           const aid = prev.getAttribute("data-label");
           if (aid && !labelToNum.has(aid)) labelToNum.set(aid, num);
           prev = prev.previousElementSibling;
