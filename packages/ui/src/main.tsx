@@ -12,7 +12,10 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       version={3}
       config={{
         loader: { load: ["input/tex", "output/chtml"] },
-        tex: { inlineMath: [["$", "$"], ["\\(", "\\)"]] }
+        tex: {
+          inlineMath: [["$", "$"], ["\\(", "\\)"]],
+          tags: "ams" // Enable AMS-style automatic equation numbering
+        }
       }}
     >
       <ThemeProvider>

@@ -483,15 +483,11 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
       });
     }
 
-    // Convert \\label{} to \\tag{} with a placeholder for client-side resolution
-    // The placeholder [[EQ_NUM_label]] will be replaced with sequential numbers at exam render time
-    processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, label) => {
-      const trimmedLabel = label.trim();
-      // Use a placeholder that will be resolved at client render time for per-exam numbering
-      return `\\tag{\\texttt{[[EQ_NUM_${trimmedLabel}]]}}`;
-    });
+    // Strip \\label{} commands - equation numbers will be resolved client-side
+    // The anchors with data-label are used for numbering resolution
+    processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
 
-    // Create anchor elements for all labels (for navigation)
+    // Create anchor elements for all labels (for navigation and numbering)
     const anchors = allLabels.map((l) => {
       return `<div id="fig-${l}" class="latex-anchor math-anchor" data-latex-type="equation" data-label="${l}"></div>`;
     }).join("\n");
