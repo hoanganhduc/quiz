@@ -142,12 +142,14 @@ export async function downloadSourcesToTemp(config: ResolvedSourcesConfigV1): Pr
   tempDir: string;
   texFiles: string[];
   canvasZipFiles: string[];
+  baseDirs: string[]; // Base directories containing source files (for image assets)
 }> {
   const tempDir = resolve(tmpdir(), `quiz-bank-gen-${randomUUID()}`);
   await mkdir(tempDir, { recursive: true });
 
   const texFiles: string[] = [];
   const canvasZipFiles: string[] = [];
+  const baseDirs: string[] = [];
 
   try {
     for (const source of config.sources as any[]) {
@@ -169,6 +171,9 @@ export async function downloadSourcesToTemp(config: ResolvedSourcesConfigV1): Pr
           } else {
             texFiles.push(target);
           }
+        }
+        if (format === "latex") {
+          baseDirs.push(sourceDir); // Track base dir for image assets
         }
         continue;
       }
@@ -214,9 +219,11 @@ export async function downloadSourcesToTemp(config: ResolvedSourcesConfigV1): Pr
         const found = await fg("**/*.zip", { cwd: base, absolute: true });
         canvasZipFiles.push(...found);
       } else {
-        // Extract both .tex files and image files that LaTeX might reference
+        // Extract .tex files; images are already extracted by AdmZip and will be
+        // copied to LaTeX working directory by latex-render.ts when needed
         const texFound = await fg("**/*.tex", { cwd: base, absolute: true });
         texFiles.push(...texFound);
+        baseDirs.push(base); // Track base dir for image assets
 
         // Also extract image files to maintain directory structure for \includegraphics references
         // Common LaTeX image formats: pdf, png, jpg, jpeg, eps, svg
@@ -227,7 +234,7 @@ export async function downloadSourcesToTemp(config: ResolvedSourcesConfigV1): Pr
 
     }
 
-    return { tempDir, texFiles, canvasZipFiles };
+    return { tempDir, texFiles, canvasZipFiles, baseDirs };
   } catch (err) {
     await rm(tempDir, { recursive: true, force: true });
     throw err;

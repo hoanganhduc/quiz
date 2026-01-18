@@ -623,6 +623,7 @@ async function run(): Promise<void> {
       let files: string[] = [];
       let canvasZips: string[] = [];
       let tempDir: string | null = null;
+      let baseDirs: string[] = []; // Base directories for image assets
       let cfg: any = { courseCode: "MAT3500", subject: "discrete-math", subjects: [] };
 
       try {
@@ -632,8 +633,11 @@ async function run(): Promise<void> {
           tempDir = downloaded.tempDir;
           files = downloaded.texFiles;
           canvasZips = downloaded.canvasZipFiles;
+          baseDirs = downloaded.baseDirs; // Get base directories for image assets
         } else {
           files = await fg("src/**/*.tex", { cwd: packageRoot, absolute: true });
+          // For local files, use packageRoot as base dir (images are in packageRoot/figs/, etc.)
+          baseDirs = [packageRoot];
         }
 
         const subjectsToBuild = cfg.subjects?.length
@@ -725,12 +729,12 @@ async function run(): Promise<void> {
           }
 
           if (opts.latexAssetsDir && opts.latexAssetsBase) {
-            const rendered = renderLatexAssets(publicBank, answersBank, {
+            const rendered = await renderLatexAssets(publicBank, answersBank, {
               assetsDir: resolve(opts.latexAssetsDir),
               assetsBase: opts.latexAssetsBase,
               labelData: (opts as any).labelData,
               language,
-              sourceAssetDirs: tempDir ? [tempDir] : undefined
+              sourceAssetDirs: baseDirs.length > 0 ? baseDirs : undefined
             });
             publicBank = rendered.publicBank;
             answersBank = rendered.answersBank;

@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, copyFileSync, existsSync, readFileSync, rmSync,
 import { basename, dirname, join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { spawnSync } from "node:child_process";
+import fg from "fast-glob";
 import type { BankAnswersV1, BankPublicV1, QuestionAnswersV1, QuestionPublicV1 } from "@app/shared";
 import type { LabelMap } from "./figure-labels.js";
 
@@ -205,24 +206,53 @@ function copyRecursiveSync(src: string, dest: string): void {
   }
 }
 
-function runLatexToPng(texBody: string, outputPath: string, dpi: number, initialFigureCounter?: number, sourceAssetDirs?: string[]): void {
+async function runLatexToPng(texBody: string, outputPath: string, dpi: number, initialFigureCounter?: number, sourceAssetDirs?: string[]): Promise<void> {
   const workDir = mkdtempSync(join(tmpdir(), "latex-render-"));
   const texPath = join(workDir, "snippet.tex");
   const pdfPath = join(workDir, "snippet.pdf");
   const logPath = join(workDir, "snippet.log");
 
   try {
-    // Copy source asset directories to working directory to make images available to LaTeX
+    // Parse and copy only the referenced images from sourceAssetDirs
+    let processedBody = texBody;
     if (sourceAssetDirs && sourceAssetDirs.length > 0) {
-      for (const srcDir of sourceAssetDirs) {
-        if (existsSync(srcDir)) {
-          // Copy the directory recursively, preserving structure
-          copyRecursiveSync(srcDir, workDir);
+      const graphicsRegex = /\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}/g;
+      const matches = [...texBody.matchAll(graphicsRegex)];
+
+      for (const match of matches) {
+        const imagePath = match[1];
+        const imageExtensions = ['.pdf', '.png', '.jpg', '.jpeg', '.eps', '.svg', '.PDF', '.PNG', '.JPG', '.JPEG', '.EPS', '.SVG'];
+
+        // Search recursively from each source directory using fast-glob
+        let foundFile: string | null = null;
+        for (const baseDir of sourceAssetDirs) {
+          if (!foundFile) {
+            // Try each extension - use glob pattern to search recursively
+            for (const ext of imageExtensions) {
+              const pattern = `**/${imagePath}${ext}`;
+              const results = await fg(pattern, { cwd: baseDir, absolute: true, caseSensitiveMatch: false });
+              if (results.length > 0) {
+                foundFile = results[0]; // Take the first match
+                break;
+              }
+            }
+          }
+        }
+
+        if (foundFile) {
+          // Copy the file to working directory with a simple basename
+          const destName = basename(foundFile);
+          const destPath = join(workDir, destName);
+          copyFileSync(foundFile, destPath);
+
+          // Update the LaTeX to reference the file in the working directory
+          const optionalArgs = match[0].match(/\[[^\]]*\]/)?.[0] || '';
+          processedBody = processedBody.replace(match[0], `\\includegraphics${optionalArgs}{${destName}}`);
         }
       }
     }
 
-    writeFileSync(texPath, buildTexDocument(texBody, initialFigureCounter), "utf8");
+    writeFileSync(texPath, buildTexDocument(processedBody, initialFigureCounter), "utf8");
     const latex = spawnSync(LATEX_CMD, ["-interaction=nonstopmode", "-halt-on-error", "snippet.tex"], {
       cwd: workDir,
       encoding: "utf8"
@@ -257,7 +287,7 @@ function runLatexToPng(texBody: string, outputPath: string, dpi: number, initial
   }
 }
 
-function renderBlockToImage(block: string, opts: RenderOptions): string {
+async function renderBlockToImage(block: string, opts: RenderOptions): Promise<string> {
   const normalized = normalizeBlockForRender(block);
 
   // Try to find a label or hash to sync figure number
@@ -281,7 +311,7 @@ function renderBlockToImage(block: string, opts: RenderOptions): string {
   const filename = `latex-${hash}.png`;
   const outputPath = resolve(opts.assetsDir, filename);
   if (!existsSync(outputPath)) {
-    runLatexToPng(normalized, outputPath, opts.dpi ?? 220, initialFigureCounter, opts.sourceAssetDirs);
+    await runLatexToPng(normalized, outputPath, opts.dpi ?? 220, initialFigureCounter, opts.sourceAssetDirs);
   }
   const base = normalizeAssetsBase(opts.assetsBase);
   return `${base}${filename}`;
@@ -328,14 +358,26 @@ function extractCommandContent(text: string, command: string): { content: string
   return null;
 }
 
-function replaceBlocks(text: string, opts: RenderOptions): string {
+async function replaceBlocks(text: string, opts: RenderOptions): Promise<string> {
   if (!text) return text;
   let cleaned = stripCommentLines(text);
 
-  return cleaned.replace(COMBINED_REGEX, (match, minipageMatch, blockMatch) => {
+  // Collect all matches first, then process them async
+  const matches: { match: string; index: number; minipageMatch?: string }[] = [];
+  let m;
+  const regexCopy = new RegExp(COMBINED_REGEX.source, COMBINED_REGEX.flags);
+  while ((m = regexCopy.exec(cleaned)) !== null) {
+    matches.push({ match: m[0], index: m.index, minipageMatch: m[1] });
+  }
+
+  if (matches.length === 0) return cleaned;
+
+  // Process all matches in parallel
+  const replacements = await Promise.all(matches.map(async ({ match, minipageMatch }) => {
     // If it matched the minipage pattern (Group 1), render it as an image
     if (minipageMatch) {
-      return `\\includegraphics{${renderBlockToImage(minipageMatch, opts)}}`;
+      const imgUrl = await renderBlockToImage(minipageMatch, opts);
+      return `\\includegraphics{${imgUrl}}`;
     }
 
     // If it matched the normal block pattern (Group 2)
@@ -343,7 +385,6 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
     if (!envName) return match;
 
     const isFigure = /^(figure|figwindow)$/.test(envName);
-    const isMath = /^(align|equation|gather|multline|alignat|flalign)\*?$/.test(envName);
 
     // Extract ALL labels
     const allLabels: string[] = [];
@@ -377,7 +418,7 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
         primaryLabel = allLabels[allLabels.length - 1];
       }
 
-      const imgUrl = renderBlockToImage(contentForImage, opts);
+      const imgUrl = await renderBlockToImage(contentForImage, opts);
       const hash = hashContent(match);
       const placeholderId = primaryLabel || hash;
       const figureNumberPlaceholder = `<span class="latex-fig-num" data-label="${placeholderId}">[[FIG_NUM_${placeholderId}]]</span>`;
@@ -401,17 +442,24 @@ function replaceBlocks(text: string, opts: RenderOptions): string {
     }
 
     // Generic block (math, table, algorithm, etc)
-    const imgUrl = renderBlockToImage(match, opts);
+    const imgUrl = await renderBlockToImage(match, opts);
 
     // For math environments, each label needs an anchor that is COUNTED as a figure in our global sequence
     const anchors = allLabels.map((l) => {
-      // If it's math, we want the UI to count it so labels match. 
-      // In UI logic, data-latex-type="figure" is what triggers a number assignment.
       return `<div id="fig-${l}" class="latex-anchor" data-latex-type="figure" data-label="${l}"></div>`;
     }).join("\n");
 
     return `${anchors}\n\\includegraphics{${imgUrl}}`;
-  });
+  }));
+
+  // Apply replacements in reverse order to preserve indices
+  let result = cleaned;
+  for (let i = matches.length - 1; i >= 0; i--) {
+    const { match, index } = matches[i];
+    result = result.slice(0, index) + replacements[i] + result.slice(index + match.length);
+  }
+
+  return result;
 }
 
 function replaceMacros(text: string, opts: RenderOptions): string {
@@ -484,57 +532,57 @@ function replaceTypography(text: string): string {
   return result.replace(/\$\$/g, "");
 }
 
-export function renderLatexText(text: string, opts: RenderOptions): string {
-  const withBlocks = replaceBlocks(text, opts);
+export async function renderLatexText(text: string, opts: RenderOptions): Promise<string> {
+  const withBlocks = await replaceBlocks(text, opts);
   const withMacros = replaceMacros(withBlocks, opts);
   return replaceTypography(withMacros);
 }
 
-function renderQuestionPublic(q: QuestionPublicV1, opts: RenderOptions): QuestionPublicV1 {
+async function renderQuestionPublic(q: QuestionPublicV1, opts: RenderOptions): Promise<QuestionPublicV1> {
   if (q.type === "mcq-single") {
     return {
       ...q,
-      prompt: renderLatexText(q.prompt, opts),
-      choices: q.choices.map((c) => ({ ...c, text: renderLatexText(c.text, opts) }))
+      prompt: await renderLatexText(q.prompt, opts),
+      choices: await Promise.all(q.choices.map(async (c) => ({ ...c, text: await renderLatexText(c.text, opts) })))
     };
   }
   if (q.type === "fill-blank") {
-    return { ...q, prompt: renderLatexText(q.prompt, opts) };
+    return { ...q, prompt: await renderLatexText(q.prompt, opts) };
   }
   return q;
 }
 
-function renderQuestionAnswers(q: QuestionAnswersV1, opts: RenderOptions): QuestionAnswersV1 {
+async function renderQuestionAnswers(q: QuestionAnswersV1, opts: RenderOptions): Promise<QuestionAnswersV1> {
   if (q.type === "mcq-single") {
     return {
       ...q,
-      prompt: renderLatexText(q.prompt, opts),
-      choices: q.choices.map((c) => ({ ...c, text: renderLatexText(c.text, opts) })),
-      solution: q.solution ? renderLatexText(q.solution, opts) : q.solution
+      prompt: await renderLatexText(q.prompt, opts),
+      choices: await Promise.all(q.choices.map(async (c) => ({ ...c, text: await renderLatexText(c.text, opts) }))),
+      solution: q.solution ? await renderLatexText(q.solution, opts) : q.solution
     };
   }
   if (q.type === "fill-blank") {
     return {
       ...q,
-      prompt: renderLatexText(q.prompt, opts),
-      solution: q.solution ? renderLatexText(q.solution, opts) : q.solution
+      prompt: await renderLatexText(q.prompt, opts),
+      solution: q.solution ? await renderLatexText(q.solution, opts) : q.solution
     };
   }
   return q;
 }
 
-export function renderLatexAssets(
+export async function renderLatexAssets(
   publicBank: BankPublicV1,
   answersBank: BankAnswersV1,
   opts: RenderOptions
-): { publicBank: BankPublicV1; answersBank: BankAnswersV1 } {
+): Promise<{ publicBank: BankPublicV1; answersBank: BankAnswersV1 }> {
   const nextPublic = {
     ...publicBank,
-    questions: publicBank.questions.map((q) => renderQuestionPublic(q, opts))
+    questions: await Promise.all(publicBank.questions.map((q) => renderQuestionPublic(q, opts)))
   };
   const nextAnswers = {
     ...answersBank,
-    questions: answersBank.questions.map((q) => renderQuestionAnswers(q, opts))
+    questions: await Promise.all(answersBank.questions.map((q) => renderQuestionAnswers(q, opts)))
   };
   return { publicBank: nextPublic, answersBank: nextAnswers };
 }
