@@ -433,9 +433,10 @@ async function replaceBlocks(text: string, opts: RenderOptions): Promise<string>
     // Generic block (math, table, algorithm, etc)
     const imgUrl = await renderBlockToImage(match, opts);
 
-    // For math environments, each label needs an anchor that is COUNTED as a figure in our global sequence
+    // Create anchors for labels - use "block" type so they don't count toward figure numbering
+    // Only actual <figure> elements should use data-latex-type="figure"
     const anchors = allLabels.map((l) => {
-      return `<div id="fig-${l}" class="latex-anchor" data-latex-type="figure" data-label="${l}"></div>`;
+      return `<div id="fig-${l}" class="latex-anchor" data-latex-type="block" data-label="${l}"></div>`;
     }).join("\n");
 
     return `${anchors}\n\\includegraphics{${imgUrl}}`;
