@@ -293,10 +293,44 @@ export function LatexContent({ content, inline = false, className }: Props) {
     if (!container) return;
 
     const handleClick = (e: MouseEvent) => {
-      const target = (e.target as HTMLElement).closest("a");
-      if (target && target.classList.contains("latex-ref")) {
+      const target = e.target as HTMLElement;
+
+      // Handle latex-graphic zoom
+      if (target.classList.contains("latex-graphic")) {
         e.preventDefault();
-        const href = target.getAttribute("href");
+        const imgSrc = target.getAttribute("src");
+        if (imgSrc) {
+          const overlay = document.createElement("div");
+          overlay.className = "latex-graphic-overlay";
+          overlay.setAttribute("role", "dialog");
+          overlay.setAttribute("aria-label", "Zoomed image");
+
+          const img = document.createElement("img");
+          img.src = imgSrc;
+          img.alt = "Zoomed latex graphic";
+          overlay.appendChild(img);
+
+          const closeOverlay = () => {
+            overlay.remove();
+            document.removeEventListener("keydown", handleEscape);
+          };
+
+          const handleEscape = (e: KeyboardEvent) => {
+            if (e.key === "Escape") closeOverlay();
+          };
+
+          overlay.addEventListener("click", closeOverlay);
+          document.addEventListener("keydown", handleEscape);
+          document.body.appendChild(overlay);
+        }
+        return;
+      }
+
+      // Handle latex-ref links
+      const anchor = target.closest("a");
+      if (anchor && anchor.classList.contains("latex-ref")) {
+        e.preventDefault();
+        const href = anchor.getAttribute("href");
         if (href?.startsWith("#")) {
           const id = href.slice(1);
           const element = document.getElementById(id);

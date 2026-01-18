@@ -480,7 +480,8 @@ const MATH_ENV_REGEX = /\\begin\{(align|align\*|equation|equation\*|gather|gathe
 
 /**
  * Process math environments for MathJax rendering:
- * - Resolve \ref{} to actual numbers
+ * - Resolve \\ref{} to actual numbers
+ * - Convert \\label{} to \\tag{} for equation numbering
  * - Add anchor elements for labels
  * - Preserve LaTeX code as-is for MathJax
  */
@@ -496,7 +497,7 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
       allLabels.push(lMatch[1].trim());
     }
 
-    // Resolve \ref{} commands to actual numbers
+    // Resolve \\ref{} commands to actual numbers
     let processed = match;
     if (opts.labelData) {
       processed = processed.replace(/\\ref\{([^}]+)\}/g, (_m, refLabel) => {
@@ -506,9 +507,21 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
       });
     }
 
-    // Strip \label{} commands - MathJax will auto-number equations
-    // We use anchor divs for navigation instead
-    processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+    // Convert \\label{} to \\tag{} with the resolved number for equation numbering
+    // This allows MathJax to display equation numbers correctly
+    if (opts.labelData) {
+      processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, label) => {
+        const trimmedLabel = label.trim();
+        const eqNumber = opts.labelData?.labels.get(trimmedLabel);
+        if (eqNumber) {
+          return `\\tag{${eqNumber}}`;
+        }
+        return ""; // Remove label if no number found
+      });
+    } else {
+      // No label data, just strip labels
+      processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+    }
 
     // Create anchor elements for all labels (for navigation)
     const anchors = allLabels.map((l) => {
