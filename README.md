@@ -9,6 +9,36 @@ This repo hosts the quiz app (UI + Worker) plus tooling for LaTeX and Canvas QTI
 - `packages/shared`: shared types + import/export toolchain
 - `packages/bank-gen`: LaTeX bank generator for CI
 
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/latex-rendering.md](docs/latex-rendering.md) | LaTeX rendering guide (MathJax, images, references) |
+| [docs/import-export.md](docs/import-export.md) | Canvas/LaTeX import/export tooling |
+| [docs/sources-admin.md](docs/sources-admin.md) | Sources & secrets management (Admin UI) |
+| [docs/source-ci-setup.md](docs/source-ci-setup.md) | CI workflow for bank generation |
+| [docs/user-guide.md](docs/user-guide.md) | Student guide for taking exams |
+
+## Bank Generation (bank-gen)
+
+The `bank-gen` package processes LaTeX source files into question banks.
+
+### Features
+
+- **TikZ/Figure/Table** → Rendered as PNG images
+- **Math environments** (align, equation) → Preserved for MathJax
+- **References** (`\ref{}`) → Resolved to sequential numbers
+- **Image handling** → Automatic discovery and copying of `\includegraphics` assets
+
+### Quick Usage
+
+```bash
+cd packages/bank-gen
+npx tsx src/index.ts --latex-assets-dir ./output/latex --latex-assets-base /quiz/latex/
+```
+
+See [docs/latex-rendering.md](docs/latex-rendering.md) for full documentation.
+
 ## Import/Export
 
 The import/export toolchain lives in `@app/shared/importers` and supports:
@@ -17,7 +47,7 @@ The import/export toolchain lives in `@app/shared/importers` and supports:
 - LaTeX question bank <-> app JSON schema (+ AnswerKey)
 - Direct converters (Canvas <-> LaTeX) composed from the above
 
-See `docs/import-export.md` for full usage, CLI examples, and the Admin “Extra tools” GUI flow. Importers are exposed from `@app/shared/importers` (not the main `@app/shared` entrypoint).
+See `docs/import-export.md` for full usage, CLI examples, and the Admin "Extra tools" GUI flow. Importers are exposed from `@app/shared/importers` (not the main `@app/shared` entrypoint).
 
 ## Quick CLI
 
