@@ -505,8 +505,23 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
         return refNumber || "??";
       });
 
+      // For MathJax compatibility with multiple tags:
+      // 1. Convert non-starred environments to starred (disables auto-numbering)
+      // 2. Replace \label{eq:x} with \tag{N} for custom numbering per line
+      const isStarred = envName.endsWith('*');
+      if (!isStarred) {
+        // Convert to starred version to disable auto-numbering
+        processed = processed.replace(
+          new RegExp(`\\\\begin\\{${envName}\\}`),
+          `\\begin{${envName}*}`
+        );
+        processed = processed.replace(
+          new RegExp(`\\\\end\\{${envName}\\}`),
+          `\\end{${envName}*}`
+        );
+      }
+
       // Replace \label{eq:x} with \tag{N} so MathJax displays consistent equation numbers
-      // This makes the displayed number match our \ref{} references
       processed = processed.replace(/\\label\s*\{([^}]+)\}/g, (_m, labelName) => {
         const trimmedLabel = labelName.trim();
         const eqNumber = opts.labelData?.labels.get(trimmedLabel);
