@@ -180,14 +180,14 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     return value.replace(/\\tag\{[^}]*\}/g, "");
   };
 
-  type EquationMeta = { count: number; labels: [string, number][] };
+  type EquationMeta = { count: number };
 
   const parseEquationMeta = (raw: string): EquationMeta | null => {
     if (!raw) return null;
     const envMatch = raw.match(/\\begin\{([a-zA-Z*]+)\}/);
     if (!envMatch) return null;
     const envName = envMatch[1];
-    if (envName.endsWith("*")) return { count: 0, labels: [] };
+    if (envName.endsWith("*")) return { count: 0 };
 
     const baseEnv = envName.replace(/\*$/, "");
     const beginToken = `\\begin{${envName}}`;
@@ -198,29 +198,14 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
       ? raw.slice(start + beginToken.length, end)
       : raw;
 
-    const labelOffsets = new Map<string, number>();
     const hasNoNumber = (text: string) => /\\(?:notag|nonumber)\b/.test(text);
-    const extractLabels = (text: string) => {
-      const labels: string[] = [];
-      const labelRegex = /\\label\s*\{([^}]+)\}/g;
-      let match;
-      while ((match = labelRegex.exec(text)) !== null) {
-        labels.push(match[1].trim());
-      }
-      return labels;
-    };
 
     const singleNumberEnvs = new Set(["equation", "multline"]);
     const lineNumberEnvs = new Set(["align", "alignat", "flalign", "gather"]);
 
     if (singleNumberEnvs.has(baseEnv)) {
       const count = hasNoNumber(body) ? 0 : 1;
-      if (count > 0) {
-        for (const label of extractLabels(body)) {
-          labelOffsets.set(label, 1);
-        }
-      }
-      return { count, labels: Array.from(labelOffsets.entries()) };
+      return { count };
     }
 
     if (lineNumberEnvs.has(baseEnv)) {
@@ -229,14 +214,8 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
       for (const line of lines) {
         const skip = hasNoNumber(line);
         if (!skip) numberedLine += 1;
-        const labels = extractLabels(line);
-        if (!skip && numberedLine > 0) {
-          for (const label of labels) {
-            labelOffsets.set(label, numberedLine);
-          }
-        }
       }
-      return { count: numberedLine, labels: Array.from(labelOffsets.entries()) };
+      return { count: numberedLine };
     }
 
     return null;
@@ -406,9 +385,28 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         const meta = getEquationMeta(block);
         if (!meta || meta.count <= 0) return;
         const base = eqCounter;
-        for (const [label, offset] of meta.labels) {
-          eqLabelToNum.set(label, base + offset);
+
+        const labels: string[] = [];
+        let prev = block.previousElementSibling as HTMLElement | null;
+        while (prev && prev.getAttribute("data-latex-type") === "equation") {
+          const label = prev.getAttribute("data-label");
+          if (label) labels.push(label);
+          prev = prev.previousElementSibling as HTMLElement | null;
         }
+        labels.reverse();
+
+        if (labels.length > 0) {
+          if (meta.count <= 1) {
+            const num = base + 1;
+            labels.forEach((label) => eqLabelToNum.set(label, num));
+          } else {
+            labels.forEach((label, i) => {
+              const offset = Math.min(i + 1, meta.count);
+              eqLabelToNum.set(label, base + offset);
+            });
+          }
+        }
+
         eqCounter = base + meta.count;
       });
 
@@ -422,7 +420,9 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         const label = target.getAttribute("data-label");
         if (!label) return;
         const num = eqLabelToNum.get(label);
-        ref.textContent = num !== undefined ? String(num) : "?";
+        if (num !== undefined) {
+          ref.textContent = String(num);
+        }
       });
     };
 
