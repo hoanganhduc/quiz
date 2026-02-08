@@ -221,22 +221,47 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     return null;
   };
 
-  const getEquationMeta = (block: HTMLElement): EquationMeta | null => {
-    const cached = block.getAttribute("data-eq-meta");
-    if (cached) {
-      try {
-        const parsed = JSON.parse(cached) as EquationMeta;
-        if (typeof parsed.count === "number") return parsed;
-      } catch {
-        // fall through to recompute
+  const collectEquationLabelsFromHtml = (html: string, startCounter: number, map: Map<string, number>): number => {
+    if (!html) return startCounter;
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const ordered = Array.from(
+      container.querySelectorAll<HTMLElement>('.latex-anchor[data-latex-type="equation"], .latex-math')
+    );
+    let pendingLabels: string[] = [];
+    let eqCounter = startCounter;
+
+    ordered.forEach((el) => {
+      if (el.classList.contains("latex-math")) {
+        const meta = parseEquationMeta(el.textContent ?? "");
+        if (!meta || meta.count <= 0) {
+          pendingLabels = [];
+          return;
+        }
+        const base = eqCounter;
+        if (pendingLabels.length > 0) {
+          if (meta.count <= 1) {
+            const num = base + 1;
+            pendingLabels.forEach((label) => {
+              if (!map.has(label)) map.set(label, num);
+            });
+          } else {
+            pendingLabels.forEach((label, i) => {
+              const offset = Math.min(i + 1, meta.count);
+              if (!map.has(label)) map.set(label, base + offset);
+            });
+          }
+        }
+        eqCounter = base + meta.count;
+        pendingLabels = [];
+        return;
       }
-    }
-    const raw = block.textContent ?? "";
-    const meta = parseEquationMeta(raw);
-    if (meta) {
-      block.setAttribute("data-eq-meta", JSON.stringify(meta));
-    }
-    return meta;
+
+      const label = el.getAttribute("data-label");
+      if (label) pendingLabels.push(label);
+    });
+
+    return eqCounter;
   };
 
   const stripEquationTagsFromQuestion = (question: ExamBankQuestion): ExamBankQuestion => {
@@ -377,66 +402,22 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
       });
 
       // Resolve equation refs to match MathJax numbering (per exam).
-      const mathBlocks = Array.from(document.querySelectorAll<HTMLElement>(".latex-math"));
       const eqLabelToNum = new Map<string, number>();
       let eqCounter = 0;
-
-      mathBlocks.forEach((block) => {
-        const meta = getEquationMeta(block);
-        if (!meta || meta.count <= 0) return;
-        const base = eqCounter;
-
-        const labels: string[] = [];
-        let prev: ChildNode | null = block.previousSibling;
-        while (prev) {
-          if (prev.nodeType === Node.ELEMENT_NODE) {
-            const el = prev as HTMLElement;
-            if (el.getAttribute("data-latex-type") === "equation") {
-              const label = el.getAttribute("data-label");
-              if (label) labels.push(label);
-              prev = el.previousSibling;
-              continue;
-            }
-            if (el.tagName === "BR") {
-              prev = el.previousSibling;
-              continue;
-            }
-            break;
-          }
-          if (prev.nodeType === Node.TEXT_NODE) {
-            if (!prev.textContent || prev.textContent.trim() === "") {
-              prev = prev.previousSibling;
-              continue;
-            }
-            break;
-          }
-          prev = prev.previousSibling;
+      bank.questions.forEach((q) => {
+        eqCounter = collectEquationLabelsFromHtml(q.prompt, eqCounter, eqLabelToNum);
+        if (q.type === "mcq-single") {
+          q.choices.forEach((c) => {
+            eqCounter = collectEquationLabelsFromHtml(c.text, eqCounter, eqLabelToNum);
+          });
         }
-        labels.reverse();
-
-        if (labels.length > 0) {
-          if (meta.count <= 1) {
-            const num = base + 1;
-            labels.forEach((label) => eqLabelToNum.set(label, num));
-          } else {
-            labels.forEach((label, i) => {
-              const offset = Math.min(i + 1, meta.count);
-              eqLabelToNum.set(label, base + offset);
-            });
-          }
-        }
-
-        eqCounter = base + meta.count;
       });
 
       const refs = Array.from(document.querySelectorAll("a.latex-ref"));
       refs.forEach((ref) => {
         const href = ref.getAttribute("href");
-        if (!href || !href.startsWith("#")) return;
-        const target = document.getElementById(href.slice(1));
-        if (!target) return;
-        if (target.getAttribute("data-latex-type") !== "equation") return;
-        const label = target.getAttribute("data-label");
+        if (!href || !href.startsWith("#fig-")) return;
+        const label = href.slice("#fig-".length);
         if (!label) return;
         const num = eqLabelToNum.get(label);
         if (num !== undefined) {
