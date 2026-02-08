@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  ExamBankQuestion,
   ExamBankResponse,
   ExamConfigResponse,
   Session,
@@ -174,6 +175,119 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
   };
 
+  const stripEquationTags = (value?: string): string | undefined => {
+    if (!value) return value;
+    return value.replace(/\\tag\{[^}]*\}/g, "");
+  };
+
+  type EquationMeta = { count: number; labels: [string, number][] };
+
+  const parseEquationMeta = (raw: string): EquationMeta | null => {
+    if (!raw) return null;
+    const envMatch = raw.match(/\\begin\{([a-zA-Z*]+)\}/);
+    if (!envMatch) return null;
+    const envName = envMatch[1];
+    if (envName.endsWith("*")) return { count: 0, labels: [] };
+
+    const baseEnv = envName.replace(/\*$/, "");
+    const beginToken = `\\begin{${envName}}`;
+    const endToken = `\\end{${envName}}`;
+    const start = raw.indexOf(beginToken);
+    const end = raw.lastIndexOf(endToken);
+    const body = start !== -1 && end !== -1 && end > start
+      ? raw.slice(start + beginToken.length, end)
+      : raw;
+
+    const labelOffsets = new Map<string, number>();
+    const hasNoNumber = (text: string) => /\\(?:notag|nonumber)\b/.test(text);
+    const extractLabels = (text: string) => {
+      const labels: string[] = [];
+      const labelRegex = /\\label\s*\{([^}]+)\}/g;
+      let match;
+      while ((match = labelRegex.exec(text)) !== null) {
+        labels.push(match[1].trim());
+      }
+      return labels;
+    };
+
+    const singleNumberEnvs = new Set(["equation", "multline"]);
+    const lineNumberEnvs = new Set(["align", "alignat", "flalign", "gather"]);
+
+    if (singleNumberEnvs.has(baseEnv)) {
+      const count = hasNoNumber(body) ? 0 : 1;
+      if (count > 0) {
+        for (const label of extractLabels(body)) {
+          labelOffsets.set(label, 1);
+        }
+      }
+      return { count, labels: Array.from(labelOffsets.entries()) };
+    }
+
+    if (lineNumberEnvs.has(baseEnv)) {
+      const lines = body.split(/\\\\(?:\[[^\]]*\])?/);
+      let numberedLine = 0;
+      for (const line of lines) {
+        const skip = hasNoNumber(line);
+        if (!skip) numberedLine += 1;
+        const labels = extractLabels(line);
+        if (!skip && numberedLine > 0) {
+          for (const label of labels) {
+            labelOffsets.set(label, numberedLine);
+          }
+        }
+      }
+      return { count: numberedLine, labels: Array.from(labelOffsets.entries()) };
+    }
+
+    return null;
+  };
+
+  const getEquationMeta = (block: HTMLElement): EquationMeta | null => {
+    const cached = block.getAttribute("data-eq-meta");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached) as EquationMeta;
+        if (typeof parsed.count === "number" && Array.isArray(parsed.labels)) return parsed;
+      } catch {
+        // fall through to recompute
+      }
+    }
+    const raw = block.textContent ?? "";
+    const meta = parseEquationMeta(raw);
+    if (meta) {
+      block.setAttribute("data-eq-meta", JSON.stringify(meta));
+    }
+    return meta;
+  };
+
+  const stripEquationTagsFromQuestion = (question: ExamBankQuestion): ExamBankQuestion => {
+    if (question.type === "mcq-single") {
+      const next: any = {
+        ...question,
+        prompt: stripEquationTags(question.prompt),
+        choices: question.choices.map((c) => ({
+          ...c,
+          text: stripEquationTags(c.text) ?? c.text
+        }))
+      };
+      if ("solution" in question && question.solution) {
+        next.solution = stripEquationTags(question.solution);
+      }
+      return next;
+    }
+    if (question.type === "fill-blank") {
+      const next: any = {
+        ...question,
+        prompt: stripEquationTags(question.prompt)
+      };
+      if ("solution" in question && question.solution) {
+        next.solution = stripEquationTags(question.solution);
+      }
+      return next;
+    }
+    return question;
+  };
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -283,8 +397,33 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         }
       });
 
-      // Note: Equation numbering is now handled by MathJax with tags: 'ams'
-      // which auto-numbers equations in align, equation, etc. environments
+      // Resolve equation refs to match MathJax numbering (per exam).
+      const mathBlocks = Array.from(document.querySelectorAll<HTMLElement>(".latex-math"));
+      const eqLabelToNum = new Map<string, number>();
+      let eqCounter = 0;
+
+      mathBlocks.forEach((block) => {
+        const meta = getEquationMeta(block);
+        if (!meta || meta.count <= 0) return;
+        const base = eqCounter;
+        for (const [label, offset] of meta.labels) {
+          eqLabelToNum.set(label, base + offset);
+        }
+        eqCounter = base + meta.count;
+      });
+
+      const refs = Array.from(document.querySelectorAll("a.latex-ref"));
+      refs.forEach((ref) => {
+        const href = ref.getAttribute("href");
+        if (!href || !href.startsWith("#")) return;
+        const target = document.getElementById(href.slice(1));
+        if (!target) return;
+        if (target.getAttribute("data-latex-type") !== "equation") return;
+        const label = target.getAttribute("data-label");
+        if (!label) return;
+        const num = eqLabelToNum.get(label);
+        ref.textContent = num !== undefined ? String(num) : "?";
+      });
     };
 
     const debouncedResolve = () => {
@@ -362,7 +501,11 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         MathJax.typesetClear();
       }
 
-      setBank(data);
+      const normalized = {
+        ...data,
+        questions: data.questions.map(stripEquationTagsFromQuestion)
+      };
+      setBank(normalized);
       sessionStorage.setItem(`exam:autoLoad:${examId}`, "1");
     } catch (err: any) {
       const msg = err?.message ?? "Failed to load questions";
