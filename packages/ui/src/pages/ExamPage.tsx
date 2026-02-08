@@ -226,7 +226,7 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
     if (cached) {
       try {
         const parsed = JSON.parse(cached) as EquationMeta;
-        if (typeof parsed.count === "number" && Array.isArray(parsed.labels)) return parsed;
+        if (typeof parsed.count === "number") return parsed;
       } catch {
         // fall through to recompute
       }
