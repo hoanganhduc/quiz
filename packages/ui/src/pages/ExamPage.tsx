@@ -387,11 +387,30 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         const base = eqCounter;
 
         const labels: string[] = [];
-        let prev = block.previousElementSibling as HTMLElement | null;
-        while (prev && prev.getAttribute("data-latex-type") === "equation") {
-          const label = prev.getAttribute("data-label");
-          if (label) labels.push(label);
-          prev = prev.previousElementSibling as HTMLElement | null;
+        let prev: ChildNode | null = block.previousSibling;
+        while (prev) {
+          if (prev.nodeType === Node.ELEMENT_NODE) {
+            const el = prev as HTMLElement;
+            if (el.getAttribute("data-latex-type") === "equation") {
+              const label = el.getAttribute("data-label");
+              if (label) labels.push(label);
+              prev = el.previousSibling;
+              continue;
+            }
+            if (el.tagName === "BR") {
+              prev = el.previousSibling;
+              continue;
+            }
+            break;
+          }
+          if (prev.nodeType === Node.TEXT_NODE) {
+            if (!prev.textContent || prev.textContent.trim() === "") {
+              prev = prev.previousSibling;
+              continue;
+            }
+            break;
+          }
+          prev = prev.previousSibling;
         }
         labels.reverse();
 
