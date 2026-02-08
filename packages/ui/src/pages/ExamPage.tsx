@@ -5,7 +5,6 @@ import {
   ExamBankResponse,
   ExamConfigResponse,
   Session,
-  SessionUser,
   getExamBank,
   getExamConfig,
   getSession,
@@ -21,11 +20,9 @@ import { Card } from "../components/ui/Card";
 import { Accordion } from "../components/ui/Accordion";
 import { Alert } from "../components/ui/Alert";
 import { Button } from "../components/ui/Button";
-import { ProgressBar } from "../components/ui/ProgressBar";
 import { Badge } from "../components/ui/Badge";
 import { McqQuestion } from "../components/McqQuestion";
 import { FillBlankQuestion } from "../components/FillBlankQuestion";
-import { FloatingActionBar, FloatingActionsRow, FloatingPrimaryButton } from "../components/ui/FloatingActionBar";
 import { StepIndicator, type Step } from "../components/ui/StepIndicator";
 import { PageShell } from "../components/layout/PageShell";
 import { LatexContent } from "../components/LatexContent";
@@ -401,7 +398,8 @@ export function ExamPage({ session, setSession }: { session: Session | null; set
         }
       });
 
-      // Resolve equation refs to match MathJax numbering (per exam).
+      // Resolve equation refs to match per-exam MathJax numbering.
+      // Bank-gen pre-resolves refs globally, so we recompute from the exam HTML order here.
       const eqLabelToNum = new Map<string, number>();
       let eqCounter = 0;
       bank.questions.forEach((q) => {
