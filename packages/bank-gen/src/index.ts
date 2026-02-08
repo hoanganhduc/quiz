@@ -739,7 +739,8 @@ async function run(): Promise<void> {
 
             // Then apply figure reference HTML links (after LaTeX rendering is done)
             const storedLabelData = (opts as any).labelData as LabelMap | undefined;
-            const applyRefs = (text: string) => replaceFigureReferences(text, storedLabelData?.labels ?? new Map(), language);
+            const applyRefs = (text: string) =>
+              replaceFigureReferences(text, storedLabelData?.labels ?? new Map(), language, storedLabelData?.kinds);
 
             publicBank = {
               ...rendered.publicBank,

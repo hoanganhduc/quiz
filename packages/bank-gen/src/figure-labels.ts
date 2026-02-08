@@ -5,7 +5,10 @@ import { COMBINED_REGEX } from "./latex-render-regex.js";
 export type LabelMap = {
   labels: Map<string, string>;
   hashes: Map<string, string>;
+  kinds: Map<string, LabelKind>;
 };
+
+export type LabelKind = "figure" | "table" | "equation" | "block";
 
 const LABEL_REGEX = /\\label\s*\{([^}]+)\}/g;
 
@@ -24,6 +27,7 @@ function hashContent(content: string): string {
 export function collectSequentialLabels(contents: string[]): LabelMap {
   const labelMap = new Map<string, string>();
   const hashMap = new Map<string, string>();
+  const kindMap = new Map<string, LabelKind>();
 
   let globalCounter = 0;
 
@@ -46,6 +50,7 @@ export function collectSequentialLabels(contents: string[]): LabelMap {
         LABEL_REGEX.lastIndex = 0;
         while ((labelMatch = LABEL_REGEX.exec(minipageMatch)) !== null) {
           labelMap.set(labelMatch[1].trim(), numStr);
+          kindMap.set(labelMatch[1].trim(), "block");
         }
       } else if (blockMatch) {
         const isMath = /^(align|equation|gather|multline|alignat|flalign)\*?$/.test(envName);
@@ -56,7 +61,9 @@ export function collectSequentialLabels(contents: string[]): LabelMap {
           LABEL_REGEX.lastIndex = 0;
           while ((labelMatch = LABEL_REGEX.exec(blockMatch)) !== null) {
             globalCounter++;
-            labelMap.set(labelMatch[1].trim(), globalCounter.toString());
+            const label = labelMatch[1].trim();
+            labelMap.set(label, globalCounter.toString());
+            kindMap.set(label, "equation");
           }
           // Also set hash for the block itself, mapping to the FIRST label's number or current counter
           const hash = hashContent(blockMatch);
@@ -68,23 +75,29 @@ export function collectSequentialLabels(contents: string[]): LabelMap {
           const hash = hashContent(blockMatch);
           hashMap.set(hash, numStr);
 
+          const kind: LabelKind =
+            /^(figure|figwindow)$/.test(envName) ? "figure" : /^(table|tabular|tabwindow)$/.test(envName) ? "table" : "block";
+
           let labelMatch;
           LABEL_REGEX.lastIndex = 0;
           while ((labelMatch = LABEL_REGEX.exec(blockMatch)) !== null) {
-            labelMap.set(labelMatch[1].trim(), numStr);
+            const label = labelMatch[1].trim();
+            labelMap.set(label, numStr);
+            kindMap.set(label, kind);
           }
         }
       }
     }
   }
 
-  return { labels: labelMap, hashes: hashMap };
+  return { labels: labelMap, hashes: hashMap, kinds: kindMap };
 }
 
 export function replaceFigureReferences(
   text: string,
-  _labelNumbers: Map<string, string>,
-  language: "en" | "vi" = "vi"
+  labelNumbers: Map<string, string>,
+  language: "en" | "vi" = "vi",
+  labelKinds?: Map<string, LabelKind>
 ): string {
   if (!text) return text;
 
@@ -95,7 +108,19 @@ export function replaceFigureReferences(
   // We now output a placeholder wrapped in a span which the UI will resolve.
   return text.replace(/(\\figurename|\\tablename)?\s*~?\s*\\ref\{([^}]+)\}/g, (match, prefix, label) => {
     const trimmedLabel = label.trim();
+    const kind = labelKinds?.get(trimmedLabel);
+    const resolvedNum = labelNumbers.get(trimmedLabel);
     const placeholder = `<span class="latex-fig-num" data-label="${trimmedLabel}">[[FIG_NUM_${trimmedLabel}]]</span>`;
+
+    // If this is an equation/table/block ref, resolve immediately to avoid UI figure numbering.
+    if (!prefix && kind && kind !== "figure") {
+      const display = resolvedNum ?? "?";
+      return `<a href="#fig-${trimmedLabel}" class="latex-ref">${display}</a>`;
+    }
+    if (prefix === "\\tablename" && kind && kind !== "figure") {
+      const display = resolvedNum ?? "?";
+      return `<a href="#fig-${trimmedLabel}" class="latex-ref">${tableName} ${display}</a>`;
+    }
 
     if (prefix) {
       // Has \figurename or \tablename prefix - show as "Figure N" or "Hình N" etc.

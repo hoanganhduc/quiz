@@ -484,9 +484,18 @@ function replaceMathEnvironments(text: string, opts: RenderOptions): string {
       });
     }
 
-    // Strip \\label{} commands - equation numbers will be resolved client-side
-    // The anchors with data-label are used for numbering resolution
-    processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+    // Convert \\label{} to \\tag{} so MathJax displays the intended numbers
+    // If label data is missing, strip labels to avoid raw \label in output.
+    if (opts.labelData) {
+      const LABEL_SWAP = /\\label\s*\{([^}]+)\}/g;
+      processed = processed.replace(LABEL_SWAP, (_m, label) => {
+        const trimmed = String(label).trim();
+        const num = opts.labelData?.labels.get(trimmed);
+        return num ? `\\tag{${num}}` : "";
+      });
+    } else {
+      processed = processed.replace(/\\label\s*\{[^}]+\}/g, "");
+    }
 
     // Create anchor elements for all labels (for navigation and numbering)
     const anchors = allLabels.map((l) => {
