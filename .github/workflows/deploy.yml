@@ -151,6 +151,9 @@ jobs:
           if [ "${{ github.event.inputs.force_regen }}" = "true" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "Force regeneration requested."
+          elif [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Non-scheduled run; regenerating banks to keep latex assets published."
           elif [ "$PREV" = "${{ steps.sources_hash.outputs.hash }}" ]; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             echo "Sources unchanged; skipping bank generation."
@@ -259,11 +262,13 @@ jobs:
               rm -f sources.hash'
 
       - name: Upload Pages artifact
+        if: steps.sources_compare.outputs.changed == 'true'
         uses: actions/upload-pages-artifact@v3
         with:
           path: packages/ui/dist
 
       - name: Deploy to GitHub Pages
+        if: steps.sources_compare.outputs.changed == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
 
